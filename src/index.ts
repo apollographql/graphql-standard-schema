@@ -3,6 +3,7 @@ import {
   type DocumentNode,
   execute,
   type FormattedExecutionResult,
+  type FragmentDefinitionNode,
   GraphQLBoolean,
   GraphQLFloat,
   GraphQLInt,
@@ -10,6 +11,8 @@ import {
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
+  Kind,
+  OperationTypeNode,
 } from "graphql";
 import type { StandardSchemaV1 } from "./standard-schema-spec.ts";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
@@ -63,13 +66,13 @@ export class GraphQLStandardSchemaGenerator {
               // were returned by the AI.
               let returnType = info.returnType;
               let isNonNull = false;
-              
+
               // Check if it's a non-null type
               if (returnType instanceof GraphQLNonNull) {
                 isNonNull = true;
                 returnType = returnType.ofType;
               }
-              
+
               // Handle null values
               if (value === null) {
                 if (isNonNull) {
@@ -79,7 +82,7 @@ export class GraphQLStandardSchemaGenerator {
                 }
                 return null; // Null is valid for nullable fields
               }
-              
+
               // Validate scalar types
               if (returnType instanceof GraphQLScalarType) {
                 switch (returnType.name) {
@@ -154,6 +157,60 @@ export class GraphQLStandardSchemaGenerator {
         version: 1,
       },
     };
+  }
+
+  getFragmentSchema<TData>(
+    document: TypedDocumentNode<TData>,
+    {
+      fragmentName,
+    }: {
+      fragmentName?: string;
+    } = {}
+  ): StandardSchemaV1.WithJSONSchemaSource<TData, TData> {
+    if (
+      !document.definitions.every((def) => def.kind === "FragmentDefinition")
+    ) {
+      throw new Error("Document must only contain fragment definitions");
+    }
+    const fragments = document.definitions as FragmentDefinitionNode[];
+
+    if (fragments.length === 0) {
+      throw new Error("No fragments found in document");
+    }
+    if (fragments.length > 1 && !fragmentName) {
+      throw new Error(
+        "Multiple fragments found, please specify a fragmentName"
+      );
+    }
+    const fragment = fragments.find((def) =>
+      fragmentName ? def.name.value === fragmentName : true
+    );
+    if (!fragment) {
+      throw new Error(
+        `Fragment with name ${fragmentName} not found in document`
+      );
+    }
+    const queryDocument: TypedDocumentNode<TData> = {
+      ...document,
+      definitions: [
+        ...fragments,
+        {
+          kind: Kind.OPERATION_DEFINITION,
+          operation: OperationTypeNode.QUERY,
+          name: { kind: Kind.NAME, value: "FragmentQuery" },
+          selectionSet: {
+            kind: Kind.SELECTION_SET,
+            selections: [
+              {
+                kind: Kind.FRAGMENT_SPREAD,
+                name: { kind: Kind.NAME, value: fragment.name.value },
+              },
+            ],
+          },
+        },
+      ],
+    };
+    return this.getDataSchema<TData>(queryDocument);
   }
 }
 

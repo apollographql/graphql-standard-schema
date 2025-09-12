@@ -58,6 +58,54 @@ const result = validateInput(dataSchema, {
 const result = validateInput(dataSchema, {
   hello: 1,
 });
+
+// or create a schema for validating GraphQL fragments
+const fragmentSchema = generator.getFragmentSchema(gql`
+  fragment UserDetails on Query {
+    id
+    name
+    email
+  }
+`);
+
+// valid
+const result = validateInput(fragmentSchema, {
+  id: 123,
+  name: "Alice",
+  email: "alice@example.com",
+});
+
+// When you have multiple fragments, specify which one to use
+const multiFragmentSchema = generator.getFragmentSchema(
+  gql`
+    fragment UserBasic on Query {
+      id
+      name
+    }
+    
+    fragment UserFull on Query {
+      id
+      name
+      email
+      profile {
+        bio
+        avatar
+      }
+    }
+  `,
+  { fragmentName: "UserFull" }
+);
+
+// valid - validates against the UserFull fragment
+const result = validateInput(multiFragmentSchema, {
+  id: 123,
+  name: "Alice",
+  email: "alice@example.com",
+  profile: {
+    bio: "Software developer",
+    avatar: "avatar.jpg",
+  },
+});
 ```
 
 with `validateInput` being a standard schema validation function, like
