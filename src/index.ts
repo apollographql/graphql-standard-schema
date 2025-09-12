@@ -6,6 +6,7 @@ import {
   GraphQLBoolean,
   GraphQLFloat,
   GraphQLInt,
+  GraphQLNonNull,
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
@@ -60,34 +61,53 @@ export class GraphQLStandardSchemaGenerator {
 
               // We use field resolvers to be more strict with the value types that
               // were returned by the AI.
-              const returnType = info.returnType;
+              let returnType = info.returnType;
+              let isNonNull = false;
+              
+              // Check if it's a non-null type
+              if (returnType instanceof GraphQLNonNull) {
+                isNonNull = true;
+                returnType = returnType.ofType;
+              }
+              
+              // Handle null values
+              if (value === null) {
+                if (isNonNull) {
+                  throw new TypeError(
+                    `Non-nullable field ${info.fieldName} cannot be null`
+                  );
+                }
+                return null; // Null is valid for nullable fields
+              }
+              
+              // Validate scalar types
               if (returnType instanceof GraphQLScalarType) {
                 switch (returnType.name) {
                   case GraphQLString.name:
                     if (typeof value !== "string") {
                       throw new TypeError(
-                        `Value for scalar type ${GraphQLScalarType.name} is not string: ${value}`
+                        `Value for scalar type ${returnType.name} is not string: ${value}`
                       );
                     }
                     break;
                   case GraphQLFloat.name:
                     if (typeof value !== "number") {
                       throw new TypeError(
-                        `Value for scalar type ${GraphQLScalarType.name} is not number: ${value}`
+                        `Value for scalar type ${returnType.name} is not number: ${value}`
                       );
                     }
                     break;
                   case GraphQLInt.name:
                     if (typeof value !== "number") {
                       throw new TypeError(
-                        `Value for scalar type ${GraphQLScalarType.name} is not number: ${value}`
+                        `Value for scalar type ${returnType.name} is not number: ${value}`
                       );
                     }
                     break;
                   case GraphQLBoolean.name:
                     if (typeof value !== "boolean") {
                       throw new TypeError(
-                        `Value for scalar type ${GraphQLScalarType.name} is not boolean: ${value}`
+                        `Value for scalar type ${returnType.name} is not boolean: ${value}`
                       );
                     }
                     break;
