@@ -1,0 +1,43 @@
+{
+  "name": "@apollo/graphql-standard-schema",
+  "version": "0.0.1",
+  "repository": {
+    "url": "git+https://github.com/graphql-standard-schema"
+  },
+  "keywords": [
+    "graphql",
+    "standard-schema"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "typings": "./dist/index.d.ts",
+  "author": "packages@apollographql.com",
+  "license": "MIT",
+  "files": [
+    "dist/",
+    "package.json",
+    "LICENSE.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "echo TODO",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {},
+  "dependencies": {
+    "@graphql-typed-document-node/core": "^3.2.0",
+    "graphql": "^16.11.0"
+  }
+}
