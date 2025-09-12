@@ -5,7 +5,9 @@
     "rewriteRelativeImportExtensions": true,
     "resolveJsonModule": true,
     "erasableSyntaxOnly": true,
-    "types": [],
+    "types": [
+      "node"
+    ],
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
