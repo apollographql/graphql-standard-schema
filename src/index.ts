@@ -8,14 +8,29 @@ import {
   GraphQLFloat,
   GraphQLInt,
   GraphQLNonNull,
+  GraphQLObjectType,
+  type GraphQLOutputType,
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
+  type GraphQLType,
+  isEnumType,
+  isInterfaceType,
+  isListType,
+  isNonNullType,
+  isNullableType,
+  isObjectType,
+  isScalarType,
+  isUnionType,
   Kind,
+  type OperationDefinitionNode,
   OperationTypeNode,
+  parse,
+  type SelectionSetNode,
 } from "graphql";
 import type { StandardSchemaV1 } from "./standard-schema-spec.ts";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
+import type { JSONSchema } from "json-schema-typed/draft-2020-12";
 
 export namespace GraphQLStandardSchemaGenerator {
   export interface Options {
@@ -44,14 +59,27 @@ export class GraphQLStandardSchemaGenerator {
     document: TypedDocumentNode<TData>
   ): StandardSchemaV1.WithJSONSchemaSource<TData, TData> {
     const schema = this.schema;
+    const definitions = document.definitions.filter(
+      (def): def is OperationDefinitionNode =>
+        def.kind === "OperationDefinition" && !!def.name
+    );
+    if (definitions.length !== 1) {
+      throw new Error("Document must contain exactly one named operation");
+    }
+    const definition = definitions[0]!;
+
     return {
       ["~standard"]: {
         types: {
           input: {} as TData,
           output: {} as TData,
         },
-        toJSONSchema: () => {
-          throw new Error("Not implemented");
+        toJSONSchema: ({ target }) => {
+          if (target !== "draft-2020-12") {
+            throw new Error("Only draft-2020-12 is supported");
+          }
+
+          return buildSchema(schema, definition) as any;
         },
         validate(value): StandardSchemaV1.Result<TData> {
           const result = execute({
@@ -214,10 +242,115 @@ export class GraphQLStandardSchemaGenerator {
   }
 }
 
-const BuiltInScalarType = {
-  ID: "ID",
-  Int: "Int",
-  Float: "Float",
-  Boolean: "Boolean",
-  String: "String",
-};
+function buildSchema(
+  schema: GraphQLSchema,
+  operation: OperationDefinitionNode
+): JSONSchema {
+  const documentName = operation.name?.value || operation.operation;
+  const types = schema.getTypeMap();
+
+  function handleMaybe(
+    parentType: GraphQLOutputType,
+    selections?: SelectionSetNode
+  ): JSONSchema {
+    if (isNonNullType(parentType)) {
+      const itemType = parentType.ofType;
+      // TODO
+      return handle(itemType as any, selections);
+    } else {
+      return {
+        anyOf: [handle(parentType, selections), { type: "null" }],
+      };
+    }
+  }
+
+  function handle(
+    parentType: Exclude<GraphQLOutputType, GraphQLNonNull<any>>,
+    selections?: SelectionSetNode
+  ): JSONSchema {
+    if (isListType(parentType)) {
+      return {
+        type: "array",
+        items: handleMaybe(parentType.ofType, selections),
+      };
+    }
+    if (isScalarType(parentType)) {
+      return {
+        type: parentType.name,
+      };
+    }
+    if (isInterfaceType(parentType)) {
+      throw new Error("not supported");
+    }
+    if (isUnionType(parentType)) {
+      throw new Error("not supported");
+    }
+    if (isEnumType(parentType)) {
+      throw new Error("not supported");
+    }
+    return handleObjectType(parentType, selections!);
+  }
+  function handleObjectType(
+    parentType: GraphQLObjectType,
+    selections: SelectionSetNode
+  ): Exclude<JSONSchema, boolean> {
+    const fields = parentType.getFields();
+    const properties: Record<string, JSONSchema> = {};
+
+    for (const selection of selections.selections) {
+      if (selection.kind === Kind.FIELD) {
+        const name = selection.alias?.value || selection.name.value;
+        const type = fields[selection.name.value]!.type;
+        properties[name] = handleMaybe(type, selection.selectionSet);
+      }
+    }
+    return {
+      type: "object",
+      properties,
+      required: Object.keys(properties),
+    };
+  }
+
+  return {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    $id: "https://example.com/product.schema.json",
+    title: documentName,
+    ...handleObjectType(
+      operation.operation === OperationTypeNode.QUERY
+        ? schema.getQueryType()!
+        : operation.operation === OperationTypeNode.SUBSCRIPTION
+        ? schema.getSubscriptionType()!
+        : schema.getMutationType()!,
+
+      operation.selectionSet
+    ),
+  };
+}
+
+// console.dir(
+//   new GraphQLStandardSchemaGenerator({
+//     schema: parse(`
+//       type Query {
+//         users: [User!]
+//       }
+
+//       type User {
+//         id: Int
+//         name: String!
+//       }
+//     `),
+//   })
+//     .getDataSchema(
+//       parse(`
+//       query GetUsers {
+//         users {
+//           id
+//           name
+//         }
+//       }
+//     `)
+//     )
+//     ["~standard"].toJSONSchema({ io: "input", target: "draft-2020-12" })
+//     .properties,
+//   { depth: null }
+// );

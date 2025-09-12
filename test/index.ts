@@ -544,3 +544,400 @@ test("getFragmentSchema throws error for empty document", () => {
     "Should throw error for empty document"
   );
 });
+
+test("toJSONSchema generates correct schema for simple query", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        hello: String
+        count: Int
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      query GetData {
+        hello
+        count
+      }
+    `)
+  );
+
+  const jsonSchema = dataSchema["~standard"].toJSONSchema({
+    io: "input",
+    target: "draft-2020-12",
+  });
+
+  assert.strictEqual(jsonSchema.$schema, "https://json-schema.org/draft/2020-12/schema");
+  assert.strictEqual(jsonSchema.title, "GetData");
+  assert.strictEqual(jsonSchema.type, "object");
+  assert.deepStrictEqual(jsonSchema.properties.hello, {
+    anyOf: [{ type: "String" }, { type: "null" }],
+  });
+  assert.deepStrictEqual(jsonSchema.properties.count, {
+    anyOf: [{ type: "Int" }, { type: "null" }],
+  });
+  assert.deepStrictEqual(jsonSchema.required, ["hello", "count"]);
+});
+
+test("toJSONSchema handles non-nullable fields", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        required: String!
+        optional: String
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      query TestNullability {
+        required
+        optional
+      }
+    `)
+  );
+
+  const jsonSchema = dataSchema["~standard"].toJSONSchema({
+    io: "input",
+    target: "draft-2020-12",
+  });
+
+  // Non-nullable field should not have anyOf with null
+  assert.deepStrictEqual(jsonSchema.properties.required, { type: "String" });
+  // Nullable field should have anyOf with null
+  assert.deepStrictEqual(jsonSchema.properties.optional, {
+    anyOf: [{ type: "String" }, { type: "null" }],
+  });
+});
+
+test("toJSONSchema handles arrays", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        items: [String!]!
+        nullableItems: [String]
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      query TestArrays {
+        items
+        nullableItems
+      }
+    `)
+  );
+
+  const jsonSchema = dataSchema["~standard"].toJSONSchema({
+    io: "input",
+    target: "draft-2020-12",
+  });
+
+  // Non-nullable array of non-nullable strings
+  assert.deepStrictEqual(jsonSchema.properties.items, {
+    type: "array",
+    items: { type: "String" },
+  });
+
+  // Nullable array of nullable strings
+  assert.deepStrictEqual(jsonSchema.properties.nullableItems, {
+    anyOf: [
+      {
+        type: "array",
+        items: {
+          anyOf: [{ type: "String" }, { type: "null" }],
+        },
+      },
+      { type: "null" },
+    ],
+  });
+});
+
+test("toJSONSchema handles nested objects", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        user: User!
+      }
+      
+      type User {
+        id: Int!
+        name: String!
+        profile: Profile
+      }
+      
+      type Profile {
+        bio: String
+        avatar: String
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      query GetUser {
+        user {
+          id
+          name
+          profile {
+            bio
+            avatar
+          }
+        }
+      }
+    `)
+  );
+
+  const jsonSchema = dataSchema["~standard"].toJSONSchema({
+    io: "input",
+    target: "draft-2020-12",
+  });
+
+  assert.strictEqual(jsonSchema.properties.user.type, "object");
+  assert.deepStrictEqual(jsonSchema.properties.user.properties.id, { type: "Int" });
+  assert.deepStrictEqual(jsonSchema.properties.user.properties.name, { type: "String" });
+  assert.deepStrictEqual(jsonSchema.properties.user.properties.profile, {
+    anyOf: [
+      {
+        type: "object",
+        properties: {
+          bio: { anyOf: [{ type: "String" }, { type: "null" }] },
+          avatar: { anyOf: [{ type: "String" }, { type: "null" }] },
+        },
+        required: ["bio", "avatar"],
+      },
+      { type: "null" },
+    ],
+  });
+  assert.deepStrictEqual(jsonSchema.properties.user.required, ["id", "name", "profile"]);
+});
+
+test("toJSONSchema handles field aliases", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        user: User!
+      }
+      
+      type User {
+        id: Int!
+        name: String!
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      query TestAliases {
+        myUser: user {
+          userId: id
+          userName: name
+        }
+      }
+    `)
+  );
+
+  const jsonSchema = dataSchema["~standard"].toJSONSchema({
+    io: "input",
+    target: "draft-2020-12",
+  });
+
+  // Should use aliases as property names
+  assert.strictEqual(jsonSchema.properties.myUser.type, "object");
+  assert.deepStrictEqual(jsonSchema.properties.myUser.properties.userId, { type: "Int" });
+  assert.deepStrictEqual(jsonSchema.properties.myUser.properties.userName, { type: "String" });
+  assert.deepStrictEqual(jsonSchema.properties.myUser.required, ["userId", "userName"]);
+});
+
+test("toJSONSchema handles mutations", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        dummy: String
+      }
+      
+      type Mutation {
+        createUser(name: String!): User!
+      }
+      
+      type User {
+        id: Int!
+        name: String!
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      mutation CreateUser {
+        createUser(name: "Alice") {
+          id
+          name
+        }
+      }
+    `)
+  );
+
+  const jsonSchema = dataSchema["~standard"].toJSONSchema({
+    io: "input",
+    target: "draft-2020-12",
+  });
+
+  assert.strictEqual(jsonSchema.title, "CreateUser");
+  assert.strictEqual(jsonSchema.type, "object");
+  assert.deepStrictEqual(jsonSchema.properties.createUser, {
+    type: "object",
+    properties: {
+      id: { type: "Int" },
+      name: { type: "String" },
+    },
+    required: ["id", "name"],
+  });
+});
+
+test("toJSONSchema handles subscriptions", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        dummy: String
+      }
+      
+      type Subscription {
+        messageAdded: Message!
+      }
+      
+      type Message {
+        id: Int!
+        content: String!
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      subscription OnMessage {
+        messageAdded {
+          id
+          content
+        }
+      }
+    `)
+  );
+
+  const jsonSchema = dataSchema["~standard"].toJSONSchema({
+    io: "input",
+    target: "draft-2020-12",
+  });
+
+  assert.strictEqual(jsonSchema.title, "OnMessage");
+  assert.strictEqual(jsonSchema.type, "object");
+  assert.deepStrictEqual(jsonSchema.properties.messageAdded, {
+    type: "object",
+    properties: {
+      id: { type: "Int" },
+      content: { type: "String" },
+    },
+    required: ["id", "content"],
+  });
+});
+
+test("toJSONSchema throws error for unsupported target", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        hello: String
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      query TestQuery {
+        hello
+      }
+    `)
+  );
+
+  assert.throws(
+    () => {
+      dataSchema["~standard"].toJSONSchema({
+        io: "input",
+        target: "draft-07" as any,
+      });
+    },
+    /Only draft-2020-12 is supported/,
+    "Should throw error for unsupported JSON Schema version"
+  );
+});
+
+test("toJSONSchema handles all scalar types", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        string: String!
+        int: Int!
+        float: Float!
+        boolean: Boolean!
+        id: ID!
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      query TestScalars {
+        string
+        int
+        float
+        boolean
+        id
+      }
+    `)
+  );
+
+  const jsonSchema = dataSchema["~standard"].toJSONSchema({
+    io: "input",
+    target: "draft-2020-12",
+  });
+
+  assert.deepStrictEqual(jsonSchema.properties.string, { type: "String" });
+  assert.deepStrictEqual(jsonSchema.properties.int, { type: "Int" });
+  assert.deepStrictEqual(jsonSchema.properties.float, { type: "Float" });
+  assert.deepStrictEqual(jsonSchema.properties.boolean, { type: "Boolean" });
+  assert.deepStrictEqual(jsonSchema.properties.id, { type: "ID" });
+});
+
+test("toJSONSchema handles deeply nested arrays", () => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(`
+      type Query {
+        matrix: [[Int!]!]!
+      }
+    `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    parse(`
+      query TestMatrix {
+        matrix
+      }
+    `)
+  );
+
+  const jsonSchema = dataSchema["~standard"].toJSONSchema({
+    io: "input",
+    target: "draft-2020-12",
+  });
+
+  assert.deepStrictEqual(jsonSchema.properties.matrix, {
+    type: "array",
+    items: {
+      type: "array",
+      items: { type: "Int" },
+    },
+  });
+});
