@@ -442,7 +442,6 @@ function buildOutputSchema(
 
   return {
     $schema: "https://json-schema.org/draft/2020-12/schema",
-    $id: "https://example.com/product.schema.json",
     title: documentName,
     ...handleObjectType(
       operation.operation === OperationTypeNode.QUERY
