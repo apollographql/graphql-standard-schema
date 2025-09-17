@@ -5,39 +5,21 @@ import {
   type FormattedExecutionResult,
   type FragmentDefinitionNode,
   GraphQLBoolean,
-  GraphQLEnumType,
   GraphQLFloat,
   GraphQLInt,
-  GraphQLInterfaceType,
-  GraphQLList,
   GraphQLNonNull,
-  GraphQLObjectType,
-  type GraphQLOutputType,
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
-  type GraphQLType,
-  GraphQLUnionType,
-  type InlineFragmentNode,
-  isAbstractType,
-  isEnumType,
-  isInterfaceType,
-  isListType,
-  isNonNullType,
-  isNullableType,
-  isObjectType,
-  isScalarType,
-  isSpecifiedScalarType,
-  isUnionType,
   Kind,
   type OperationDefinitionNode,
   OperationTypeNode,
   parse,
-  type SelectionSetNode,
 } from "graphql";
 import type { StandardSchemaV1 } from "./standard-schema-spec.ts";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import type { JSONSchema } from "json-schema-typed/draft-2020-12";
+import { buildOutputSchema } from "./buildOutputSchema.ts";
 
 export namespace GraphQLStandardSchemaGenerator {
   export interface Options {
@@ -47,8 +29,10 @@ export namespace GraphQLStandardSchemaGenerator {
 }
 export class GraphQLStandardSchemaGenerator {
   private schema!: GraphQLSchema;
-  constructor({ schema }: GraphQLStandardSchemaGenerator.Options) {
+  private scalarTypes?: GraphQLStandardSchemaGenerator.Options["scalarTypes"];
+  constructor({ schema, scalarTypes }: GraphQLStandardSchemaGenerator.Options) {
     this.replaceSchema(schema);
+    this.scalarTypes = scalarTypes;
   }
 
   replaceSchema(schema: GraphQLSchema | DocumentNode) {
@@ -86,8 +70,15 @@ export class GraphQLStandardSchemaGenerator {
           if (target !== "draft-2020-12") {
             throw new Error("Only draft-2020-12 is supported");
           }
-
-          return buildOutputSchema(schema, document, definition) as any;
+          return {
+            ...schemaBase,
+            ...buildOperationSchema(
+              schema,
+              document,
+              definition,
+              this.scalarTypes
+            ),
+          };
         },
         validate(value): StandardSchemaV1.Result<TData> {
           const result = execute({
@@ -177,14 +168,72 @@ export class GraphQLStandardSchemaGenerator {
     FormattedExecutionResult<TData>,
     FormattedExecutionResult<TData>
   > {
+    const dataSchema = this.getDataSchema(document);
+    const definitions = document.definitions.filter(
+      (def): def is OperationDefinitionNode =>
+        def.kind === "OperationDefinition" && !!def.name
+    );
+    if (definitions.length !== 1) {
+      throw new Error("Document must contain exactly one named operation");
+    }
+    const definition = definitions[0]!;
+
     return {
       ["~standard"]: {
         types: {
           input: {} as FormattedExecutionResult<TData>,
           output: {} as FormattedExecutionResult<TData>,
         },
-        toJSONSchema: () => {
-          throw new Error("Not implemented");
+        toJSONSchema: ({ target, io }) => {
+          if (target !== "draft-2020-12") {
+            throw new Error("Only draft-2020-12 is supported");
+          }
+          const dataJSONSchema: JSONSchema.Interface = dataSchema[
+            "~standard"
+          ].toJSONSchema({
+            target,
+            io,
+          });
+
+          return {
+            ...schemaBase,
+            title: `${definition.operation} ${
+              definition.name?.value || "Anonymous"
+            } Response`,
+            properties: {
+              data: dataJSONSchema,
+              errors: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string" },
+                    locations: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          line: { type: "number" },
+                          column: { type: "number" },
+                        },
+                        required: ["line", "column"],
+                      },
+                    },
+                    path: {
+                      type: "array",
+                      items: {
+                        anyOf: [{ type: "string" }, { type: "number" }],
+                      },
+                    },
+                    extensions: { type: "object" },
+                    required: ["message"],
+                  },
+                },
+              },
+              extensions: { type: "object" },
+            },
+            oneOf: [{ required: "data" }, { required: "errors" }],
+          };
         },
         validate(value) {
           throw new Error("Not implemented");
@@ -271,179 +320,25 @@ export class GraphQLStandardSchemaGenerator {
   }
 }
 
-function buildOutputSchema(
+const schemaBase = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+};
+
+function buildOperationSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
   operation: OperationDefinitionNode,
   scalarTypes?: Record<string, JSONSchema.Interface> | undefined
-): JSONSchema {
-  const documentName = operation.name?.value || operation.operation;
-
-  function handleMaybe(
-    parentType: GraphQLOutputType,
-    selections?: SelectionSetNode
-  ): JSONSchema {
-    if (isNonNullType(parentType)) {
-      const itemType = parentType.ofType;
-      if (isNonNullType(itemType)) {
-        // nested non-null should be impossible, but this makes TypeScript happy and is safer on top
-        return handleMaybe(itemType, selections);
-      }
-      return handle(itemType, false, selections);
-    } else {
-      return handle(parentType, true, selections);
-    }
-  }
-
-  function handle(
-    parentType: Exclude<GraphQLOutputType, GraphQLNonNull<any>>,
-    nullable: boolean,
-    selections?: SelectionSetNode
-  ): JSONSchema.Interface {
-    function maybe(schema: JSONSchema.Interface): JSONSchema.Interface {
-      if (nullable) {
-        return {
-          anyOf: [{ type: "null" }, schema],
-        };
-      }
-      return schema;
-    }
-
-    if (isListType(parentType)) {
-      return maybe({
-        type: "array",
-        items: handleMaybe(parentType.ofType, selections),
-      });
-    }
-    if (isSpecifiedScalarType(parentType)) {
-      switch (parentType.name) {
-        case GraphQLString.name:
-          return maybe({ type: "string" });
-        case GraphQLInt.name:
-          return maybe({ type: "integer" });
-        case GraphQLFloat.name:
-          return maybe({ type: "number" });
-        case GraphQLBoolean.name:
-          return maybe({ type: "boolean" });
-        case "ID":
-          return maybe({ type: "string" });
-      }
-    }
-    if (isScalarType(parentType)) {
-      if (!scalarTypes) {
-        return maybe({});
-      }
-      const scalarType = scalarTypes[parentType.name];
-      if (!scalarType) {
-        throw new Error(
-          `Scalar type ${parentType.name} not found in \`scalarTypes\`, but \`scalarTypes\` option was provided.`
-        );
-      }
-      return maybe(scalarType);
-    }
-    if (isInterfaceType(parentType) || isUnionType(parentType)) {
-      if (!selections) {
-        throw new Error(
-          `Selections are required for interface and union types (${parentType.name})`
-        );
-      }
-      const possibleTypes = schema.getPossibleTypes(parentType);
-      const base: Array<JSONSchema.Interface> = nullable
-        ? [{ type: "null" }]
-        : [];
-      return {
-        anyOf: base.concat(
-          ...possibleTypes.map((implementationType) =>
-            maybe(handleObjectType(implementationType, selections))
-          )
-        ),
-      };
-    }
-    if (isEnumType(parentType)) {
-      const base: Array<JSONSchema.Interface> = nullable
-        ? [{ type: "null" }]
-        : [];
-      return {
-        anyOf: base.concat(
-          ...parentType.getValues().map((v) => ({ const: v.name }))
-        ),
-      };
-    }
-    return maybe(handleObjectType(parentType, selections!));
-  }
-
-  function handleObjectType(
-    parentType: GraphQLObjectType,
-    selections: SelectionSetNode
-  ): JSONSchema.Interface {
-    const fields = parentType.getFields();
-    const properties: Record<string, JSONSchema> = {};
-    const fragmentsMatches: JSONSchema.Interface[] = [];
-
-    for (const selection of selections.selections) {
-      switch (selection.kind) {
-        case Kind.FIELD:
-          const name = selection.alias?.value || selection.name.value;
-          const type = fields[selection.name.value]!.type;
-          properties[name] = handleMaybe(type, selection.selectionSet);
-          break;
-
-        case Kind.INLINE_FRAGMENT:
-        case Kind.FRAGMENT_SPREAD:
-          let fragmentImplementation:
-            | InlineFragmentNode
-            | FragmentDefinitionNode
-            | undefined;
-          if (selection.kind === Kind.INLINE_FRAGMENT) {
-            fragmentImplementation = selection;
-          } else {
-            fragmentImplementation = document.definitions.find(
-              (def): def is FragmentDefinitionNode =>
-                def.kind === Kind.FRAGMENT_DEFINITION &&
-                def.name.value === selection.name.value
-            );
-            if (!fragmentImplementation) {
-              throw new Error(
-                `Fragment ${selection.name.value} not found in document`
-              );
-            }
-          }
-          const typeCondition =
-            fragmentImplementation.typeCondition?.name.value;
-          if (typeCondition) {
-            const conditionType = schema.getType(typeCondition);
-
-            const fragmentApplies =
-              conditionType?.name === parentType.name ||
-              (isAbstractType(conditionType) &&
-                schema.isSubType(conditionType, parentType));
-
-            if (fragmentApplies) {
-              fragmentsMatches.push(
-                handleObjectType(
-                  parentType,
-                  fragmentImplementation.selectionSet
-                )
-              );
-            }
-            break;
-          }
-      }
-    }
-    return Object.assign(
-      {
-        type: "object",
-        properties,
-        required: Object.keys(properties),
-      },
-      fragmentsMatches.length > 0 ? { allOf: fragmentsMatches } : {}
-    );
-  }
-
+): JSONSchema.Interface {
   return {
-    $schema: "https://json-schema.org/draft/2020-12/schema",
-    title: documentName,
-    ...handleObjectType(
+    title: `${operation.operation} ${
+      operation.name?.value || "Anonymous"
+    } Data`,
+    ...buildOutputSchema(
+      schema,
+      document,
+      scalarTypes,
+
       operation.operation === OperationTypeNode.QUERY
         ? schema.getQueryType()!
         : operation.operation === OperationTypeNode.SUBSCRIPTION
@@ -542,7 +437,6 @@ console.dir(
       }
     `)
     )
-    ["~standard"].toJSONSchema({ io: "input", target: "draft-2020-12" })
-    .properties,
+    ["~standard"].toJSONSchema({ io: "input", target: "draft-2020-12" }),
   { depth: null }
 );
