@@ -34,6 +34,10 @@ fast-uri@^3.0.1:
   resolved "https://registry.yarnpkg.com/fast-uri/-/fast-uri-3.1.0.tgz#66eecff6c764c0df9b762e62ca7edcfb53b4edfa"
   integrity sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==
 
+graphql@./graphql-16.11.0-4430.0.tgz:
+  version "16.11.0"
+  resolved "./graphql-16.11.0-4430.0.tgz#8b4fb3a12c1f11667af92c051f7bdfbaaf359494"
+
 graphql@^17.0.0-alpha.9:
   version "17.0.0-alpha.9"
   resolved "https://registry.yarnpkg.com/graphql/-/graphql-17.0.0-alpha.9.tgz#7e85e0d1cbe72afd26205387059d77c873d801d1"

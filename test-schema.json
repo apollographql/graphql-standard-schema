@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Query",
+  "description": "A query that fetches users and does a search",
   "type": "object",
   "properties": {
     "users": {
@@ -184,7 +185,8 @@
                   "id",
                   "name",
                   "author"
-                ]
+                ],
+                "description": "A fragment that fetches book details"
               }
             ]
           },
@@ -233,7 +235,7 @@
   "$defs": {
     "enum_Role": {
       "title": "Role",
-      "description": "Schema Description: \nSystem user roles",
+      "description": "System user roles",
       "enum": [
         "ADMIN",
         "USER",
@@ -241,22 +243,22 @@
       ]
     },
     "Date": {
-      "description": "Schema Description: \nA custom date scalar in YYYY-MM-DD format"
+      "description": "A custom date scalar in YYYY-MM-DD format"
     },
     "Book": {
-      "description": "Schema Description: \nA book"
+      "description": "A book"
     },
     "Favourite": {
-      "description": "Schema Description: \nDescribes something that can be a 'favourite thing or concept'"
+      "description": "Describes something that can be a 'favourite thing or concept'"
     },
     "User": {
-      "description": "Schema Description: \nThe user type"
+      "description": "The user type"
     },
     "Color": {
-      "description": "Schema Description: \nA color"
+      "description": "A color"
     },
     "SearchResult": {
-      "description": "Schema Description: \nA possible search result for the Omnibar"
+      "description": "A possible search result for the Omnibar"
     }
   }
 }

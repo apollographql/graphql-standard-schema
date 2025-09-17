@@ -42,7 +42,7 @@ export function buildOutputSchema(
     console.log("documenting", named.name, named.description);
     if (named.description) {
       defs[named.name] = {
-        description: "Schema Description: \n" + named.description,
+        description: named.description,
       };
       return { $ref: `#/$defs/${named.name}`, ...obj };
     }
@@ -136,7 +136,7 @@ export function buildOutputSchema(
       defs[refName] ??= {
         title: `${parentType.name}`,
         ...(parentType.description
-          ? { description: "Schema Description: \n" + parentType.description }
+          ? { description: parentType.description }
           : {}),
         enum: parentType.getValues().map((v) => v.name),
       };
@@ -167,9 +167,6 @@ export function buildOutputSchema(
             properties[name] = {
               title: `${parentType.name}.${name}: ${type.toString()}`,
               ...handleMaybe(type, selection.selectionSet),
-              // this is missing executable documentation (https://github.com/graphql/graphql-js/pull/4430)
-              // as that PR only added it to the AST, not to the schema types
-              // need to open a PR for that
             };
           }
           break;
@@ -215,6 +212,12 @@ export function buildOutputSchema(
                     ? `Fragment ${fragmentImplementation.name.value}`
                     : "Fragment"
                 } on ${typeCondition}`,
+                ...("description" in fragmentImplementation &&
+                fragmentImplementation.description
+                  ? {
+                      description: fragmentImplementation.description.value,
+                    }
+                  : {}),
               });
             }
             break;
