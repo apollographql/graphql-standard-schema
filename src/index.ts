@@ -5,8 +5,11 @@ import {
   type FormattedExecutionResult,
   type FragmentDefinitionNode,
   GraphQLBoolean,
+  GraphQLEnumType,
   GraphQLFloat,
   GraphQLInt,
+  GraphQLInterfaceType,
+  GraphQLList,
   GraphQLNonNull,
   GraphQLObjectType,
   type GraphQLOutputType,
@@ -14,6 +17,9 @@ import {
   GraphQLSchema,
   GraphQLString,
   type GraphQLType,
+  GraphQLUnionType,
+  type InlineFragmentNode,
+  isAbstractType,
   isEnumType,
   isInterfaceType,
   isListType,
@@ -21,6 +27,7 @@ import {
   isNullableType,
   isObjectType,
   isScalarType,
+  isSpecifiedScalarType,
   isUnionType,
   Kind,
   type OperationDefinitionNode,
@@ -35,6 +42,7 @@ import type { JSONSchema } from "json-schema-typed/draft-2020-12";
 export namespace GraphQLStandardSchemaGenerator {
   export interface Options {
     schema: GraphQLSchema | DocumentNode;
+    scalarTypes?: Record<string, JSONSchema.Interface>;
   }
 }
 export class GraphQLStandardSchemaGenerator {
@@ -79,7 +87,7 @@ export class GraphQLStandardSchemaGenerator {
             throw new Error("Only draft-2020-12 is supported");
           }
 
-          return buildSchema(schema, definition) as any;
+          return buildOutputSchema(schema, document, definition) as any;
         },
         validate(value): StandardSchemaV1.Result<TData> {
           const result = execute({
@@ -240,14 +248,36 @@ export class GraphQLStandardSchemaGenerator {
     };
     return this.getDataSchema<TData>(queryDocument);
   }
+
+  getVariablesSchema<TVariables>(
+    document: TypedDocumentNode<any, TVariables>
+  ): StandardSchemaV1.WithJSONSchemaSource<TVariables, TVariables> {
+    return {
+      ["~standard"]: {
+        types: {
+          input: {} as TVariables,
+          output: {} as TVariables,
+        },
+        toJSONSchema: () => {
+          throw new Error("Not implemented");
+        },
+        validate(value) {
+          throw new Error("Not implemented");
+        },
+        vendor: "@apollo/graphql-standard-schema",
+        version: 1,
+      },
+    };
+  }
 }
 
-function buildSchema(
+function buildOutputSchema(
   schema: GraphQLSchema,
-  operation: OperationDefinitionNode
+  document: DocumentNode,
+  operation: OperationDefinitionNode,
+  scalarTypes?: Record<string, JSONSchema.Interface> | undefined
 ): JSONSchema {
   const documentName = operation.name?.value || operation.operation;
-  const types = schema.getTypeMap();
 
   function handleMaybe(
     parentType: GraphQLOutputType,
@@ -255,60 +285,159 @@ function buildSchema(
   ): JSONSchema {
     if (isNonNullType(parentType)) {
       const itemType = parentType.ofType;
-      // TODO
-      return handle(itemType as any, selections);
+      if (isNonNullType(itemType)) {
+        // nested non-null should be impossible, but this makes TypeScript happy and is safer on top
+        return handleMaybe(itemType, selections);
+      }
+      return handle(itemType, false, selections);
     } else {
-      return {
-        anyOf: [handle(parentType, selections), { type: "null" }],
-      };
+      return handle(parentType, true, selections);
     }
   }
 
   function handle(
     parentType: Exclude<GraphQLOutputType, GraphQLNonNull<any>>,
+    nullable: boolean,
     selections?: SelectionSetNode
-  ): JSONSchema {
+  ): JSONSchema.Interface {
+    function maybe(schema: JSONSchema.Interface): JSONSchema.Interface {
+      if (nullable) {
+        return {
+          anyOf: [{ type: "null" }, schema],
+        };
+      }
+      return schema;
+    }
+
     if (isListType(parentType)) {
-      return {
+      return maybe({
         type: "array",
         items: handleMaybe(parentType.ofType, selections),
-      };
+      });
+    }
+    if (isSpecifiedScalarType(parentType)) {
+      switch (parentType.name) {
+        case GraphQLString.name:
+          return maybe({ type: "string" });
+        case GraphQLInt.name:
+          return maybe({ type: "integer" });
+        case GraphQLFloat.name:
+          return maybe({ type: "number" });
+        case GraphQLBoolean.name:
+          return maybe({ type: "boolean" });
+        case "ID":
+          return maybe({ type: "string" });
+      }
     }
     if (isScalarType(parentType)) {
+      if (!scalarTypes) {
+        return maybe({});
+      }
+      const scalarType = scalarTypes[parentType.name];
+      if (!scalarType) {
+        throw new Error(
+          `Scalar type ${parentType.name} not found in \`scalarTypes\`, but \`scalarTypes\` option was provided.`
+        );
+      }
+      return maybe(scalarType);
+    }
+    if (isInterfaceType(parentType) || isUnionType(parentType)) {
+      if (!selections) {
+        throw new Error(
+          `Selections are required for interface and union types (${parentType.name})`
+        );
+      }
+      const possibleTypes = schema.getPossibleTypes(parentType);
+      const base: Array<JSONSchema.Interface> = nullable
+        ? [{ type: "null" }]
+        : [];
       return {
-        type: parentType.name,
+        anyOf: base.concat(
+          ...possibleTypes.map((implementationType) =>
+            maybe(handleObjectType(implementationType, selections))
+          )
+        ),
       };
     }
-    if (isInterfaceType(parentType)) {
-      throw new Error("not supported");
-    }
-    if (isUnionType(parentType)) {
-      throw new Error("not supported");
-    }
     if (isEnumType(parentType)) {
-      throw new Error("not supported");
+      const base: Array<JSONSchema.Interface> = nullable
+        ? [{ type: "null" }]
+        : [];
+      return {
+        anyOf: base.concat(
+          ...parentType.getValues().map((v) => ({ const: v.name }))
+        ),
+      };
     }
-    return handleObjectType(parentType, selections!);
+    return maybe(handleObjectType(parentType, selections!));
   }
+
   function handleObjectType(
     parentType: GraphQLObjectType,
     selections: SelectionSetNode
-  ): Exclude<JSONSchema, boolean> {
+  ): JSONSchema.Interface {
     const fields = parentType.getFields();
     const properties: Record<string, JSONSchema> = {};
+    const fragmentsMatches: JSONSchema.Interface[] = [];
 
     for (const selection of selections.selections) {
-      if (selection.kind === Kind.FIELD) {
-        const name = selection.alias?.value || selection.name.value;
-        const type = fields[selection.name.value]!.type;
-        properties[name] = handleMaybe(type, selection.selectionSet);
+      switch (selection.kind) {
+        case Kind.FIELD:
+          const name = selection.alias?.value || selection.name.value;
+          const type = fields[selection.name.value]!.type;
+          properties[name] = handleMaybe(type, selection.selectionSet);
+          break;
+
+        case Kind.INLINE_FRAGMENT:
+        case Kind.FRAGMENT_SPREAD:
+          let fragmentImplementation:
+            | InlineFragmentNode
+            | FragmentDefinitionNode
+            | undefined;
+          if (selection.kind === Kind.INLINE_FRAGMENT) {
+            fragmentImplementation = selection;
+          } else {
+            fragmentImplementation = document.definitions.find(
+              (def): def is FragmentDefinitionNode =>
+                def.kind === Kind.FRAGMENT_DEFINITION &&
+                def.name.value === selection.name.value
+            );
+            if (!fragmentImplementation) {
+              throw new Error(
+                `Fragment ${selection.name.value} not found in document`
+              );
+            }
+          }
+          const typeCondition =
+            fragmentImplementation.typeCondition?.name.value;
+          if (typeCondition) {
+            const conditionType = schema.getType(typeCondition);
+
+            const fragmentApplies =
+              conditionType?.name === parentType.name ||
+              (isAbstractType(conditionType) &&
+                schema.isSubType(conditionType, parentType));
+
+            if (fragmentApplies) {
+              fragmentsMatches.push(
+                handleObjectType(
+                  parentType,
+                  fragmentImplementation.selectionSet
+                )
+              );
+            }
+            break;
+          }
       }
     }
-    return {
-      type: "object",
-      properties,
-      required: Object.keys(properties),
-    };
+    return Object.assign(
+      {
+        type: "object",
+        properties,
+        required: Object.keys(properties),
+      },
+      fragmentsMatches.length > 0 ? { allOf: fragmentsMatches } : {}
+    );
   }
 
   return {
@@ -327,30 +456,94 @@ function buildSchema(
   };
 }
 
-// console.dir(
-//   new GraphQLStandardSchemaGenerator({
-//     schema: parse(`
-//       type Query {
-//         users: [User!]
-//       }
+function buildVariablesSchema(
+  schema: GraphQLSchema,
+  operation: OperationDefinitionNode,
+  scalarTypes?: Record<string, JSONSchema.Interface> | undefined
+): JSONSchema {
+  throw new Error("Not implemented");
+}
 
-//       type User {
-//         id: Int
-//         name: String!
-//       }
-//     `),
-//   })
-//     .getDataSchema(
-//       parse(`
-//       query GetUsers {
-//         users {
-//           id
-//           name
-//         }
-//       }
-//     `)
-//     )
-//     ["~standard"].toJSONSchema({ io: "input", target: "draft-2020-12" })
-//     .properties,
-//   { depth: null }
-// );
+console.dir(
+  new GraphQLStandardSchemaGenerator({
+    schema: parse(/** GraphQL */ `
+      enum Role {
+        ADMIN 
+        USER 
+        GUEST 
+      }
+
+      interface Favourite {
+        name: String!
+      }
+
+      interface Color implements Favourite {
+        name: String!
+        hex: String!
+      }
+
+      type Book implements Favourite {
+        id: ID!
+        name: String!
+        author: String!
+      }
+
+      union SearchResult = User | Book | Color
+
+      type Query {
+        users: [User]
+        search(term: String!): [SearchResult!]!
+      }
+
+      type User {
+        id: Int!
+        name: String!
+        role: Role
+        favourites: [Favourite!]!
+      }
+    `),
+    scalarTypes: {
+      Date: {
+        type: "string",
+        format: "date",
+      },
+    },
+  })
+    .getDataSchema(
+      parse(/** GraphQL */ `
+      query GetUsers {
+        users {
+          id
+          name
+          role
+          favourites {
+            name
+            ... on Book {
+              author
+            }
+            ... on Color {
+              hex
+            }
+          }
+        }
+        search(term: "GraphQL") {
+          # TODO __typename
+          ... on User {
+            name
+          }
+          ... on Book {
+            name
+            author
+          }
+          ... on Color {
+            name
+            hex
+          }
+        }
+      }
+    `)
+    )
+    ["~standard"].toJSONSchema({ io: "input", target: "draft-2020-12" })
+    .properties,
+  { depth: null }
+);

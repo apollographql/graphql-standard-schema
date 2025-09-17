@@ -1,4 +1,4 @@
-This package allows you to create [https://github.com/standard-schema/standard-schema](Standard Schema) compliant Schemas for GraphQL operation responses.
+This package allows you to create [https://github.com/standard-schema/standard-schema](Standard Schema) compliant Schemas for GraphQL operation responses, data, fragments or input variables.
 
 E.g.
 
@@ -82,7 +82,7 @@ const multiFragmentSchema = generator.getFragmentSchema(
       id
       name
     }
-    
+
     fragment UserFull on Query {
       id
       name
