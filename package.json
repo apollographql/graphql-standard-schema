@@ -33,12 +33,15 @@
   },
   "devDependencies": {
     "@types/node": "^24.3.1",
+    "ajv": "^8.17.1",
+    "graphql": "^17.0.0-alpha.9",
     "json-schema-typed": "^8.0.1",
     "typescript": "^5.9.2"
   },
-  "peerDependencies": {},
+  "peerDependencies": {
+    "graphql": "^16 || ^17.0.0-alpha"
+  },
   "dependencies": {
-    "@graphql-typed-document-node/core": "^3.2.0",
-    "graphql": "^16.11.0"
+    "@graphql-typed-document-node/core": "^3.2.0"
   }
 }

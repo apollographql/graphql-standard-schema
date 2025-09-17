@@ -1,6 +1,7 @@
 import {
   type DocumentNode,
   type FragmentDefinitionNode,
+  getNamedType,
   GraphQLBoolean,
   GraphQLFloat,
   GraphQLInt,
@@ -30,7 +31,25 @@ export function buildOutputSchema(
   parentType: GraphQLObjectType,
   selections: SelectionSetNode
 ): JSONSchema.Interface {
-  return handleObjectType(parentType, selections);
+  const defs: NonNullable<JSONSchema.Interface["$defs"]> = {};
+
+  function documentType<T extends JSONSchema.Interface>(
+    type: GraphQLOutputType,
+    obj: T
+  ): T {
+    const named = getNamedType(type);
+
+    console.log("documenting", named.name, named.description);
+    if (named.description) {
+      defs[named.name] = {
+        description: "Schema Description: \n" + named.description,
+      };
+      return { $ref: `#/$defs/${named.name}`, ...obj };
+    }
+    return obj;
+  }
+
+  return { ...handleObjectType(parentType, selections), $defs: defs };
 
   function handleMaybe(
     parentType: GraphQLOutputType,
@@ -84,7 +103,7 @@ export function buildOutputSchema(
     }
     if (isScalarType(parentType)) {
       if (!scalarTypes) {
-        return maybe({});
+        return maybe(documentType(parentType, {}));
       }
       const scalarType = scalarTypes[parentType.name];
       if (!scalarType) {
@@ -92,7 +111,7 @@ export function buildOutputSchema(
           `Scalar type ${parentType.name} not found in \`scalarTypes\`, but \`scalarTypes\` option was provided.`
         );
       }
-      return maybe(scalarType);
+      return maybe(documentType(parentType, scalarType));
     }
     if (isInterfaceType(parentType) || isUnionType(parentType)) {
       if (!selections) {
@@ -104,23 +123,25 @@ export function buildOutputSchema(
       const base: Array<JSONSchema.Interface> = nullable
         ? [{ type: "null" }]
         : [];
-      return {
+      return documentType(parentType, {
         anyOf: base.concat(
           ...possibleTypes.map((implementationType) =>
             maybe(handleObjectType(implementationType, selections))
           )
         ),
-      };
+      });
     }
     if (isEnumType(parentType)) {
-      const base: Array<JSONSchema.Interface> = nullable
-        ? [{ type: "null" }]
-        : [];
-      return {
-        anyOf: base.concat(
-          ...parentType.getValues().map((v) => ({ const: v.name }))
-        ),
+      const refName = `enum_${parentType.name}`;
+      defs[refName] ??= {
+        title: `${parentType.name}`,
+        ...(parentType.description
+          ? { description: "Schema Description: \n" + parentType.description }
+          : {}),
+        enum: parentType.getValues().map((v) => v.name),
       };
+
+      return maybe({ $ref: `#/$defs/${refName}` });
     }
     return maybe(handleObjectType(parentType, selections!));
   }
@@ -130,15 +151,27 @@ export function buildOutputSchema(
     selections: SelectionSetNode
   ): JSONSchema.Interface {
     const fields = parentType.getFields();
-    const properties: Record<string, JSONSchema> = {};
+    const properties: NonNullable<JSONSchema.Interface["properties"]> = {};
     const fragmentsMatches: JSONSchema.Interface[] = [];
 
     for (const selection of selections.selections) {
       switch (selection.kind) {
         case Kind.FIELD:
           const name = selection.alias?.value || selection.name.value;
-          const type = fields[selection.name.value]!.type;
-          properties[name] = handleMaybe(type, selection.selectionSet);
+          if (selection.name.value === "__typename") {
+            properties[name] = {
+              const: parentType.name,
+            };
+          } else {
+            const type = fields[selection.name.value]!.type;
+            properties[name] = {
+              title: `${parentType.name}.${name}: ${type.toString()}`,
+              ...handleMaybe(type, selection.selectionSet),
+              // this is missing executable documentation (https://github.com/graphql/graphql-js/pull/4430)
+              // as that PR only added it to the AST, not to the schema types
+              // need to open a PR for that
+            };
+          }
           break;
 
         case Kind.INLINE_FRAGMENT:
@@ -172,24 +205,33 @@ export function buildOutputSchema(
                 schema.isSubType(conditionType, parentType));
 
             if (fragmentApplies) {
-              fragmentsMatches.push(
-                handleObjectType(
+              fragmentsMatches.push({
+                ...handleObjectType(
                   parentType,
                   fragmentImplementation.selectionSet
-                )
-              );
+                ),
+                title: `${
+                  fragmentImplementation.kind === Kind.FRAGMENT_DEFINITION
+                    ? `Fragment ${fragmentImplementation.name.value}`
+                    : "Fragment"
+                } on ${typeCondition}`,
+              });
             }
             break;
           }
       }
     }
-    return Object.assign(
-      {
-        type: "object",
-        properties,
-        required: Object.keys(properties),
-      },
-      fragmentsMatches.length > 0 ? { allOf: fragmentsMatches } : {}
+    return documentType(
+      parentType,
+      Object.assign(
+        {
+          type: "object",
+          title: parentType.name,
+          properties,
+          required: Object.keys(properties),
+        },
+        fragmentsMatches.length > 0 ? { allOf: fragmentsMatches } : {}
+      )
     );
   }
 }
