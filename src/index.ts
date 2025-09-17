@@ -11,17 +11,19 @@ import {
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
+  isAbstractType,
+  isObjectType,
   Kind,
   type OperationDefinitionNode,
   OperationTypeNode,
-  parse,
 } from "graphql";
-import type { StandardSchemaV1 } from "./standard-schema-spec.ts";
+import type {
+  StandardJSONSchemaSourceV1,
+  StandardSchemaV1,
+} from "./standard-schema-spec.ts";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import type { JSONSchema } from "json-schema-typed/draft-2020-12";
 import { buildOutputSchema } from "./buildOutputSchema.ts";
-import { writeFileSync } from "node:fs";
-
 export namespace GraphQLStandardSchemaGenerator {
   export interface Options {
     schema: GraphQLSchema | DocumentNode;
@@ -61,106 +63,98 @@ export class GraphQLStandardSchemaGenerator {
     }
     const definition = definitions[0]!;
 
-    return {
-      ["~standard"]: {
-        types: {
-          input: {} as TData,
-          output: {} as TData,
-        },
-        toJSONSchema: ({ target }) => {
-          if (target !== "draft-2020-12") {
-            throw new Error("Only draft-2020-12 is supported");
-          }
-          return {
-            ...schemaBase,
-            ...buildOperationSchema(
-              schema,
-              document,
-              definition,
-              this.scalarTypes
-            ),
-          };
-        },
-        validate(value): StandardSchemaV1.Result<TData> {
-          const result = execute({
+    return standardSchema({
+      toJSONSchema: ({ target }) => {
+        if (target !== "draft-2020-12") {
+          throw new Error("Only draft-2020-12 is supported");
+        }
+        return {
+          ...schemaBase,
+          ...buildOperationSchema(
             schema,
             document,
-            // TODO: do we need to fake variables here?
-            // variableValues: operation.variables,
-            fieldResolver: (source, args, context, info) => {
-              const value = source[info.fieldName];
-
-              // We use field resolvers to be more strict with the value types that
-              // were returned by the AI.
-              let returnType = info.returnType;
-              let isNonNull = false;
-
-              // Check if it's a non-null type
-              if (returnType instanceof GraphQLNonNull) {
-                isNonNull = true;
-                returnType = returnType.ofType;
-              }
-
-              // Handle null values
-              if (value === null) {
-                if (isNonNull) {
-                  throw new TypeError(
-                    `Non-nullable field ${info.fieldName} cannot be null`
-                  );
-                }
-                return null; // Null is valid for nullable fields
-              }
-
-              // Validate scalar types
-              if (returnType instanceof GraphQLScalarType) {
-                switch (returnType.name) {
-                  case GraphQLString.name:
-                    if (typeof value !== "string") {
-                      throw new TypeError(
-                        `Value for scalar type ${returnType.name} is not string: ${value}`
-                      );
-                    }
-                    break;
-                  case GraphQLFloat.name:
-                    if (typeof value !== "number") {
-                      throw new TypeError(
-                        `Value for scalar type ${returnType.name} is not number: ${value}`
-                      );
-                    }
-                    break;
-                  case GraphQLInt.name:
-                    if (typeof value !== "number") {
-                      throw new TypeError(
-                        `Value for scalar type ${returnType.name} is not number: ${value}`
-                      );
-                    }
-                    break;
-                  case GraphQLBoolean.name:
-                    if (typeof value !== "boolean") {
-                      throw new TypeError(
-                        `Value for scalar type ${returnType.name} is not boolean: ${value}`
-                      );
-                    }
-                    break;
-                }
-              }
-
-              return value;
-            },
-            rootValue: value,
-          }) as FormattedExecutionResult;
-
-          if (result.errors?.length) {
-            return {
-              issues: result.errors,
-            };
-          }
-          return { value: result.data as TData };
-        },
-        vendor: "@apollo/graphql-standard-schema",
-        version: 1,
+            definition,
+            this.scalarTypes
+          ),
+        };
       },
-    };
+      validate(value): StandardSchemaV1.Result<TData> {
+        const result = execute({
+          schema,
+          document,
+          // TODO: do we need to fake variables here?
+          // variableValues: operation.variables,
+          fieldResolver: (source, args, context, info) => {
+            const value = source[info.fieldName];
+
+            // We use field resolvers to be more strict with the value types that
+            // were returned by the AI.
+            let returnType = info.returnType;
+            let isNonNull = false;
+
+            // Check if it's a non-null type
+            if (returnType instanceof GraphQLNonNull) {
+              isNonNull = true;
+              returnType = returnType.ofType;
+            }
+
+            // Handle null values
+            if (value === null) {
+              if (isNonNull) {
+                throw new TypeError(
+                  `Non-nullable field ${info.fieldName} cannot be null`
+                );
+              }
+              return null; // Null is valid for nullable fields
+            }
+
+            // Validate scalar types
+            if (returnType instanceof GraphQLScalarType) {
+              switch (returnType.name) {
+                case GraphQLString.name:
+                  if (typeof value !== "string") {
+                    throw new TypeError(
+                      `Value for scalar type ${returnType.name} is not string: ${value}`
+                    );
+                  }
+                  break;
+                case GraphQLFloat.name:
+                  if (typeof value !== "number") {
+                    throw new TypeError(
+                      `Value for scalar type ${returnType.name} is not number: ${value}`
+                    );
+                  }
+                  break;
+                case GraphQLInt.name:
+                  if (typeof value !== "number") {
+                    throw new TypeError(
+                      `Value for scalar type ${returnType.name} is not number: ${value}`
+                    );
+                  }
+                  break;
+                case GraphQLBoolean.name:
+                  if (typeof value !== "boolean") {
+                    throw new TypeError(
+                      `Value for scalar type ${returnType.name} is not boolean: ${value}`
+                    );
+                  }
+                  break;
+              }
+            }
+
+            return value;
+          },
+          rootValue: value,
+        }) as FormattedExecutionResult;
+
+        if (result.errors?.length) {
+          return {
+            issues: result.errors,
+          };
+        }
+        return { value: result.data as TData };
+      },
+    });
   }
 
   getResponseSchema<TData>(
@@ -179,70 +173,62 @@ export class GraphQLStandardSchemaGenerator {
     }
     const definition = definitions[0]!;
 
-    return {
-      ["~standard"]: {
-        types: {
-          input: {} as FormattedExecutionResult<TData>,
-          output: {} as FormattedExecutionResult<TData>,
-        },
-        toJSONSchema: ({ target, io }) => {
-          if (target !== "draft-2020-12") {
-            throw new Error("Only draft-2020-12 is supported");
-          }
-          const dataJSONSchema: JSONSchema.Interface = dataSchema[
-            "~standard"
-          ].toJSONSchema({
-            target,
-            io,
-          });
+    return standardSchema({
+      toJSONSchema: ({ target, io }) => {
+        if (target !== "draft-2020-12") {
+          throw new Error("Only draft-2020-12 is supported");
+        }
+        const dataJSONSchema: JSONSchema.Interface = dataSchema[
+          "~standard"
+        ].toJSONSchema({
+          target,
+          io,
+        });
 
-          return {
-            ...schemaBase,
-            title: `${definition.operation} ${
-              definition.name?.value || "Anonymous"
-            } Response`,
-            properties: {
-              data: dataJSONSchema,
-              errors: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    message: { type: "string" },
-                    locations: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          line: { type: "number" },
-                          column: { type: "number" },
-                        },
-                        required: ["line", "column"],
+        return {
+          ...schemaBase,
+          title: `${definition.operation} ${
+            definition.name?.value || "Anonymous"
+          } Response`,
+          properties: {
+            data: dataJSONSchema,
+            errors: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  message: { type: "string" },
+                  locations: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        line: { type: "number" },
+                        column: { type: "number" },
                       },
+                      required: ["line", "column"],
                     },
-                    path: {
-                      type: "array",
-                      items: {
-                        anyOf: [{ type: "string" }, { type: "number" }],
-                      },
-                    },
-                    extensions: { type: "object" },
-                    required: ["message"],
                   },
+                  path: {
+                    type: "array",
+                    items: {
+                      anyOf: [{ type: "string" }, { type: "number" }],
+                    },
+                  },
+                  extensions: { type: "object" },
+                  required: ["message"],
                 },
               },
-              extensions: { type: "object" },
             },
-            oneOf: [{ required: "data" }, { required: "errors" }],
-          };
-        },
-        validate(value) {
-          throw new Error("Not implemented");
-        },
-        vendor: "@apollo/graphql-standard-schema",
-        version: 1,
+            extensions: { type: "object" },
+          },
+          oneOf: [{ required: "data" }, { required: "errors" }],
+        };
       },
-    };
+      validate(value) {
+        throw new Error("Not implemented");
+      },
+    });
   }
 
   getFragmentSchema<TData>(
@@ -296,7 +282,27 @@ export class GraphQLStandardSchemaGenerator {
         },
       ],
     };
-    return this.getDataSchema<TData>(queryDocument);
+
+    return standardSchema({
+      toJSONSchema: ({ target }) => {
+        if (target !== "draft-2020-12") {
+          throw new Error("Only draft-2020-12 is supported");
+        }
+        return {
+          ...schemaBase,
+          ...buildFragmentSchema(
+            this.schema,
+            document,
+            fragment,
+            this.scalarTypes
+          ),
+        };
+      },
+      validate(value): StandardSchemaV1.Result<TData> {
+        // const dataSchema = this.getDataSchema<TData>(queryDocument);
+        throw new Error("TODO");
+      },
+    });
   }
 
   getVariablesSchema<TVariables>(
@@ -324,6 +330,52 @@ export class GraphQLStandardSchemaGenerator {
 const schemaBase = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
 };
+
+function buildFragmentSchema(
+  schema: GraphQLSchema,
+  document: DocumentNode,
+  fragment: FragmentDefinitionNode,
+  scalarTypes?: Record<string, JSONSchema.Interface> | undefined
+): JSONSchema.Interface {
+  const parentType = schema.getType(fragment.typeCondition.name.value);
+  let dataSchema: JSONSchema.Interface;
+  if (isObjectType(parentType)) {
+    dataSchema = buildOutputSchema(
+      schema,
+      document,
+      scalarTypes,
+      parentType,
+      fragment.selectionSet
+    );
+  } else if (isAbstractType(parentType)) {
+    const possibleTypes = schema.getPossibleTypes(parentType);
+    dataSchema = {
+      anyOf: possibleTypes.map((type) =>
+        buildOutputSchema(
+          schema,
+          document,
+          scalarTypes,
+          type,
+          fragment.selectionSet
+        )
+      ),
+    };
+  } else {
+    throw new Error(
+      `Fragment type condition must be an object, union or interface, got: ${parentType?.name}`
+    );
+  }
+
+  return {
+    title: `Fragment ${fragment.name?.value || "Anonymous"} on ${
+      fragment.typeCondition
+    } Data`,
+    ...(fragment.description
+      ? { description: fragment.description?.value }
+      : {}),
+    ...dataSchema,
+  };
+}
 
 function buildOperationSchema(
   schema: GraphQLSchema,
@@ -360,4 +412,21 @@ function buildVariablesSchema(
   scalarTypes?: Record<string, JSONSchema.Interface> | undefined
 ): JSONSchema {
   throw new Error("Not implemented");
+}
+
+function standardSchema<T>({
+  toJSONSchema,
+  validate,
+}: Pick<
+  StandardJSONSchemaSourceV1.PropsWithStandardSchema<T, T>,
+  "validate" | "toJSONSchema"
+>): StandardSchemaV1.WithJSONSchemaSource<T, T> {
+  return {
+    "~standard": {
+      validate,
+      toJSONSchema,
+      vendor: "@apollo/graphql-standard-schema",
+      version: 1,
+    },
+  };
 }
