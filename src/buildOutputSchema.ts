@@ -238,7 +238,7 @@ export function buildOutputSchema(
           properties,
           required: Object.keys(properties),
           additionalProperties: false as const,
-        },
+        } satisfies OpenAiSupportedJsonSchema.ObjectDef,
         fragmentsMatches.length > 0
           ? ({
               // not supported by OpenAI

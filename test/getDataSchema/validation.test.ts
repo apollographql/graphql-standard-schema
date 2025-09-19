@@ -2,7 +2,6 @@ import { test } from "node:test";
 
 import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
 import { buildSchema } from "graphql";
-import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import { gql, validateSync } from "../utils/test-helpers.ts";
 
 test("getDataSchema/validation - validates simple query with string field", (t: test.TestContext) => {
@@ -233,11 +232,7 @@ test.skip("getDataSchema/validation - validates arrays and lists", (t: test.Test
 
   t.assert.ok("value" in validResult, "Should validate arrays correctly");
   t.assert.deepStrictEqual(validResult.value.strings, ["a", "b", "c"]);
-  t.assert.deepStrictEqual(validResult.value.nullableStrings, [
-    "d",
-    null,
-    "e",
-  ]);
+  t.assert.deepStrictEqual(validResult.value.nullableStrings, ["d", null, "e"]);
   t.assert.strictEqual(validResult.value.users.length, 2);
   t.assert.strictEqual(validResult.value.matrix[0][1], 2);
 
