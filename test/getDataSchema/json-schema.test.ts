@@ -2,7 +2,6 @@ import { test } from "node:test";
 import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
 import { buildSchema } from "graphql";
 import {
-  assertDeepNoBool,
   gql,
   validateWithAjv,
 } from "../utils/test-helpers.ts";
@@ -324,7 +323,6 @@ test("getDataSchema/json-schema - handles nested objects", (t: test.TestContext)
     target: "draft-2020-12",
   });
 
-  assertDeepNoBool(jsonSchema);
   t.assert.strictEqual(jsonSchema.properties.user.type, "object");
   t.assert.deepStrictEqual(jsonSchema.properties.user.properties.id, {
     title: "User.id: Int!",
@@ -405,7 +403,6 @@ test("getDataSchema/json-schema - handles field aliases", (t: test.TestContext) 
     io: "input",
     target: "draft-2020-12",
   });
-  assertDeepNoBool(jsonSchema);
 
   // Should use aliases as property names
   t.assert.ok(
@@ -500,6 +497,7 @@ test("getDataSchema/json-schema - handles mutations", (t: test.TestContext) => {
       email: { title: "User.email: String!", type: "string" },
     },
     required: ["id", "name", "email"],
+    additionalProperties: false,
   });
 
   const validCreateData = {
@@ -532,7 +530,6 @@ test("getDataSchema/json-schema - handles mutations", (t: test.TestContext) => {
     io: "input",
     target: "draft-2020-12",
   });
-  assertDeepNoBool(updateJsonSchema);
 
   t.assert.ok(
     updateJsonSchema.properties.updateUser.anyOf,
@@ -597,7 +594,6 @@ test("getDataSchema/json-schema - handles subscriptions", (t: test.TestContext) 
     io: "input",
     target: "draft-2020-12",
   });
-  assertDeepNoBool(jsonSchema);
 
   t.assert.strictEqual(jsonSchema.title, "subscription OnMessage");
   t.assert.deepStrictEqual(jsonSchema.properties.counter, {
@@ -660,7 +656,6 @@ test("getDataSchema/json-schema - handles __typename field", (t: test.TestContex
     io: "input",
     target: "draft-2020-12",
   });
-  assertDeepNoBool(jsonSchema);
 
   t.assert.deepStrictEqual(jsonSchema.properties.user.properties.__typename, {
     const: "User",

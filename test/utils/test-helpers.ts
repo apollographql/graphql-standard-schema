@@ -1,5 +1,3 @@
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
 import assert from "node:assert";
 import Ajv from "ajv/dist/2020.js";
 import type { JSONSchema } from "json-schema-typed/draft-2020-12";
@@ -92,6 +90,7 @@ type DeepNoBool<T> = T extends boolean
     : { [K in keyof T]: DeepNoBool<T[K]> }
   : T;
 
+// @ts-ignore
 export function assertDeepNoBool<T>(obj: T): asserts obj is DeepNoBool<T> {
   if (typeof obj === "boolean") {
     throw new Error("Boolean found in object");

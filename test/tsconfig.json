@@ -1,6 +1,11 @@
 {
     "extends": "../tsconfig.json",
     "compilerOptions": {
-        "strictNullChecks": false
-    }
+        "strictNullChecks": false,
+        "noEmit": true,
+        "exactOptionalPropertyTypes": false,
+    },
+    "exclude": [
+        "node_modules",
+    ]
 }

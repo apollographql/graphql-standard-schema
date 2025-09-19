@@ -3,7 +3,6 @@ import { test } from "node:test";
 import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
 import { buildSchema } from "graphql";
 import {
-  assertDeepNoBool,
   gql,
   validateWithAjv,
 } from "../utils/test-helpers.ts";
@@ -132,7 +131,6 @@ test("getFragmentSchema/json-schema - handles fragment with nested objects", (t:
     io: "input",
     target: "draft-2020-12",
   });
-  assertDeepNoBool(jsonSchema);
 
   t.assert.strictEqual(jsonSchema.type, "object");
   t.assert.deepStrictEqual(jsonSchema.properties.id, {

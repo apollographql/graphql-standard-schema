@@ -29,6 +29,7 @@ exports[`getFragmentSchema/json-schema - generates schema for simple fragment 1`
     "name",
     "email"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -91,6 +92,7 @@ exports[`getFragmentSchema/json-schema - handles all scalar types in fragment 1`
     "nullableString",
     "nullableInt"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -123,6 +125,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with __typename 1`] = 
     "name",
     "type"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -168,6 +171,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with aliases 1`] = `
     "joinDate",
     "lastModified"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -251,7 +255,8 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
           "id",
           "name",
           "attributes"
-        ]
+        ],
+        "additionalProperties": false
       }
     },
     "matrix": {
@@ -279,6 +284,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
     "items",
     "matrix"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -370,7 +376,8 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
                     "twitter",
                     "github",
                     "website"
-                  ]
+                  ],
+                  "additionalProperties": false
                 }
               ]
             }
@@ -379,7 +386,8 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
             "bio",
             "avatar",
             "social"
-          ]
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -424,7 +432,8 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
               "required": [
                 "profileVisible",
                 "emailVisible"
-              ]
+              ],
+              "additionalProperties": false
             }
           ]
         }
@@ -433,7 +442,8 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
         "theme",
         "notifications",
         "privacy"
-      ]
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
@@ -442,6 +452,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
     "profile",
     "settings"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -466,6 +477,7 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
       "id",
       "name"
     ],
+    "additionalProperties": false,
     "$defs": {}
   },
   "full": {
@@ -530,7 +542,8 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
               "street",
               "city",
               "country"
-            ]
+            ],
+            "additionalProperties": false
           }
         ]
       }
@@ -542,6 +555,7 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
       "phone",
       "address"
     ],
+    "additionalProperties": false,
     "$defs": {}
   }
 }

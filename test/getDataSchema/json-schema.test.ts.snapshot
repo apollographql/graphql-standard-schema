@@ -31,6 +31,7 @@ exports[`getDataSchema/json-schema - generates schema for simple query 1`] = `
     "hello",
     "count"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -61,12 +62,14 @@ exports[`getDataSchema/json-schema - handles __typename field 1`] = `
         "__typename",
         "id",
         "name"
-      ]
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
     "user"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -105,6 +108,7 @@ exports[`getDataSchema/json-schema - handles all scalar types 1`] = `
     "boolean",
     "id"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -173,6 +177,7 @@ exports[`getDataSchema/json-schema - handles arrays 1`] = `
     "matrix",
     "deeplyNested"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -199,7 +204,8 @@ exports[`getDataSchema/json-schema - handles field aliases 1`] = `
       "required": [
         "userId",
         "userName"
-      ]
+      ],
+      "additionalProperties": false
     },
     "recentPosts": {
       "title": "Query.posts: [Post!]!",
@@ -220,7 +226,8 @@ exports[`getDataSchema/json-schema - handles field aliases 1`] = `
         "required": [
           "postId",
           "postTitle"
-        ]
+        ],
+        "additionalProperties": false
       }
     }
   },
@@ -228,6 +235,7 @@ exports[`getDataSchema/json-schema - handles field aliases 1`] = `
     "currentUser",
     "recentPosts"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -260,12 +268,14 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
           "id",
           "name",
           "email"
-        ]
+        ],
+        "additionalProperties": false
       }
     },
     "required": [
       "createUser"
     ],
+    "additionalProperties": false,
     "$defs": {}
   },
   "update": {
@@ -295,7 +305,8 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
             "required": [
               "id",
               "name"
-            ]
+            ],
+            "additionalProperties": false
           }
         ]
       }
@@ -303,6 +314,7 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
     "required": [
       "updateUser"
     ],
+    "additionalProperties": false,
     "$defs": {}
   }
 }
@@ -380,7 +392,8 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
                       "required": [
                         "theme",
                         "notifications"
-                      ]
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 }
@@ -389,7 +402,8 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
                 "bio",
                 "avatar",
                 "settings"
-              ]
+              ],
+              "additionalProperties": false
             }
           ]
         },
@@ -427,7 +441,8 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
               "id",
               "title",
               "tags"
-            ]
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -436,12 +451,14 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
         "name",
         "profile",
         "posts"
-      ]
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
     "user"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -489,6 +506,7 @@ exports[`getDataSchema/json-schema - handles nullable vs non-nullable 1`] = `
     "requiredInt",
     "optionalInt"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -527,14 +545,16 @@ exports[`getDataSchema/json-schema - handles subscriptions 1`] = `
           "required": [
             "id",
             "name"
-          ]
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
         "id",
         "content",
         "author"
-      ]
+      ],
+      "additionalProperties": false
     },
     "counter": {
       "title": "Subscription.counter: Int!",
@@ -545,6 +565,7 @@ exports[`getDataSchema/json-schema - handles subscriptions 1`] = `
     "messageAdded",
     "counter"
   ],
+  "additionalProperties": false,
   "$defs": {}
 }
 `;

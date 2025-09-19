@@ -22,13 +22,16 @@ import type {
   StandardSchemaV1,
 } from "./standard-schema-spec.ts";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
-import type { JSONSchema } from "json-schema-typed/draft-2020-12";
 import { buildOutputSchema } from "./buildOutputSchema.ts";
+import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
 export namespace GraphQLStandardSchemaGenerator {
   export interface Options {
     schema: GraphQLSchema | DocumentNode;
-    scalarTypes?: Record<string, JSONSchema.Interface>;
+    scalarTypes?: Record<string, OpenAiSupportedJsonSchema.Anything>;
   }
+
+  export type JSONSchema = OpenAiSupportedJsonSchema;
+
   export interface ValidationSchema<T>
     extends StandardSchemaV1.WithJSONSchemaSource<T, T> {
     ["~standard"]: Omit<
@@ -37,7 +40,7 @@ export namespace GraphQLStandardSchemaGenerator {
     > & {
       toJSONSchema: (
         options: StandardJSONSchemaSourceV1.Options
-      ) => JSONSchema.Interface;
+      ) => OpenAiSupportedJsonSchema;
     };
   }
 }
@@ -182,55 +185,77 @@ export class GraphQLStandardSchemaGenerator {
     const definition = definitions[0]!;
 
     return standardSchema({
-      toJSONSchema: ({ target, io }) => {
+      toJSONSchema: ({ target, io }): OpenAiSupportedJsonSchema => {
         if (target !== "draft-2020-12") {
           throw new Error("Only draft-2020-12 is supported");
         }
-        const dataJSONSchema: JSONSchema.Interface = dataSchema[
-          "~standard"
-        ].toJSONSchema({
-          target,
-          io,
-        });
+        const { $defs, ...dataJSONSchema }: OpenAiSupportedJsonSchema =
+          dataSchema["~standard"].toJSONSchema({
+            target,
+            io,
+          });
 
         return {
           ...schemaBase,
           title: `Full response for ${definition.operation} ${
             definition.name?.value || "Anonymous"
           }`,
+          type: "object",
           properties: {
             data: dataJSONSchema,
             errors: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  message: { type: "string" },
-                  locations: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        line: { type: "number" },
-                        column: { type: "number" },
+              anyOf: [
+                { type: "null" },
+                {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      message: { type: "string" },
+                      locations: {
+                        anyOf: [
+                          { type: "null" },
+                          {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              properties: {
+                                line: { type: "number" },
+                                column: { type: "number" },
+                              },
+                              required: ["line", "column"],
+                              additionalProperties: false,
+                            },
+                          },
+                        ],
                       },
-                      required: ["line", "column"],
+                      path: {
+                        anyOf: [
+                          {
+                            type: "array",
+                            items: {
+                              anyOf: [{ type: "string" }, { type: "number" }],
+                            },
+                          },
+                        ],
+                      },
+                      // any-type object not supported by OpenAI
+                      // extensions: { type: "object" },
                     },
+                    additionalProperties: false,
+                    required: ["message", "locations", "path", "extensions"],
                   },
-                  path: {
-                    type: "array",
-                    items: {
-                      anyOf: [{ type: "string" }, { type: "number" }],
-                    },
-                  },
-                  extensions: { type: "object" },
-                  required: ["message"],
                 },
-              },
+              ],
             },
-            extensions: { type: "object" },
+            // any-type object not supported by OpenAI
+            // extensions: { type: "object" },
           },
-          oneOf: [{ required: "data" }, { required: "errors" }],
+          required: ["data", "errors"],
+          additionalProperties: false as const,
+          ...($defs ? { $defs } : {}),
+          // not supported by OpenAI
+          // oneOf: [{ required: "data" }, { required: "errors" }],
         };
       },
       validate(value) {
@@ -343,10 +368,10 @@ function buildFragmentSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
   fragment: FragmentDefinitionNode,
-  scalarTypes?: Record<string, JSONSchema.Interface> | undefined
-): JSONSchema.Interface {
+  scalarTypes?: GraphQLStandardSchemaGenerator.Options["scalarTypes"]
+): OpenAiSupportedJsonSchema {
   const parentType = schema.getType(fragment.typeCondition.name.value);
-  let dataSchema: JSONSchema.Interface;
+  let dataSchema: OpenAiSupportedJsonSchema;
   if (isObjectType(parentType)) {
     dataSchema = buildOutputSchema(
       schema,
@@ -356,18 +381,20 @@ function buildFragmentSchema(
       fragment.selectionSet
     );
   } else if (isAbstractType(parentType)) {
-    const possibleTypes = schema.getPossibleTypes(parentType);
-    dataSchema = {
-      anyOf: possibleTypes.map((type) =>
-        buildOutputSchema(
-          schema,
-          document,
-          scalarTypes,
-          type,
-          fragment.selectionSet
-        )
-      ),
-    };
+    //https://platform.openai.com/docs/guides/structured-outputs?type-restrictions=number-restrictions#root-objects-must-not-be-anyof-and-must-be-an-object
+    throw new Error("not supported by OpenAI");
+    // const possibleTypes = schema.getPossibleTypes(parentType);
+    // dataSchema = {
+    //   anyOf: possibleTypes.map((type) =>
+    //     buildOutputSchema(
+    //       schema,
+    //       document,
+    //       scalarTypes,
+    //       type,
+    //       fragment.selectionSet
+    //     )
+    //   ),
+    // };
   } else {
     throw new Error(
       `Fragment type condition must be an object, union or interface, got: ${parentType?.name}`
@@ -389,8 +416,8 @@ function buildOperationSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
   operation: OperationDefinitionNode,
-  scalarTypes?: Record<string, JSONSchema.Interface> | undefined
-): JSONSchema.Interface {
+  scalarTypes?: GraphQLStandardSchemaGenerator.Options["scalarTypes"]
+): OpenAiSupportedJsonSchema {
   return {
     ...(operation.description
       ? { description: operation.description?.value }
@@ -403,8 +430,8 @@ function buildOperationSchema(
       operation.operation === OperationTypeNode.QUERY
         ? schema.getQueryType()!
         : operation.operation === OperationTypeNode.SUBSCRIPTION
-        ? schema.getSubscriptionType()!
-        : schema.getMutationType()!,
+          ? schema.getSubscriptionType()!
+          : schema.getMutationType()!,
 
       operation.selectionSet
     ),
@@ -415,8 +442,8 @@ function buildOperationSchema(
 function buildVariablesSchema(
   schema: GraphQLSchema,
   operation: OperationDefinitionNode,
-  scalarTypes?: Record<string, JSONSchema.Interface> | undefined
-): JSONSchema {
+  scalarTypes?: GraphQLStandardSchemaGenerator.Options["scalarTypes"]
+): OpenAiSupportedJsonSchema {
   throw new Error("Not implemented");
 }
 
@@ -424,13 +451,9 @@ function standardSchema<T>({
   toJSONSchema,
   validate,
 }: Pick<
-  StandardJSONSchemaSourceV1.PropsWithStandardSchema<T, T>,
+  GraphQLStandardSchemaGenerator.ValidationSchema<T>["~standard"],
   "validate" | "toJSONSchema"
->): StandardSchemaV1.WithJSONSchemaSource<T, T> & {
-  ["~standard"]: {
-    toJSONSchema: (options: StandardJSONSchemaSourceV1.Options) => JSONSchema;
-  };
-} {
+>): GraphQLStandardSchemaGenerator.ValidationSchema<T> {
   return {
     "~standard": {
       validate,

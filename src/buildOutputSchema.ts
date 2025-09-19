@@ -22,18 +22,18 @@ import {
   Kind,
   type SelectionSetNode,
 } from "graphql";
-import type { JSONSchema } from "json-schema-typed/draft-2020-12";
+import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
 
 export function buildOutputSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
-  scalarTypes: Record<string, JSONSchema.Interface> | undefined,
+  scalarTypes: Record<string, OpenAiSupportedJsonSchema.Anything> | undefined,
   parentType: GraphQLObjectType,
   selections: SelectionSetNode
-): JSONSchema.Interface {
-  const defs: NonNullable<JSONSchema.Interface["$defs"]> = {};
+): OpenAiSupportedJsonSchema {
+  const defs: NonNullable<OpenAiSupportedJsonSchema["$defs"]> = {};
 
-  function documentType<T extends JSONSchema.Interface>(
+  function documentType<T extends OpenAiSupportedJsonSchema.Anything>(
     type: GraphQLOutputType,
     obj: T
   ): T {
@@ -53,7 +53,7 @@ export function buildOutputSchema(
   function handleMaybe(
     parentType: GraphQLOutputType,
     selections?: SelectionSetNode
-  ): JSONSchema.Interface {
+  ): OpenAiSupportedJsonSchema.Anything {
     if (isNonNullType(parentType)) {
       const itemType = parentType.ofType;
       if (isNonNullType(itemType)) {
@@ -70,8 +70,10 @@ export function buildOutputSchema(
     parentType: Exclude<GraphQLOutputType, GraphQLNonNull<any>>,
     nullable: boolean,
     selections?: SelectionSetNode
-  ): JSONSchema.Interface {
-    function maybe(schema: JSONSchema.Interface): JSONSchema.Interface {
+  ): OpenAiSupportedJsonSchema.Anything {
+    function maybe(
+      schema: OpenAiSupportedJsonSchema.Anything
+    ): OpenAiSupportedJsonSchema.Anything {
       if (nullable) {
         return {
           anyOf: [{ type: "null" }, schema],
@@ -101,10 +103,7 @@ export function buildOutputSchema(
       }
     }
     if (isScalarType(parentType)) {
-      if (!scalarTypes) {
-        return maybe(documentType(parentType, {}));
-      }
-      const scalarType = scalarTypes[parentType.name];
+      const scalarType = scalarTypes?.[parentType.name];
       if (!scalarType) {
         throw new Error(
           `Scalar type ${parentType.name} not found in \`scalarTypes\`, but \`scalarTypes\` option was provided.`
@@ -151,10 +150,12 @@ export function buildOutputSchema(
   function handleObjectType(
     parentType: GraphQLObjectType,
     selections: SelectionSetNode
-  ): JSONSchema.Interface {
+  ): OpenAiSupportedJsonSchema.ObjectDef {
     const fields = parentType.getFields();
-    const properties: NonNullable<JSONSchema.Interface["properties"]> = {};
-    const fragmentsMatches: JSONSchema.Interface[] = [];
+    const properties: NonNullable<
+      OpenAiSupportedJsonSchema.ObjectDef["properties"]
+    > = {};
+    const fragmentsMatches: OpenAiSupportedJsonSchema.Anything[] = [];
 
     for (const selection of selections.selections) {
       switch (selection.kind) {
@@ -232,12 +233,19 @@ export function buildOutputSchema(
       parentType,
       Object.assign(
         {
-          type: "object",
+          type: "object" as const,
           title: parentType.name,
           properties,
           required: Object.keys(properties),
+          additionalProperties: false as const,
         },
-        fragmentsMatches.length > 0 ? { allOf: fragmentsMatches } : {}
+        fragmentsMatches.length > 0
+          ? ({
+              // not supported by OpenAI
+              // TODO
+              allOf: fragmentsMatches,
+            } as any as OpenAiSupportedJsonSchema.Anything)
+          : {}
       )
     );
   }

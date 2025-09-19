@@ -35,7 +35,6 @@
     "@types/node": "^24.3.1",
     "ajv": "^8.17.1",
     "graphql": "./graphql-16.11.0-4430.0.tgz",
-    "json-schema-typed": "^8.0.1",
     "typescript": "^5.9.2"
   },
   "peerDependencies": {
