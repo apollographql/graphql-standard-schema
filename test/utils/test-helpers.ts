@@ -79,3 +79,30 @@ export function gql<TData, TVariables = Record<string, unknown>>(
 > {
   return parse(query);
 }
+
+type DeepNoBool<T> = T extends boolean
+  ? never
+  : T extends (infer U)[]
+  ? DeepNoBool<U>[]
+  : T extends number | string | bigint | symbol | null | undefined
+  ? T
+  : T extends object
+  ? keyof T extends never
+    ? T
+    : { [K in keyof T]: DeepNoBool<T[K]> }
+  : T;
+
+export function assertDeepNoBool<T>(obj: T): asserts obj is DeepNoBool<T> {
+  if (typeof obj === "boolean") {
+    throw new Error("Boolean found in object");
+  }
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      assertDeepNoBool(item);
+    }
+  } else if (typeof obj === "object" && obj !== null) {
+    for (const key of Reflect.ownKeys(obj)) {
+      assertDeepNoBool((obj as any)[key]);
+    }
+  }
+}

@@ -2,10 +2,7 @@ import { test } from "node:test";
 
 import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
 import { buildSchema } from "graphql";
-import {
-  gql,
-  validateSync,
-} from "../utils/test-helpers.ts";
+import { gql, validateSync } from "../utils/test-helpers.ts";
 
 test.skip("getFragmentSchema/validation - validates single fragment on Query type", (t: test.TestContext) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -38,7 +35,7 @@ test.skip("getFragmentSchema/validation - validates single fragment on Query typ
     email: "alice@example.com",
   });
 
-  t.assert.ok(validResult.value, "Should have a value");
+  t.assert.ok("value" in validResult, "Should have a value");
   t.assert.strictEqual(validResult.value.id, 1);
   t.assert.strictEqual(validResult.value.name, "Alice");
   t.assert.strictEqual(validResult.value.email, "alice@example.com");
@@ -50,7 +47,7 @@ test.skip("getFragmentSchema/validation - validates single fragment on Query typ
     email: null,
   });
 
-  t.assert.ok(nullEmailResult.value, "Should accept null email");
+  t.assert.ok("value" in nullEmailResult, "Should accept null email");
   t.assert.strictEqual(nullEmailResult.value.email, null);
 
   // Test invalid type
@@ -122,7 +119,7 @@ test.skip("getFragmentSchema/validation - handles multiple fragments with fragme
     },
   });
 
-  t.assert.ok(validResult.value, "Should validate UserFull fragment");
+  t.assert.ok("value" in validResult, "Should validate UserFull fragment");
   t.assert.strictEqual(validResult.value.name, "Alice");
   t.assert.strictEqual(validResult.value.profile.bio, "Software developer");
 
@@ -134,7 +131,7 @@ test.skip("getFragmentSchema/validation - handles multiple fragments with fragme
     profile: null,
   });
 
-  t.assert.ok(nullProfileResult.value, "Should accept null profile");
+  t.assert.ok("value" in nullProfileResult, "Should accept null profile");
 });
 
 test.skip("getFragmentSchema/validation - validates fragment with nested selections", (t: test.TestContext) => {
@@ -282,7 +279,7 @@ test.skip("getFragmentSchema/validation - validates fragment with nested selecti
     },
   });
 
-  t.assert.ok(validResult.value, "Should validate nested fragment data");
+  t.assert.ok("value" in validResult, "Should validate nested fragment data");
   t.assert.strictEqual(
     validResult.value.posts[0].comments[0].content,
     "Great post!"
@@ -325,7 +322,7 @@ test.skip("getFragmentSchema/validation - validates fragment with field aliases"
     joinDate: "2024-01-01",
   });
 
-  t.assert.ok(validResult.value, "Should validate with aliases");
+  t.assert.ok("value" in validResult, "Should validate with aliases");
   t.assert.strictEqual(validResult.value.userName, "Alice");
 
   // Test that original field names don't work
@@ -499,7 +496,7 @@ test.skip("getFragmentSchema/validation - validates fragment with __typename", (
     role: "admin",
   });
 
-  t.assert.ok(validResult.value, "Should validate with __typename");
+  t.assert.ok("value" in validResult, "Should validate with __typename");
   t.assert.strictEqual(validResult.value.__typename, "Query");
 
   // Test with wrong __typename
@@ -551,7 +548,7 @@ test.skip("getFragmentSchema/validation - validates fragment with arrays", (t: t
     ],
   });
 
-  t.assert.ok(validResult.value, "Should validate arrays in fragment");
+  t.assert.ok("value" in validResult, "Should validate arrays in fragment");
   t.assert.deepStrictEqual(validResult.value.tags, ["tech", "web", "graphql"]);
   t.assert.strictEqual(validResult.value.scores[1], null);
 
@@ -563,5 +560,8 @@ test.skip("getFragmentSchema/validation - validates fragment with arrays", (t: t
     matrix: null,
   });
 
-  t.assert.ok(nullMatrixResult.value, "Should accept null for nullable array");
+  t.assert.ok(
+    "value" in nullMatrixResult,
+    "Should accept null for nullable array"
+  );
 });

@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
 import { buildSchema } from "graphql";
-import { gql, validateWithAjv } from "../utils/test-helpers.ts";
+import {
+  assertDeepNoBool,
+  gql,
+  validateWithAjv,
+} from "../utils/test-helpers.ts";
 
 test("getDataSchema/json-schema - generates schema for simple query", (t: test.TestContext) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -320,6 +324,7 @@ test("getDataSchema/json-schema - handles nested objects", (t: test.TestContext)
     target: "draft-2020-12",
   });
 
+  assertDeepNoBool(jsonSchema);
   t.assert.strictEqual(jsonSchema.properties.user.type, "object");
   t.assert.deepStrictEqual(jsonSchema.properties.user.properties.id, {
     title: "User.id: Int!",
@@ -400,6 +405,7 @@ test("getDataSchema/json-schema - handles field aliases", (t: test.TestContext) 
     io: "input",
     target: "draft-2020-12",
   });
+  assertDeepNoBool(jsonSchema);
 
   // Should use aliases as property names
   t.assert.ok(
@@ -526,13 +532,14 @@ test("getDataSchema/json-schema - handles mutations", (t: test.TestContext) => {
     io: "input",
     target: "draft-2020-12",
   });
+  assertDeepNoBool(updateJsonSchema);
 
   t.assert.ok(
     updateJsonSchema.properties.updateUser.anyOf,
     "Update result should be nullable"
   );
 
-  const validUpdateData = { updateUser: null };
+  const validUpdateData = { updateUser: null as null };
   const { valid: updateValid } = validateWithAjv(
     updateJsonSchema,
     validUpdateData
@@ -590,6 +597,7 @@ test("getDataSchema/json-schema - handles subscriptions", (t: test.TestContext) 
     io: "input",
     target: "draft-2020-12",
   });
+  assertDeepNoBool(jsonSchema);
 
   t.assert.strictEqual(jsonSchema.title, "subscription OnMessage");
   t.assert.deepStrictEqual(jsonSchema.properties.counter, {
@@ -652,6 +660,7 @@ test("getDataSchema/json-schema - handles __typename field", (t: test.TestContex
     io: "input",
     target: "draft-2020-12",
   });
+  assertDeepNoBool(jsonSchema);
 
   t.assert.deepStrictEqual(jsonSchema.properties.user.properties.__typename, {
     const: "User",
