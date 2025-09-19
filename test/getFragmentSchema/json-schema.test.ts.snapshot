@@ -1,0 +1,548 @@
+exports[`getFragmentSchema/json-schema - generates schema for simple fragment 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "fragment UserDetails on Query",
+  "properties": {
+    "id": {
+      "title": "Query.id: Int!",
+      "type": "integer"
+    },
+    "name": {
+      "title": "Query.name: String!",
+      "type": "string"
+    },
+    "email": {
+      "title": "Query.email: String",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "email"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getFragmentSchema/json-schema - handles all scalar types in fragment 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "fragment AllScalars on Query",
+  "properties": {
+    "stringField": {
+      "title": "Query.stringField: String!",
+      "type": "string"
+    },
+    "intField": {
+      "title": "Query.intField: Int!",
+      "type": "integer"
+    },
+    "floatField": {
+      "title": "Query.floatField: Float!",
+      "type": "number"
+    },
+    "booleanField": {
+      "title": "Query.booleanField: Boolean!",
+      "type": "boolean"
+    },
+    "idField": {
+      "title": "Query.idField: ID!",
+      "type": "string"
+    },
+    "nullableString": {
+      "title": "Query.nullableString: String",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "nullableInt": {
+      "title": "Query.nullableInt: Int",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer"
+        }
+      ]
+    }
+  },
+  "required": [
+    "stringField",
+    "intField",
+    "floatField",
+    "booleanField",
+    "idField",
+    "nullableString",
+    "nullableInt"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getFragmentSchema/json-schema - handles fragment with __typename 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "fragment TypedData on Query",
+  "properties": {
+    "__typename": {
+      "const": "Query"
+    },
+    "id": {
+      "title": "Query.id: Int!",
+      "type": "integer"
+    },
+    "name": {
+      "title": "Query.name: String!",
+      "type": "string"
+    },
+    "type": {
+      "title": "Query.type: String!",
+      "type": "string"
+    }
+  },
+  "required": [
+    "__typename",
+    "id",
+    "name",
+    "type"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getFragmentSchema/json-schema - handles fragment with aliases 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "fragment UserWithAliases on Query",
+  "properties": {
+    "userId": {
+      "title": "Query.id: Int!",
+      "type": "integer"
+    },
+    "userName": {
+      "title": "Query.name: String!",
+      "type": "string"
+    },
+    "userEmail": {
+      "title": "Query.email: String!",
+      "type": "string"
+    },
+    "joinDate": {
+      "title": "Query.createdAt: String!",
+      "type": "string"
+    },
+    "lastModified": {
+      "title": "Query.updatedAt: String",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "required": [
+    "userId",
+    "userName",
+    "userEmail",
+    "joinDate",
+    "lastModified"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "fragment DataWithArrays on Query",
+  "properties": {
+    "id": {
+      "title": "Query.id: Int!",
+      "type": "integer"
+    },
+    "tags": {
+      "title": "Query.tags: [String!]!",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scores": {
+      "title": "Query.scores: [Int]",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "items": {
+      "title": "Query.items: [Item!]!",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "title": "Item",
+        "properties": {
+          "id": {
+            "title": "Item.id: Int!",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Item.name: String!",
+            "type": "string"
+          },
+          "attributes": {
+            "title": "Item.attributes: [String]",
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "attributes"
+        ]
+      }
+    },
+    "matrix": {
+      "title": "Query.matrix: [[Float!]!]",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "tags",
+    "scores",
+    "items",
+    "matrix"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "fragment UserFullDetails on Query",
+  "properties": {
+    "id": {
+      "title": "Query.id: Int!",
+      "type": "integer"
+    },
+    "name": {
+      "title": "Query.name: String!",
+      "type": "string"
+    },
+    "profile": {
+      "title": "Query.profile: Profile",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "title": "Profile",
+          "properties": {
+            "bio": {
+              "title": "Profile.bio: String",
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "avatar": {
+              "title": "Profile.avatar: String!",
+              "type": "string"
+            },
+            "social": {
+              "title": "Profile.social: Social",
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "title": "Social",
+                  "properties": {
+                    "twitter": {
+                      "title": "Social.twitter: String",
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "github": {
+                      "title": "Social.github: String",
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "website": {
+                      "title": "Social.website: String",
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "twitter",
+                    "github",
+                    "website"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "bio",
+            "avatar",
+            "social"
+          ]
+        }
+      ]
+    },
+    "settings": {
+      "title": "Settings",
+      "type": "object",
+      "properties": {
+        "theme": {
+          "title": "Settings.theme: String!",
+          "type": "string"
+        },
+        "notifications": {
+          "title": "Settings.notifications: Boolean",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "privacy": {
+          "title": "Settings.privacy: Privacy",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "title": "Privacy",
+              "properties": {
+                "profileVisible": {
+                  "title": "Privacy.profileVisible: Boolean!",
+                  "type": "boolean"
+                },
+                "emailVisible": {
+                  "title": "Privacy.emailVisible: Boolean!",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "profileVisible",
+                "emailVisible"
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "theme",
+        "notifications",
+        "privacy"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "profile",
+    "settings"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getFragmentSchema/json-schema - handles multiple fragments with selection 1`] = `
+{
+  "basic": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "title": "fragment UserBasic on Query",
+    "properties": {
+      "id": {
+        "title": "Query.id: Int!",
+        "type": "integer"
+      },
+      "name": {
+        "title": "Query.name: String!",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "name"
+    ],
+    "$defs": {}
+  },
+  "full": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "title": "fragment UserFull on Query",
+    "properties": {
+      "id": {
+        "title": "Query.id: Int!",
+        "type": "integer"
+      },
+      "name": {
+        "title": "Query.name: String!",
+        "type": "string"
+      },
+      "email": {
+        "title": "Query.email: String",
+        "anyOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "phone": {
+        "title": "Query.phone: String",
+        "anyOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "address": {
+        "title": "Query.address: Address",
+        "anyOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "object",
+            "title": "Address",
+            "properties": {
+              "street": {
+                "title": "Address.street: String!",
+                "type": "string"
+              },
+              "city": {
+                "title": "Address.city: String!",
+                "type": "string"
+              },
+              "country": {
+                "title": "Address.country: String!",
+                "type": "string"
+              }
+            },
+            "required": [
+              "street",
+              "city",
+              "country"
+            ]
+          }
+        ]
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "email",
+      "phone",
+      "address"
+    ],
+    "$defs": {}
+  }
+}
+`;

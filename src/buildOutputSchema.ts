@@ -39,7 +39,6 @@ export function buildOutputSchema(
   ): T {
     const named = getNamedType(type);
 
-    console.log("documenting", named.name, named.description);
     if (named.description) {
       defs[named.name] = {
         description: named.description,
@@ -120,15 +119,18 @@ export function buildOutputSchema(
         );
       }
       const possibleTypes = schema.getPossibleTypes(parentType);
-      const base: Array<JSONSchema.Interface> = nullable
-        ? [{ type: "null" }]
-        : [];
+      const typeSchemas = possibleTypes.map((implementationType) =>
+        handleObjectType(implementationType, selections)
+      );
+
+      if (nullable) {
+        return documentType(parentType, {
+          anyOf: [{ type: "null" }, ...typeSchemas],
+        });
+      }
+
       return documentType(parentType, {
-        anyOf: base.concat(
-          ...possibleTypes.map((implementationType) =>
-            maybe(handleObjectType(implementationType, selections))
-          )
-        ),
+        anyOf: typeSchemas,
       });
     }
     if (isEnumType(parentType)) {
@@ -165,7 +167,9 @@ export function buildOutputSchema(
           } else {
             const type = fields[selection.name.value]!.type;
             properties[name] = {
-              title: `${parentType.name}.${name}: ${type.toString()}`,
+              title: `${parentType.name}.${
+                selection.name.value
+              }: ${type.toString()}`,
               ...handleMaybe(type, selection.selectionSet),
             };
           }

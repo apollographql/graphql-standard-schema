@@ -1,0 +1,550 @@
+exports[`getDataSchema/json-schema - generates schema for simple query 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query SimpleQuery",
+  "properties": {
+    "hello": {
+      "title": "Query.hello: String",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "count": {
+      "title": "Query.count: Int",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer"
+        }
+      ]
+    }
+  },
+  "required": [
+    "hello",
+    "count"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getDataSchema/json-schema - handles __typename field 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query WithTypename",
+  "properties": {
+    "user": {
+      "title": "User",
+      "type": "object",
+      "properties": {
+        "__typename": {
+          "const": "User"
+        },
+        "id": {
+          "title": "User.id: Int!",
+          "type": "integer"
+        },
+        "name": {
+          "title": "User.name: String!",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__typename",
+        "id",
+        "name"
+      ]
+    }
+  },
+  "required": [
+    "user"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getDataSchema/json-schema - handles all scalar types 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query AllScalars",
+  "properties": {
+    "string": {
+      "title": "Query.string: String!",
+      "type": "string"
+    },
+    "int": {
+      "title": "Query.int: Int!",
+      "type": "integer"
+    },
+    "float": {
+      "title": "Query.float: Float!",
+      "type": "number"
+    },
+    "boolean": {
+      "title": "Query.boolean: Boolean!",
+      "type": "boolean"
+    },
+    "id": {
+      "title": "Query.id: ID!",
+      "type": "string"
+    }
+  },
+  "required": [
+    "string",
+    "int",
+    "float",
+    "boolean",
+    "id"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getDataSchema/json-schema - handles arrays 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query ArrayTest",
+  "properties": {
+    "strings": {
+      "title": "Query.strings: [String!]!",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "nullableStrings": {
+      "title": "Query.nullableStrings: [String]",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "matrix": {
+      "title": "Query.matrix: [[Int!]!]!",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "deeplyNested": {
+      "title": "Query.deeplyNested: [[[String!]!]!]!",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "strings",
+    "nullableStrings",
+    "matrix",
+    "deeplyNested"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getDataSchema/json-schema - handles field aliases 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query AliasTest",
+  "properties": {
+    "currentUser": {
+      "title": "User",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "title": "User.id: Int!",
+          "type": "integer"
+        },
+        "userName": {
+          "title": "User.name: String!",
+          "type": "string"
+        }
+      },
+      "required": [
+        "userId",
+        "userName"
+      ]
+    },
+    "recentPosts": {
+      "title": "Query.posts: [Post!]!",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "title": "Post",
+        "properties": {
+          "postId": {
+            "title": "Post.id: Int!",
+            "type": "integer"
+          },
+          "postTitle": {
+            "title": "Post.title: String!",
+            "type": "string"
+          }
+        },
+        "required": [
+          "postId",
+          "postTitle"
+        ]
+      }
+    }
+  },
+  "required": [
+    "currentUser",
+    "recentPosts"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getDataSchema/json-schema - handles mutations 1`] = `
+{
+  "create": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "title": "mutation CreateUser",
+    "properties": {
+      "createUser": {
+        "title": "User",
+        "type": "object",
+        "properties": {
+          "id": {
+            "title": "User.id: Int!",
+            "type": "integer"
+          },
+          "name": {
+            "title": "User.name: String!",
+            "type": "string"
+          },
+          "email": {
+            "title": "User.email: String!",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email"
+        ]
+      }
+    },
+    "required": [
+      "createUser"
+    ],
+    "$defs": {}
+  },
+  "update": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "title": "mutation UpdateUser",
+    "properties": {
+      "updateUser": {
+        "title": "Mutation.updateUser: User",
+        "anyOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "object",
+            "title": "User",
+            "properties": {
+              "id": {
+                "title": "User.id: Int!",
+                "type": "integer"
+              },
+              "name": {
+                "title": "User.name: String!",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          }
+        ]
+      }
+    },
+    "required": [
+      "updateUser"
+    ],
+    "$defs": {}
+  }
+}
+`;
+
+exports[`getDataSchema/json-schema - handles nested objects 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query NestedObjects",
+  "properties": {
+    "user": {
+      "title": "User",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "User.id: Int!",
+          "type": "integer"
+        },
+        "name": {
+          "title": "User.name: String!",
+          "type": "string"
+        },
+        "profile": {
+          "title": "User.profile: Profile",
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "title": "Profile",
+              "properties": {
+                "bio": {
+                  "title": "Profile.bio: String",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "avatar": {
+                  "title": "Profile.avatar: String!",
+                  "type": "string"
+                },
+                "settings": {
+                  "title": "Profile.settings: Settings",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "title": "Settings",
+                      "properties": {
+                        "theme": {
+                          "title": "Settings.theme: String!",
+                          "type": "string"
+                        },
+                        "notifications": {
+                          "title": "Settings.notifications: Boolean",
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "theme",
+                        "notifications"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "bio",
+                "avatar",
+                "settings"
+              ]
+            }
+          ]
+        },
+        "posts": {
+          "title": "User.posts: [Post!]!",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "title": "Post",
+            "properties": {
+              "id": {
+                "title": "Post.id: Int!",
+                "type": "integer"
+              },
+              "title": {
+                "title": "Post.title: String!",
+                "type": "string"
+              },
+              "tags": {
+                "title": "Post.tags: [String!]",
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "tags"
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "profile",
+        "posts"
+      ]
+    }
+  },
+  "required": [
+    "user"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getDataSchema/json-schema - handles nullable vs non-nullable 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query NullabilityTest",
+  "properties": {
+    "required": {
+      "title": "Query.required: String!",
+      "type": "string"
+    },
+    "optional": {
+      "title": "Query.optional: String",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "requiredInt": {
+      "title": "Query.requiredInt: Int!",
+      "type": "integer"
+    },
+    "optionalInt": {
+      "title": "Query.optionalInt: Int",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer"
+        }
+      ]
+    }
+  },
+  "required": [
+    "required",
+    "optional",
+    "requiredInt",
+    "optionalInt"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`getDataSchema/json-schema - handles subscriptions 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "subscription OnMessage",
+  "properties": {
+    "messageAdded": {
+      "title": "Message",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "Message.id: Int!",
+          "type": "integer"
+        },
+        "content": {
+          "title": "Message.content: String!",
+          "type": "string"
+        },
+        "author": {
+          "title": "User",
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "User.id: Int!",
+              "type": "integer"
+            },
+            "name": {
+              "title": "User.name: String!",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "content",
+        "author"
+      ]
+    },
+    "counter": {
+      "title": "Subscription.counter: Int!",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "messageAdded",
+    "counter"
+  ],
+  "$defs": {}
+}
+`;

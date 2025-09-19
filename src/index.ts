@@ -29,6 +29,17 @@ export namespace GraphQLStandardSchemaGenerator {
     schema: GraphQLSchema | DocumentNode;
     scalarTypes?: Record<string, JSONSchema.Interface>;
   }
+  export interface ValidationSchema<T>
+    extends StandardSchemaV1.WithJSONSchemaSource<T, T> {
+    ["~standard"]: Omit<
+      StandardJSONSchemaSourceV1.PropsWithStandardSchema<T, T>,
+      "toJSONSchema"
+    > & {
+      toJSONSchema: (
+        options: StandardJSONSchemaSourceV1.Options
+      ) => JSONSchema.Interface;
+    };
+  }
 }
 export class GraphQLStandardSchemaGenerator {
   private schema!: GraphQLSchema;
@@ -52,7 +63,7 @@ export class GraphQLStandardSchemaGenerator {
 
   getDataSchema<TData>(
     document: TypedDocumentNode<TData>
-  ): StandardSchemaV1.WithJSONSchemaSource<TData, TData> {
+  ): GraphQLStandardSchemaGenerator.ValidationSchema<TData> {
     const schema = this.schema;
     const definitions = document.definitions.filter(
       (def): def is OperationDefinitionNode =>
@@ -159,10 +170,7 @@ export class GraphQLStandardSchemaGenerator {
 
   getResponseSchema<TData>(
     document: TypedDocumentNode<TData>
-  ): StandardSchemaV1.WithJSONSchemaSource<
-    FormattedExecutionResult<TData>,
-    FormattedExecutionResult<TData>
-  > {
+  ): GraphQLStandardSchemaGenerator.ValidationSchema<FormattedExecutionResult> {
     const dataSchema = this.getDataSchema(document);
     const definitions = document.definitions.filter(
       (def): def is OperationDefinitionNode =>
@@ -187,9 +195,9 @@ export class GraphQLStandardSchemaGenerator {
 
         return {
           ...schemaBase,
-          title: `${definition.operation} ${
+          title: `Full response for ${definition.operation} ${
             definition.name?.value || "Anonymous"
-          } Response`,
+          }`,
           properties: {
             data: dataJSONSchema,
             errors: {
@@ -238,7 +246,7 @@ export class GraphQLStandardSchemaGenerator {
     }: {
       fragmentName?: string;
     } = {}
-  ): StandardSchemaV1.WithJSONSchemaSource<TData, TData> {
+  ): GraphQLStandardSchemaGenerator.ValidationSchema<TData> {
     if (
       !document.definitions.every((def) => def.kind === "FragmentDefinition")
     ) {
@@ -307,7 +315,7 @@ export class GraphQLStandardSchemaGenerator {
 
   getVariablesSchema<TVariables>(
     document: TypedDocumentNode<any, TVariables>
-  ): StandardSchemaV1.WithJSONSchemaSource<TVariables, TVariables> {
+  ): GraphQLStandardSchemaGenerator.ValidationSchema<TVariables> {
     return {
       ["~standard"]: {
         types: {
@@ -367,13 +375,13 @@ function buildFragmentSchema(
   }
 
   return {
-    title: `Fragment ${fragment.name?.value || "Anonymous"} on ${
-      fragment.typeCondition
-    } Data`,
+    ...dataSchema,
+    title: `fragment ${fragment.name?.value || "Anonymous"} on ${
+      fragment.typeCondition.name.value
+    }`,
     ...(fragment.description
       ? { description: fragment.description?.value }
       : {}),
-    ...dataSchema,
   };
 }
 
@@ -384,9 +392,6 @@ function buildOperationSchema(
   scalarTypes?: Record<string, JSONSchema.Interface> | undefined
 ): JSONSchema.Interface {
   return {
-    title: `${operation.operation} ${
-      operation.name?.value || "Anonymous"
-    } Data`,
     ...(operation.description
       ? { description: operation.description?.value }
       : {}),
@@ -403,6 +408,7 @@ function buildOperationSchema(
 
       operation.selectionSet
     ),
+    title: `${operation.operation} ${operation.name?.value || "Anonymous"}`,
   };
 }
 
@@ -420,7 +426,11 @@ function standardSchema<T>({
 }: Pick<
   StandardJSONSchemaSourceV1.PropsWithStandardSchema<T, T>,
   "validate" | "toJSONSchema"
->): StandardSchemaV1.WithJSONSchemaSource<T, T> {
+>): StandardSchemaV1.WithJSONSchemaSource<T, T> & {
+  ["~standard"]: {
+    toJSONSchema: (options: StandardJSONSchemaSourceV1.Options) => JSONSchema;
+  };
+} {
   return {
     "~standard": {
       validate,
