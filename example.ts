@@ -81,7 +81,9 @@ const testSchema = new GraphQLStandardSchemaGenerator({
         users {
           __typename
           id
-          name
+          ... on User {
+            name
+          }
           role
           birthDate
           favourites {

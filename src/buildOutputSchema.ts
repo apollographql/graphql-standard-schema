@@ -1,5 +1,6 @@
 import {
   type DocumentNode,
+  type FieldNode,
   type FragmentDefinitionNode,
   getNamedType,
   GraphQLBoolean,
@@ -20,6 +21,9 @@ import {
   isSpecifiedScalarType,
   isUnionType,
   Kind,
+  print,
+  stripIgnoredCharacters,
+  type SelectionNode,
   type SelectionSetNode,
 } from "graphql";
 import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
@@ -196,97 +200,114 @@ export function buildOutputSchema(
     > = {
       __typename: { const: parentType.name },
     };
-    const fragmentsMatches: OpenAiSupportedJsonSchema.ObjectDef[] = [];
 
-    for (const selection of selections.selections) {
-      switch (selection.kind) {
-        case Kind.FIELD:
-          const name = selection.alias?.value || selection.name.value;
-          if (selection.name.value === "__typename") {
-            // already handled above
-            break;
-          } else {
-            const type = fields[selection.name.value]!.type;
-            properties[name] = {
-              title: `${parentType.name}.${
-                selection.name.value
-              }: ${type.toString()}`,
-              ...handleMaybe(type, selection.selectionSet),
-            };
-          }
-          break;
+    const normalized = normalizeSelections(parentType, selections);
 
-        case Kind.INLINE_FRAGMENT:
-        case Kind.FRAGMENT_SPREAD:
-          let fragmentImplementation:
-            | InlineFragmentNode
-            | FragmentDefinitionNode
-            | undefined;
-          if (selection.kind === Kind.INLINE_FRAGMENT) {
-            fragmentImplementation = selection;
-          } else {
-            fragmentImplementation = document.definitions.find(
-              (def): def is FragmentDefinitionNode =>
-                def.kind === Kind.FRAGMENT_DEFINITION &&
-                def.name.value === selection.name.value
-            );
-            if (!fragmentImplementation) {
-              throw new Error(
-                `Fragment ${selection.name.value} not found in document`
-              );
-            }
-          }
-          const typeCondition =
-            fragmentImplementation.typeCondition?.name.value;
-          if (typeCondition) {
-            const conditionType = schema.getType(typeCondition);
+    for (let i = 0; i < normalized.length; i++) {
+      const selection = normalized[i]!;
+      const alias = selection.alias?.value || selection.name.value;
 
-            const fragmentApplies =
-              conditionType?.name === parentType.name ||
-              (isAbstractType(conditionType) &&
-                schema.isSubType(conditionType, parentType));
-
-            if (fragmentApplies) {
-              fragmentsMatches.push({
-                ...handleObjectType(
-                  parentType,
-                  fragmentImplementation.selectionSet
-                ),
-                title: `${
-                  fragmentImplementation.kind === Kind.FRAGMENT_DEFINITION
-                    ? `Fragment ${fragmentImplementation.name.value}`
-                    : "Fragment"
-                } on ${typeCondition}`,
-                ...("description" in fragmentImplementation &&
-                fragmentImplementation.description
-                  ? {
-                      description: fragmentImplementation.description.value,
-                    }
-                  : {}),
-              });
-            }
-            break;
-          }
+      if (selection.name.value === "__typename") {
+        properties[alias] = { const: parentType.name };
+        continue;
+      } else {
+        const type = fields[selection.name.value]!.type;
+        properties[alias] = {
+          title: `${parentType.name}.${
+            selection.name.value
+          }: ${type.toString()}`,
+          ...handleMaybe(type, selection.selectionSet),
+        };
       }
     }
-    return documentType(
-      parentType,
-      Object.assign(
-        {
-          type: "object" as const,
-          title: parentType.name,
-          properties,
-          required: Object.keys(properties),
-          additionalProperties: false as const,
-        } satisfies OpenAiSupportedJsonSchema.ObjectDef,
-        fragmentsMatches.length > 0
-          ? ({
-              // not supported by OpenAI
-              // TODO
-              allOf: fragmentsMatches,
-            } as any as OpenAiSupportedJsonSchema.Anything)
-          : {}
-      )
-    );
+    return documentType(parentType, {
+      type: "object" as const,
+      title: parentType.name,
+      properties,
+      required: Object.keys(properties),
+      additionalProperties: false as const,
+    } satisfies OpenAiSupportedJsonSchema.ObjectDef);
+  }
+
+  /**
+   * Turns a selection set that might contain fragments into a selection set that contains
+   */
+  function normalizeSelections(
+    parentType: GraphQLObjectType,
+    selections: SelectionSetNode
+  ): FieldNode[] {
+    const accumulatedSelections: FieldNode[] = [];
+    for (const selection of selections.selections) {
+      if (selection.kind === Kind.FIELD) {
+        accumulatedSelections.push(selection);
+      } else {
+        let fragmentImplementation:
+          | InlineFragmentNode
+          | FragmentDefinitionNode
+          | undefined;
+        if (selection.kind === Kind.INLINE_FRAGMENT) {
+          fragmentImplementation = selection;
+        } else {
+          fragmentImplementation = document.definitions.find(
+            (def): def is FragmentDefinitionNode =>
+              def.kind === Kind.FRAGMENT_DEFINITION &&
+              def.name.value === selection.name.value
+          );
+          if (!fragmentImplementation) {
+            throw new Error(
+              `Fragment ${selection.name.value} not found in document`
+            );
+          }
+        }
+        const typeCondition = fragmentImplementation.typeCondition?.name.value;
+        let fragmentApplies = !typeCondition;
+        if (typeCondition) {
+          const conditionType = schema.getType(typeCondition);
+          fragmentApplies =
+            conditionType?.name === parentType.name ||
+            (isAbstractType(conditionType) &&
+              schema.isSubType(conditionType, parentType));
+        }
+        if (fragmentApplies) {
+          accumulatedSelections.push(
+            ...normalizeSelections(
+              parentType,
+              fragmentImplementation.selectionSet
+            )
+          );
+        }
+      }
+    }
+    const mergedSelections: Record<string, FieldNode> = {};
+    for (const selection of accumulatedSelections) {
+      const alias = selection.alias?.value || selection.name.value;
+      if (!mergedSelections[alias]) {
+        mergedSelections[alias] = selection;
+        continue;
+      }
+      assert(selection.name.value === mergedSelections[alias].name.value);
+      assert(equal(selection.arguments, mergedSelections[alias].arguments));
+      assert(equal(selection.directives, mergedSelections[alias].directives));
+      if (!selection.selectionSet && !mergedSelections[alias].selectionSet) {
+        continue;
+      }
+      if (selection.selectionSet && mergedSelections[alias].selectionSet) {
+        mergedSelections[alias].selectionSet.selections = [
+          ...mergedSelections[alias].selectionSet.selections,
+          ...selection.selectionSet.selections,
+        ];
+      }
+      throw new Error(
+        `Incorrect selection for field ${selection.name.value} cannot be a mix of field and sub-selections`
+      );
+    }
+
+    return Object.values(mergedSelections);
+  }
+}
+
+function assert(condition: any, message?: string): asserts condition {
+  if (!condition) {
+    throw new Error(message || "Assertion failed");
   }
 }
