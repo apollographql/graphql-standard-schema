@@ -1,12 +1,11 @@
 import assert from "node:assert";
 import Ajv from "ajv/dist/2020.js";
-import type { JSONSchema } from "json-schema-typed/draft-2020-12";
 import type { StandardSchemaV1 } from "../../src/standard-schema-spec.ts";
 import { parse } from "graphql";
 
 const ajv = new (Ajv as any as typeof import("ajv").Ajv)();
 
-export function validateWithAjv(schema: JSONSchema.Interface, data: unknown) {
+export function validateWithAjv(schema: unknown, data: unknown) {
   const validate = ajv.compile(schema);
   const valid = validate(data);
   return { valid, errors: validate.errors || [] };
@@ -81,14 +80,14 @@ export function gql<TData, TVariables = Record<string, unknown>>(
 type DeepNoBool<T> = T extends boolean
   ? never
   : T extends (infer U)[]
-  ? DeepNoBool<U>[]
-  : T extends number | string | bigint | symbol | null | undefined
-  ? T
-  : T extends object
-  ? keyof T extends never
-    ? T
-    : { [K in keyof T]: DeepNoBool<T[K]> }
-  : T;
+    ? DeepNoBool<U>[]
+    : T extends number | string | bigint | symbol | null | undefined
+      ? T
+      : T extends object
+        ? keyof T extends never
+          ? T
+          : { [K in keyof T]: DeepNoBool<T[K]> }
+        : T;
 
 // @ts-ignore
 export function assertDeepNoBool<T>(obj: T): asserts obj is DeepNoBool<T> {
