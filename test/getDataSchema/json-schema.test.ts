@@ -1,10 +1,7 @@
 import { test } from "node:test";
 import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
 import { buildSchema } from "graphql";
-import {
-  gql,
-  validateWithAjv,
-} from "../utils/test-helpers.ts";
+import { gql, validateWithAjv } from "../utils/test-helpers.ts";
 
 test("getDataSchema/json-schema - generates schema for simple query", (t: test.TestContext) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -150,14 +147,14 @@ test("getDataSchema/json-schema - handles nullable vs non-nullable", (t: test.Te
     type: "integer",
   });
 
-  // Nullable fields should have anyOf with null
+  // Nullable fields should have type array with null
   t.assert.deepStrictEqual(jsonSchema.properties.optional, {
     title: "Query.optional: String",
-    anyOf: [{ type: "null" }, { type: "string" }],
+    type: ["string", "null"],
   });
   t.assert.deepStrictEqual(jsonSchema.properties.optionalInt, {
     title: "Query.optionalInt: Int",
-    anyOf: [{ type: "null" }, { type: "integer" }],
+    type: ["integer", "null"],
   });
 
   const validData = {
@@ -211,15 +208,10 @@ test("getDataSchema/json-schema - handles arrays", (t: test.TestContext) => {
   // Nullable array of nullable strings
   t.assert.deepStrictEqual(jsonSchema.properties.nullableStrings, {
     title: "Query.nullableStrings: [String]",
-    anyOf: [
-      { type: "null" },
-      {
-        type: "array",
-        items: {
-          anyOf: [{ type: "null" }, { type: "string" }],
-        },
-      },
-    ],
+    type: ["array", "null"],
+    items: {
+      type: ["string", "null"],
+    },
   });
 
   // 2D matrix
@@ -335,10 +327,11 @@ test("getDataSchema/json-schema - handles nested objects", (t: test.TestContext)
 
   // Check nested profile structure
   const profileSchema = jsonSchema.properties.user.properties.profile;
-  t.assert.ok(profileSchema.anyOf, "Profile should be nullable");
-  const profileObject = profileSchema.anyOf.find((s) => s.type === "object");
-  t.assert.ok(profileObject, "Should have object schema for profile");
-
+  t.assert.deepStrictEqual(
+    profileSchema.type,
+    ["object", "null"],
+    "Profile should be nullable"
+  );
   const validData = {
     user: {
       id: 1,
@@ -531,8 +524,9 @@ test("getDataSchema/json-schema - handles mutations", (t: test.TestContext) => {
     target: "draft-2020-12",
   });
 
-  t.assert.ok(
-    updateJsonSchema.properties.updateUser.anyOf,
+  t.assert.deepStrictEqual(
+    updateJsonSchema.properties.updateUser.type,
+    ["object", "null"],
     "Update result should be nullable"
   );
 

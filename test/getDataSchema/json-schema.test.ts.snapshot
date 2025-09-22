@@ -6,24 +6,16 @@ exports[`getDataSchema/json-schema - generates schema for simple query 1`] = `
   "properties": {
     "hello": {
       "title": "Query.hello: String",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string"
-        }
+      "type": [
+        "string",
+        "null"
       ]
     },
     "count": {
       "title": "Query.count: Int",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "integer"
-        }
+      "type": [
+        "integer",
+        "null"
       ]
     }
   },
@@ -128,24 +120,16 @@ exports[`getDataSchema/json-schema - handles arrays 1`] = `
     },
     "nullableStrings": {
       "title": "Query.nullableStrings: [String]",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "type": "string"
-              }
-            ]
-          }
-        }
-      ]
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
     },
     "matrix": {
       "title": "Query.matrix: [[Int!]!]!",
@@ -284,31 +268,26 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
     "title": "mutation UpdateUser",
     "properties": {
       "updateUser": {
-        "title": "Mutation.updateUser: User",
-        "anyOf": [
-          {
-            "type": "null"
+        "title": "User",
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "id": {
+            "title": "User.id: Int!",
+            "type": "integer"
           },
-          {
-            "type": "object",
-            "title": "User",
-            "properties": {
-              "id": {
-                "title": "User.id: Int!",
-                "type": "integer"
-              },
-              "name": {
-                "title": "User.name: String!",
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name"
-            ],
-            "additionalProperties": false
+          "name": {
+            "title": "User.name: String!",
+            "type": "string"
           }
-        ]
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false
       }
     },
     "required": [
@@ -339,73 +318,55 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
           "type": "string"
         },
         "profile": {
-          "title": "User.profile: Profile",
-          "anyOf": [
-            {
-              "type": "null"
+          "title": "Profile",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "bio": {
+              "title": "Profile.bio: String",
+              "type": [
+                "string",
+                "null"
+              ]
             },
-            {
-              "type": "object",
-              "title": "Profile",
+            "avatar": {
+              "title": "Profile.avatar: String!",
+              "type": "string"
+            },
+            "settings": {
+              "title": "Settings",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
-                "bio": {
-                  "title": "Profile.bio: String",
-                  "anyOf": [
-                    {
-                      "type": "null"
-                    },
-                    {
-                      "type": "string"
-                    }
-                  ]
-                },
-                "avatar": {
-                  "title": "Profile.avatar: String!",
+                "theme": {
+                  "title": "Settings.theme: String!",
                   "type": "string"
                 },
-                "settings": {
-                  "title": "Profile.settings: Settings",
-                  "anyOf": [
-                    {
-                      "type": "null"
-                    },
-                    {
-                      "type": "object",
-                      "title": "Settings",
-                      "properties": {
-                        "theme": {
-                          "title": "Settings.theme: String!",
-                          "type": "string"
-                        },
-                        "notifications": {
-                          "title": "Settings.notifications: Boolean",
-                          "anyOf": [
-                            {
-                              "type": "null"
-                            },
-                            {
-                              "type": "boolean"
-                            }
-                          ]
-                        }
-                      },
-                      "required": [
-                        "theme",
-                        "notifications"
-                      ],
-                      "additionalProperties": false
-                    }
+                "notifications": {
+                  "title": "Settings.notifications: Boolean",
+                  "type": [
+                    "boolean",
+                    "null"
                   ]
                 }
               },
               "required": [
-                "bio",
-                "avatar",
-                "settings"
+                "theme",
+                "notifications"
               ],
               "additionalProperties": false
             }
-          ]
+          },
+          "required": [
+            "bio",
+            "avatar",
+            "settings"
+          ],
+          "additionalProperties": false
         },
         "posts": {
           "title": "User.posts: [Post!]!",
@@ -424,17 +385,13 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
               },
               "tags": {
                 "title": "Post.tags: [String!]",
-                "anyOf": [
-                  {
-                    "type": "null"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ]
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
               }
             },
             "required": [
@@ -475,13 +432,9 @@ exports[`getDataSchema/json-schema - handles nullable vs non-nullable 1`] = `
     },
     "optional": {
       "title": "Query.optional: String",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string"
-        }
+      "type": [
+        "string",
+        "null"
       ]
     },
     "requiredInt": {
@@ -490,13 +443,9 @@ exports[`getDataSchema/json-schema - handles nullable vs non-nullable 1`] = `
     },
     "optionalInt": {
       "title": "Query.optionalInt: Int",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "integer"
-        }
+      "type": [
+        "integer",
+        "null"
       ]
     }
   },

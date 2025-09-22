@@ -2,10 +2,7 @@ import { test } from "node:test";
 
 import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
 import { buildSchema } from "graphql";
-import {
-  gql,
-  validateWithAjv,
-} from "../utils/test-helpers.ts";
+import { gql, validateWithAjv } from "../utils/test-helpers.ts";
 
 test("getFragmentSchema/json-schema - generates schema for simple fragment", (t: test.TestContext) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -51,7 +48,7 @@ test("getFragmentSchema/json-schema - generates schema for simple fragment", (t:
   });
   t.assert.deepStrictEqual(jsonSchema.properties.email, {
     title: "Query.email: String",
-    anyOf: [{ type: "null" }, { type: "string" }],
+    type: ["string", "null"],
   });
 
   const validData = {
@@ -140,7 +137,11 @@ test("getFragmentSchema/json-schema - handles fragment with nested objects", (t:
 
   // Check nested profile structure
   const profileSchema = jsonSchema.properties.profile;
-  t.assert.ok(profileSchema.anyOf, "Profile should be nullable");
+  t.assert.deepStrictEqual(
+    profileSchema.type,
+    ["object", "null"],
+    "Profile should be nullable"
+  );
 
   // Check nested settings structure
   const settingsSchema = jsonSchema.properties.settings;
@@ -227,29 +228,19 @@ test("getFragmentSchema/json-schema - handles fragment with arrays", (t: test.Te
 
   t.assert.deepStrictEqual(jsonSchema.properties.scores, {
     title: "Query.scores: [Int]",
-    anyOf: [
-      { type: "null" },
-      {
-        type: "array",
-        items: {
-          anyOf: [{ type: "null" }, { type: "integer" }],
-        },
-      },
-    ],
+    type: ["array", "null"],
+    items: {
+      type: ["integer", "null"],
+    },
   });
 
   t.assert.deepStrictEqual(jsonSchema.properties.matrix, {
     title: "Query.matrix: [[Float!]!]",
-    anyOf: [
-      { type: "null" },
-      {
-        type: "array",
-        items: {
-          type: "array",
-          items: { type: "number" },
-        },
-      },
-    ],
+    type: ["array", "null"],
+    items: {
+      type: "array",
+      items: { type: "number" },
+    },
   });
 
   const validData = {
@@ -321,7 +312,7 @@ test("getFragmentSchema/json-schema - handles fragment with aliases", (t: test.T
   });
   t.assert.deepStrictEqual(jsonSchema.properties.lastModified, {
     title: "Query.updatedAt: String",
-    anyOf: [{ type: "null" }, { type: "string" }],
+    type: ["string", "null"],
   });
 
   t.assert.ok(!jsonSchema.properties.id, "Should not have original field name");
@@ -570,7 +561,7 @@ test("getFragmentSchema/json-schema - handles all scalar types in fragment", (t:
 
   t.assert.deepStrictEqual(jsonSchema.properties.nullableString, {
     title: "Query.nullableString: String",
-    anyOf: [{ type: "null" }, { type: "string" }],
+    type: ["string", "null"],
   });
 
   const validData = {

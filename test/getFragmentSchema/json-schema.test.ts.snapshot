@@ -14,13 +14,9 @@ exports[`getFragmentSchema/json-schema - generates schema for simple fragment 1`
     },
     "email": {
       "title": "Query.email: String",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string"
-        }
+      "type": [
+        "string",
+        "null"
       ]
     }
   },
@@ -62,24 +58,16 @@ exports[`getFragmentSchema/json-schema - handles all scalar types in fragment 1`
     },
     "nullableString": {
       "title": "Query.nullableString: String",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string"
-        }
+      "type": [
+        "string",
+        "null"
       ]
     },
     "nullableInt": {
       "title": "Query.nullableInt: Int",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "integer"
-        }
+      "type": [
+        "integer",
+        "null"
       ]
     }
   },
@@ -154,13 +142,9 @@ exports[`getFragmentSchema/json-schema - handles fragment with aliases 1`] = `
     },
     "lastModified": {
       "title": "Query.updatedAt: String",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string"
-        }
+      "type": [
+        "string",
+        "null"
       ]
     }
   },
@@ -195,24 +179,16 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
     },
     "scores": {
       "title": "Query.scores: [Int]",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "type": "integer"
-              }
-            ]
-          }
-        }
-      ]
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      }
     },
     "items": {
       "title": "Query.items: [Item!]!",
@@ -231,24 +207,16 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
           },
           "attributes": {
             "title": "Item.attributes: [String]",
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "type": "null"
-                    },
-                    {
-                      "type": "string"
-                    }
-                  ]
-                }
-              }
-            ]
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         },
         "required": [
@@ -261,20 +229,16 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
     },
     "matrix": {
       "title": "Query.matrix: [[Float!]!]",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "array",
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          }
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number"
         }
-      ]
+      }
     }
   },
   "required": [
@@ -304,92 +268,66 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
       "type": "string"
     },
     "profile": {
-      "title": "Query.profile: Profile",
-      "anyOf": [
-        {
-          "type": "null"
+      "title": "Profile",
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "bio": {
+          "title": "Profile.bio: String",
+          "type": [
+            "string",
+            "null"
+          ]
         },
-        {
-          "type": "object",
-          "title": "Profile",
+        "avatar": {
+          "title": "Profile.avatar: String!",
+          "type": "string"
+        },
+        "social": {
+          "title": "Social",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "bio": {
-              "title": "Profile.bio: String",
-              "anyOf": [
-                {
-                  "type": "null"
-                },
-                {
-                  "type": "string"
-                }
+            "twitter": {
+              "title": "Social.twitter: String",
+              "type": [
+                "string",
+                "null"
               ]
             },
-            "avatar": {
-              "title": "Profile.avatar: String!",
-              "type": "string"
+            "github": {
+              "title": "Social.github: String",
+              "type": [
+                "string",
+                "null"
+              ]
             },
-            "social": {
-              "title": "Profile.social: Social",
-              "anyOf": [
-                {
-                  "type": "null"
-                },
-                {
-                  "type": "object",
-                  "title": "Social",
-                  "properties": {
-                    "twitter": {
-                      "title": "Social.twitter: String",
-                      "anyOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "github": {
-                      "title": "Social.github: String",
-                      "anyOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "website": {
-                      "title": "Social.website: String",
-                      "anyOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "type": "string"
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "twitter",
-                    "github",
-                    "website"
-                  ],
-                  "additionalProperties": false
-                }
+            "website": {
+              "title": "Social.website: String",
+              "type": [
+                "string",
+                "null"
               ]
             }
           },
           "required": [
-            "bio",
-            "avatar",
-            "social"
+            "twitter",
+            "github",
+            "website"
           ],
           "additionalProperties": false
         }
-      ]
+      },
+      "required": [
+        "bio",
+        "avatar",
+        "social"
+      ],
+      "additionalProperties": false
     },
     "settings": {
       "title": "Settings",
@@ -401,41 +339,32 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
         },
         "notifications": {
           "title": "Settings.notifications: Boolean",
-          "anyOf": [
-            {
-              "type": "null"
-            },
-            {
-              "type": "boolean"
-            }
+          "type": [
+            "boolean",
+            "null"
           ]
         },
         "privacy": {
-          "title": "Settings.privacy: Privacy",
-          "anyOf": [
-            {
-              "type": "null"
+          "title": "Privacy",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "profileVisible": {
+              "title": "Privacy.profileVisible: Boolean!",
+              "type": "boolean"
             },
-            {
-              "type": "object",
-              "title": "Privacy",
-              "properties": {
-                "profileVisible": {
-                  "title": "Privacy.profileVisible: Boolean!",
-                  "type": "boolean"
-                },
-                "emailVisible": {
-                  "title": "Privacy.emailVisible: Boolean!",
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "profileVisible",
-                "emailVisible"
-              ],
-              "additionalProperties": false
+            "emailVisible": {
+              "title": "Privacy.emailVisible: Boolean!",
+              "type": "boolean"
             }
-          ]
+          },
+          "required": [
+            "profileVisible",
+            "emailVisible"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -495,57 +424,44 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
       },
       "email": {
         "title": "Query.email: String",
-        "anyOf": [
-          {
-            "type": "null"
-          },
-          {
-            "type": "string"
-          }
+        "type": [
+          "string",
+          "null"
         ]
       },
       "phone": {
         "title": "Query.phone: String",
-        "anyOf": [
-          {
-            "type": "null"
-          },
-          {
-            "type": "string"
-          }
+        "type": [
+          "string",
+          "null"
         ]
       },
       "address": {
-        "title": "Query.address: Address",
-        "anyOf": [
-          {
-            "type": "null"
+        "title": "Address",
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "street": {
+            "title": "Address.street: String!",
+            "type": "string"
           },
-          {
-            "type": "object",
-            "title": "Address",
-            "properties": {
-              "street": {
-                "title": "Address.street: String!",
-                "type": "string"
-              },
-              "city": {
-                "title": "Address.city: String!",
-                "type": "string"
-              },
-              "country": {
-                "title": "Address.country: String!",
-                "type": "string"
-              }
-            },
-            "required": [
-              "street",
-              "city",
-              "country"
-            ],
-            "additionalProperties": false
+          "city": {
+            "title": "Address.city: String!",
+            "type": "string"
+          },
+          "country": {
+            "title": "Address.country: String!",
+            "type": "string"
           }
-        ]
+        },
+        "required": [
+          "street",
+          "city",
+          "country"
+        ],
+        "additionalProperties": false
       }
     },
     "required": [

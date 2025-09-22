@@ -74,12 +74,52 @@ export function buildOutputSchema(
     function maybe(
       schema: OpenAiSupportedJsonSchema.Anything
     ): OpenAiSupportedJsonSchema.Anything {
-      if (nullable) {
+      if (!nullable) return schema;
+      if ("const" in schema) {
+        return { anyOf: [schema, { type: "null" }] };
+      } else if ("type" in schema) {
+        if (Array.isArray(schema.type)) {
+          if (!schema.type.includes("null")) {
+            return {
+              ...schema,
+              type: [...schema.type, "null"],
+            };
+          }
+        } else if (schema.type !== "null") {
+          return {
+            ...schema,
+            type: [schema.type, "null"],
+          };
+        }
+        return schema;
+      } else if ("anyOf" in schema) {
+        if (
+          !schema.anyOf.some(
+            (s) =>
+              "type" in s && (s.type === "null" || s.type?.includes("null"))
+          )
+        ) {
+          return {
+            ...schema,
+            anyOf: [{ type: "null" }, ...schema.anyOf],
+          };
+        }
+        return schema;
+      } else if ("$ref" in schema) {
         return {
-          anyOf: [{ type: "null" }, schema],
+          anyOf: [schema, { type: "null" }],
         };
+      } else if ("enum" in schema) {
+        if (!schema.enum.includes(null)) {
+          return {
+            ...schema,
+            enum: [...schema.enum, null],
+          };
+        }
+        return schema;
+      } else {
+        throw new Error("unhandled maybe case in " + JSON.stringify(schema));
       }
-      return schema;
     }
 
     if (isListType(parentType)) {
@@ -122,15 +162,12 @@ export function buildOutputSchema(
         handleObjectType(implementationType, selections)
       );
 
-      if (nullable) {
-        return documentType(parentType, {
-          anyOf: [{ type: "null" }, ...typeSchemas],
-        });
-      }
-
-      return documentType(parentType, {
-        anyOf: typeSchemas,
-      });
+      return documentType(
+        parentType,
+        maybe({
+          anyOf: typeSchemas,
+        })
+      );
     }
     if (isEnumType(parentType)) {
       const refName = `enum_${parentType.name}`;
@@ -155,7 +192,7 @@ export function buildOutputSchema(
     const properties: NonNullable<
       OpenAiSupportedJsonSchema.ObjectDef["properties"]
     > = {};
-    const fragmentsMatches: OpenAiSupportedJsonSchema.Anything[] = [];
+    const fragmentsMatches: OpenAiSupportedJsonSchema.ObjectDef[] = [];
 
     for (const selection of selections.selections) {
       switch (selection.kind) {
