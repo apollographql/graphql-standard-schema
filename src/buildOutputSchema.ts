@@ -21,9 +21,6 @@ import {
   isSpecifiedScalarType,
   isUnionType,
   Kind,
-  print,
-  stripIgnoredCharacters,
-  type SelectionNode,
   type SelectionSetNode,
 } from "graphql";
 import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
