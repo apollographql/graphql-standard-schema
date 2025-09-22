@@ -4,6 +4,9 @@ exports[`getDataSchema/json-schema - generates schema for simple query 1`] = `
   "type": "object",
   "title": "query SimpleQuery",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "hello": {
       "title": "Query.hello: String",
       "type": [
@@ -20,6 +23,7 @@ exports[`getDataSchema/json-schema - generates schema for simple query 1`] = `
     }
   },
   "required": [
+    "__typename",
     "hello",
     "count"
   ],
@@ -34,6 +38,9 @@ exports[`getDataSchema/json-schema - handles __typename field 1`] = `
   "type": "object",
   "title": "query WithTypename",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "user": {
       "title": "User",
       "type": "object",
@@ -59,6 +66,7 @@ exports[`getDataSchema/json-schema - handles __typename field 1`] = `
     }
   },
   "required": [
+    "__typename",
     "user"
   ],
   "additionalProperties": false,
@@ -72,6 +80,9 @@ exports[`getDataSchema/json-schema - handles all scalar types 1`] = `
   "type": "object",
   "title": "query AllScalars",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "string": {
       "title": "Query.string: String!",
       "type": "string"
@@ -94,6 +105,7 @@ exports[`getDataSchema/json-schema - handles all scalar types 1`] = `
     }
   },
   "required": [
+    "__typename",
     "string",
     "int",
     "float",
@@ -111,6 +123,9 @@ exports[`getDataSchema/json-schema - handles arrays 1`] = `
   "type": "object",
   "title": "query ArrayTest",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "strings": {
       "title": "Query.strings: [String!]!",
       "type": "array",
@@ -156,6 +171,7 @@ exports[`getDataSchema/json-schema - handles arrays 1`] = `
     }
   },
   "required": [
+    "__typename",
     "strings",
     "nullableStrings",
     "matrix",
@@ -172,10 +188,16 @@ exports[`getDataSchema/json-schema - handles field aliases 1`] = `
   "type": "object",
   "title": "query AliasTest",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "currentUser": {
       "title": "User",
       "type": "object",
       "properties": {
+        "__typename": {
+          "const": "User"
+        },
         "userId": {
           "title": "User.id: Int!",
           "type": "integer"
@@ -186,6 +208,7 @@ exports[`getDataSchema/json-schema - handles field aliases 1`] = `
         }
       },
       "required": [
+        "__typename",
         "userId",
         "userName"
       ],
@@ -198,6 +221,9 @@ exports[`getDataSchema/json-schema - handles field aliases 1`] = `
         "type": "object",
         "title": "Post",
         "properties": {
+          "__typename": {
+            "const": "Post"
+          },
           "postId": {
             "title": "Post.id: Int!",
             "type": "integer"
@@ -208,6 +234,7 @@ exports[`getDataSchema/json-schema - handles field aliases 1`] = `
           }
         },
         "required": [
+          "__typename",
           "postId",
           "postTitle"
         ],
@@ -216,6 +243,7 @@ exports[`getDataSchema/json-schema - handles field aliases 1`] = `
     }
   },
   "required": [
+    "__typename",
     "currentUser",
     "recentPosts"
   ],
@@ -231,10 +259,16 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
     "type": "object",
     "title": "mutation CreateUser",
     "properties": {
+      "__typename": {
+        "const": "Mutation"
+      },
       "createUser": {
         "title": "User",
         "type": "object",
         "properties": {
+          "__typename": {
+            "const": "User"
+          },
           "id": {
             "title": "User.id: Int!",
             "type": "integer"
@@ -249,6 +283,7 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
           }
         },
         "required": [
+          "__typename",
           "id",
           "name",
           "email"
@@ -257,6 +292,7 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
       }
     },
     "required": [
+      "__typename",
       "createUser"
     ],
     "additionalProperties": false,
@@ -267,6 +303,9 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
     "type": "object",
     "title": "mutation UpdateUser",
     "properties": {
+      "__typename": {
+        "const": "Mutation"
+      },
       "updateUser": {
         "title": "User",
         "type": [
@@ -274,6 +313,9 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
           "null"
         ],
         "properties": {
+          "__typename": {
+            "const": "User"
+          },
           "id": {
             "title": "User.id: Int!",
             "type": "integer"
@@ -284,6 +326,7 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
           }
         },
         "required": [
+          "__typename",
           "id",
           "name"
         ],
@@ -291,6 +334,7 @@ exports[`getDataSchema/json-schema - handles mutations 1`] = `
       }
     },
     "required": [
+      "__typename",
       "updateUser"
     ],
     "additionalProperties": false,
@@ -305,10 +349,16 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
   "type": "object",
   "title": "query NestedObjects",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "user": {
       "title": "User",
       "type": "object",
       "properties": {
+        "__typename": {
+          "const": "User"
+        },
         "id": {
           "title": "User.id: Int!",
           "type": "integer"
@@ -324,6 +374,9 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
             "null"
           ],
           "properties": {
+            "__typename": {
+              "const": "Profile"
+            },
             "bio": {
               "title": "Profile.bio: String",
               "type": [
@@ -342,6 +395,9 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
                 "null"
               ],
               "properties": {
+                "__typename": {
+                  "const": "Settings"
+                },
                 "theme": {
                   "title": "Settings.theme: String!",
                   "type": "string"
@@ -355,6 +411,7 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
                 }
               },
               "required": [
+                "__typename",
                 "theme",
                 "notifications"
               ],
@@ -362,6 +419,7 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
             }
           },
           "required": [
+            "__typename",
             "bio",
             "avatar",
             "settings"
@@ -375,6 +433,9 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
             "type": "object",
             "title": "Post",
             "properties": {
+              "__typename": {
+                "const": "Post"
+              },
               "id": {
                 "title": "Post.id: Int!",
                 "type": "integer"
@@ -395,6 +456,7 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
               }
             },
             "required": [
+              "__typename",
               "id",
               "title",
               "tags"
@@ -404,6 +466,7 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
         }
       },
       "required": [
+        "__typename",
         "id",
         "name",
         "profile",
@@ -413,6 +476,7 @@ exports[`getDataSchema/json-schema - handles nested objects 1`] = `
     }
   },
   "required": [
+    "__typename",
     "user"
   ],
   "additionalProperties": false,
@@ -426,6 +490,9 @@ exports[`getDataSchema/json-schema - handles nullable vs non-nullable 1`] = `
   "type": "object",
   "title": "query NullabilityTest",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "required": {
       "title": "Query.required: String!",
       "type": "string"
@@ -450,6 +517,7 @@ exports[`getDataSchema/json-schema - handles nullable vs non-nullable 1`] = `
     }
   },
   "required": [
+    "__typename",
     "required",
     "optional",
     "requiredInt",
@@ -466,10 +534,16 @@ exports[`getDataSchema/json-schema - handles subscriptions 1`] = `
   "type": "object",
   "title": "subscription OnMessage",
   "properties": {
+    "__typename": {
+      "const": "Subscription"
+    },
     "messageAdded": {
       "title": "Message",
       "type": "object",
       "properties": {
+        "__typename": {
+          "const": "Message"
+        },
         "id": {
           "title": "Message.id: Int!",
           "type": "integer"
@@ -482,6 +556,9 @@ exports[`getDataSchema/json-schema - handles subscriptions 1`] = `
           "title": "User",
           "type": "object",
           "properties": {
+            "__typename": {
+              "const": "User"
+            },
             "id": {
               "title": "User.id: Int!",
               "type": "integer"
@@ -492,6 +569,7 @@ exports[`getDataSchema/json-schema - handles subscriptions 1`] = `
             }
           },
           "required": [
+            "__typename",
             "id",
             "name"
           ],
@@ -499,6 +577,7 @@ exports[`getDataSchema/json-schema - handles subscriptions 1`] = `
         }
       },
       "required": [
+        "__typename",
         "id",
         "content",
         "author"
@@ -511,6 +590,7 @@ exports[`getDataSchema/json-schema - handles subscriptions 1`] = `
     }
   },
   "required": [
+    "__typename",
     "messageAdded",
     "counter"
   ],

@@ -23,6 +23,7 @@ import {
   type SelectionSetNode,
 } from "graphql";
 import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
+import { equal } from "@wry/equality";
 
 export function buildOutputSchema(
   schema: GraphQLSchema,
@@ -106,9 +107,9 @@ export function buildOutputSchema(
         }
         return schema;
       } else if ("$ref" in schema) {
-        return {
-          anyOf: [schema, { type: "null" }],
-        };
+        throw new Error(
+          "unhandled maybe $ref case in " + JSON.stringify(schema)
+        );
       } else if ("enum" in schema) {
         if (!schema.enum.includes(null)) {
           return {
@@ -170,16 +171,17 @@ export function buildOutputSchema(
       );
     }
     if (isEnumType(parentType)) {
-      const refName = `enum_${parentType.name}`;
+      const refName = `enum_${nullable ? "maybe_" : ""}${parentType.name}`;
+      const base: Array<string | null> = nullable ? [null] : [];
       defs[refName] ??= {
         title: `${parentType.name}`,
         ...(parentType.description
           ? { description: parentType.description }
           : {}),
-        enum: parentType.getValues().map((v) => v.name),
+        enum: base.concat(parentType.getValues().map((v) => v.name)),
       };
 
-      return maybe({ $ref: `#/$defs/${refName}` });
+      return { $ref: `#/$defs/${refName}` };
     }
     return maybe(handleObjectType(parentType, selections!));
   }
@@ -191,7 +193,9 @@ export function buildOutputSchema(
     const fields = parentType.getFields();
     const properties: NonNullable<
       OpenAiSupportedJsonSchema.ObjectDef["properties"]
-    > = {};
+    > = {
+      __typename: { const: parentType.name },
+    };
     const fragmentsMatches: OpenAiSupportedJsonSchema.ObjectDef[] = [];
 
     for (const selection of selections.selections) {
@@ -199,9 +203,8 @@ export function buildOutputSchema(
         case Kind.FIELD:
           const name = selection.alias?.value || selection.name.value;
           if (selection.name.value === "__typename") {
-            properties[name] = {
-              const: parentType.name,
-            };
+            // already handled above
+            break;
           } else {
             const type = fields[selection.name.value]!.type;
             properties[name] = {

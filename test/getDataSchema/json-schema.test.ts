@@ -33,10 +33,10 @@ test("getDataSchema/json-schema - generates schema for simple query", (t: test.T
   );
   t.assert.strictEqual(jsonSchema.title, "query SimpleQuery");
   t.assert.strictEqual(jsonSchema.type, "object");
-  t.assert.deepStrictEqual(jsonSchema.required, ["hello", "count"]);
+  t.assert.deepStrictEqual(jsonSchema.required, ["__typename", "hello", "count"]);
 
   // Validate with AJV
-  const validData = { hello: "world", count: 42 };
+  const validData = { __typename: "Query", hello: "world", count: 42 };
   const { valid } = validateWithAjv(jsonSchema, validData);
   t.assert.ok(valid, "Should validate correct data with AJV");
 
@@ -96,6 +96,7 @@ test("getDataSchema/json-schema - handles all scalar types", (t: test.TestContex
   });
 
   const validData = {
+    __typename: "Query",
     string: "test",
     int: 42,
     float: 3.14,
@@ -158,6 +159,7 @@ test("getDataSchema/json-schema - handles nullable vs non-nullable", (t: test.Te
   });
 
   const validData = {
+    __typename: "Query",
     required: "test",
     optional: null as null,
     requiredInt: 42,
@@ -238,6 +240,7 @@ test("getDataSchema/json-schema - handles arrays", (t: test.TestContext) => {
   });
 
   const validData = {
+    __typename: "Query",
     strings: ["a", "b", "c"],
     nullableStrings: ["d", null, "e"],
     matrix: [
@@ -333,20 +336,24 @@ test("getDataSchema/json-schema - handles nested objects", (t: test.TestContext)
     "Profile should be nullable"
   );
   const validData = {
+    __typename: "Query",
     user: {
+      __typename: "User",
       id: 1,
       name: "Alice",
       profile: {
+        __typename: "Profile",
         bio: "Developer",
         avatar: "avatar.jpg",
         settings: {
+          __typename: "Settings",
           theme: "dark",
           notifications: true,
         },
       },
       posts: [
-        { id: 1, title: "First Post", tags: ["tech", "web"] },
-        { id: 2, title: "Second Post", tags: null },
+        { __typename: "Post", id: 1, title: "First Post", tags: ["tech", "web"] },
+        { __typename: "Post", id: 2, title: "Second Post", tags: null },
       ],
     },
   };
@@ -425,13 +432,15 @@ test("getDataSchema/json-schema - handles field aliases", (t: test.TestContext) 
   );
 
   const validData = {
+    __typename: "Query",
     currentUser: {
+      __typename: "User",
       userId: 1,
       userName: "Alice",
     },
     recentPosts: [
-      { postId: 1, postTitle: "First" },
-      { postId: 2, postTitle: "Second" },
+      { __typename: "Post", postId: 1, postTitle: "First" },
+      { __typename: "Post", postId: 2, postTitle: "Second" },
     ],
   };
 
@@ -485,16 +494,19 @@ test("getDataSchema/json-schema - handles mutations", (t: test.TestContext) => {
     title: "User",
     type: "object",
     properties: {
+      __typename: { const: "User" },
       id: { title: "User.id: Int!", type: "integer" },
       name: { title: "User.name: String!", type: "string" },
       email: { title: "User.email: String!", type: "string" },
     },
-    required: ["id", "name", "email"],
+    required: ["__typename", "id", "name", "email"],
     additionalProperties: false,
   });
 
   const validCreateData = {
+    __typename: "Mutation",
     createUser: {
+      __typename: "User",
       id: 1,
       name: "Test",
       email: "test@example.com",
@@ -530,7 +542,7 @@ test("getDataSchema/json-schema - handles mutations", (t: test.TestContext) => {
     "Update result should be nullable"
   );
 
-  const validUpdateData = { updateUser: null as null };
+  const validUpdateData = { __typename: "Mutation", updateUser: null as null };
   const { valid: updateValid } = validateWithAjv(
     updateJsonSchema,
     validUpdateData
@@ -603,10 +615,13 @@ test("getDataSchema/json-schema - handles subscriptions", (t: test.TestContext) 
   });
 
   const validData = {
+    __typename: "Subscription",
     messageAdded: {
+      __typename: "Message",
       id: 1,
       content: "Hello",
       author: {
+        __typename: "User",
         id: 42,
         name: "Alice",
       },
@@ -656,6 +671,7 @@ test("getDataSchema/json-schema - handles __typename field", (t: test.TestContex
   });
 
   const validData = {
+    __typename: "Query",
     user: {
       __typename: "User",
       id: 1,

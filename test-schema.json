@@ -1,119 +1,94 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Query",
   "description": "A query that fetches users and does a search",
   "type": "object",
+  "title": "query GetUsers",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "users": {
       "title": "Query.users: [User]",
-      "anyOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/$defs/User",
-                "type": "object",
-                "title": "User",
-                "properties": {
-                  "__typename": {
-                    "const": "User"
-                  },
-                  "id": {
-                    "title": "User.id: Int!",
-                    "type": "integer"
-                  },
-                  "name": {
-                    "title": "User.name: String!",
-                    "type": "string"
-                  },
-                  "role": {
-                    "title": "User.role: Role",
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "$ref": "#/$defs/enum_Role"
-                      }
-                    ]
-                  },
-                  "birthDate": {
-                    "title": "User.birthDate: Date",
-                    "anyOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "$ref": "#/$defs/Date",
-                        "type": "string",
-                        "pattern": "^\\d\\d\\d\\d-\\d\\d-\\d\\d$"
-                      }
-                    ]
-                  },
-                  "favourites": {
-                    "title": "User.favourites: [Favourite!]!",
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/$defs/Favourite",
-                      "anyOf": [
-                        {
-                          "$ref": "#/$defs/Book",
-                          "type": "object",
-                          "title": "Book",
-                          "properties": {
-                            "__typename": {
-                              "const": "Book"
-                            },
-                            "name": {
-                              "title": "Book.name: String!",
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "__typename",
-                            "name"
-                          ],
-                          "allOf": [
-                            {
-                              "$ref": "#/$defs/Book",
-                              "type": "object",
-                              "title": "Fragment on Book",
-                              "properties": {
-                                "author": {
-                                  "title": "Book.author: String!",
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "author"
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/User",
+        "type": [
+          "object",
+          "null"
+        ],
+        "title": "User",
+        "properties": {
+          "__typename": {
+            "const": "User"
+          },
+          "id": {
+            "title": "User.id: Int!",
+            "type": "integer"
+          },
+          "name": {
+            "title": "User.name: String!",
+            "type": "string"
+          },
+          "role": {
+            "title": "User.role: Role",
+            "$ref": "#/$defs/enum_maybe_Role"
+          },
+          "birthDate": {
+            "title": "User.birthDate: Date",
+            "$ref": "#/$defs/Date",
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d\\d\\d\\d-\\d\\d-\\d\\d$"
+          },
+          "favourites": {
+            "title": "User.favourites: [Favourite!]!",
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/Favourite",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Book",
+                  "type": "object",
+                  "title": "Book",
+                  "properties": {
+                    "__typename": {
+                      "const": "Book"
+                    },
+                    "name": {
+                      "title": "Book.name: String!",
+                      "type": "string"
+                    },
+                    "author": {
+                      "title": "Book.author: String!",
+                      "type": "string"
                     }
-                  }
-                },
-                "required": [
-                  "__typename",
-                  "id",
-                  "name",
-                  "role",
-                  "birthDate",
-                  "favourites"
-                ]
-              }
-            ]
+                  },
+                  "required": [
+                    "__typename",
+                    "name",
+                    "author"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
           }
-        }
-      ]
+        },
+        "required": [
+          "__typename",
+          "id",
+          "name",
+          "role",
+          "birthDate",
+          "favourites"
+        ],
+        "additionalProperties": false
+      }
     },
     "search": {
       "title": "Query.search: [SearchResult!]!",
@@ -128,27 +103,17 @@
             "properties": {
               "__typename": {
                 "const": "User"
+              },
+              "name": {
+                "title": "User.name: String!",
+                "type": "string"
               }
             },
             "required": [
-              "__typename"
+              "__typename",
+              "name"
             ],
-            "allOf": [
-              {
-                "$ref": "#/$defs/User",
-                "type": "object",
-                "title": "Fragment on User",
-                "properties": {
-                  "name": {
-                    "title": "User.name: String!",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name"
-                ]
-              }
-            ]
+            "additionalProperties": false
           },
           {
             "$ref": "#/$defs/Book",
@@ -157,38 +122,27 @@
             "properties": {
               "__typename": {
                 "const": "Book"
+              },
+              "id": {
+                "title": "Book.id: ID!",
+                "type": "string"
+              },
+              "name": {
+                "title": "Book.name: String!",
+                "type": "string"
+              },
+              "author": {
+                "title": "Book.author: String!",
+                "type": "string"
               }
             },
             "required": [
-              "__typename"
+              "__typename",
+              "id",
+              "name",
+              "author"
             ],
-            "allOf": [
-              {
-                "$ref": "#/$defs/Book",
-                "type": "object",
-                "title": "Fragment BookFragment on Book",
-                "properties": {
-                  "id": {
-                    "title": "Book.id: ID!",
-                    "type": "string"
-                  },
-                  "name": {
-                    "title": "Book.name: String!",
-                    "type": "string"
-                  },
-                  "author": {
-                    "title": "Book.author: String!",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id",
-                  "name",
-                  "author"
-                ],
-                "description": "A fragment that fetches book details"
-              }
-            ]
+            "additionalProperties": false
           },
           {
             "$ref": "#/$defs/Color",
@@ -197,46 +151,39 @@
             "properties": {
               "__typename": {
                 "const": "Color"
+              },
+              "name": {
+                "title": "Color.name: String!",
+                "type": "string"
+              },
+              "hex": {
+                "title": "Color.hex: String!",
+                "type": "string"
               }
             },
             "required": [
-              "__typename"
+              "__typename",
+              "name",
+              "hex"
             ],
-            "allOf": [
-              {
-                "$ref": "#/$defs/Color",
-                "type": "object",
-                "title": "Fragment on Color",
-                "properties": {
-                  "name": {
-                    "title": "Color.name: String!",
-                    "type": "string"
-                  },
-                  "hex": {
-                    "title": "Color.hex: String!",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "hex"
-                ]
-              }
-            ]
+            "additionalProperties": false
           }
         ]
       }
     }
   },
   "required": [
+    "__typename",
     "users",
     "search"
   ],
+  "additionalProperties": false,
   "$defs": {
-    "enum_Role": {
+    "enum_maybe_Role": {
       "title": "Role",
       "description": "System user roles",
       "enum": [
+        null,
         "ADMIN",
         "USER",
         "GUEST"

@@ -4,6 +4,9 @@ exports[`getFragmentSchema/json-schema - generates schema for simple fragment 1`
   "type": "object",
   "title": "fragment UserDetails on Query",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "id": {
       "title": "Query.id: Int!",
       "type": "integer"
@@ -21,6 +24,7 @@ exports[`getFragmentSchema/json-schema - generates schema for simple fragment 1`
     }
   },
   "required": [
+    "__typename",
     "id",
     "name",
     "email"
@@ -36,6 +40,9 @@ exports[`getFragmentSchema/json-schema - handles all scalar types in fragment 1`
   "type": "object",
   "title": "fragment AllScalars on Query",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "stringField": {
       "title": "Query.stringField: String!",
       "type": "string"
@@ -72,6 +79,7 @@ exports[`getFragmentSchema/json-schema - handles all scalar types in fragment 1`
     }
   },
   "required": [
+    "__typename",
     "stringField",
     "intField",
     "floatField",
@@ -124,6 +132,9 @@ exports[`getFragmentSchema/json-schema - handles fragment with aliases 1`] = `
   "type": "object",
   "title": "fragment UserWithAliases on Query",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "userId": {
       "title": "Query.id: Int!",
       "type": "integer"
@@ -149,6 +160,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with aliases 1`] = `
     }
   },
   "required": [
+    "__typename",
     "userId",
     "userName",
     "userEmail",
@@ -166,6 +178,9 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
   "type": "object",
   "title": "fragment DataWithArrays on Query",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "id": {
       "title": "Query.id: Int!",
       "type": "integer"
@@ -197,6 +212,9 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
         "type": "object",
         "title": "Item",
         "properties": {
+          "__typename": {
+            "const": "Item"
+          },
           "id": {
             "title": "Item.id: Int!",
             "type": "integer"
@@ -220,6 +238,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
           }
         },
         "required": [
+          "__typename",
           "id",
           "name",
           "attributes"
@@ -242,6 +261,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
     }
   },
   "required": [
+    "__typename",
     "id",
     "tags",
     "scores",
@@ -259,6 +279,9 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
   "type": "object",
   "title": "fragment UserFullDetails on Query",
   "properties": {
+    "__typename": {
+      "const": "Query"
+    },
     "id": {
       "title": "Query.id: Int!",
       "type": "integer"
@@ -274,6 +297,9 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
         "null"
       ],
       "properties": {
+        "__typename": {
+          "const": "Profile"
+        },
         "bio": {
           "title": "Profile.bio: String",
           "type": [
@@ -292,6 +318,9 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
             "null"
           ],
           "properties": {
+            "__typename": {
+              "const": "Social"
+            },
             "twitter": {
               "title": "Social.twitter: String",
               "type": [
@@ -315,6 +344,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
             }
           },
           "required": [
+            "__typename",
             "twitter",
             "github",
             "website"
@@ -323,6 +353,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
         }
       },
       "required": [
+        "__typename",
         "bio",
         "avatar",
         "social"
@@ -333,6 +364,9 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
       "title": "Settings",
       "type": "object",
       "properties": {
+        "__typename": {
+          "const": "Settings"
+        },
         "theme": {
           "title": "Settings.theme: String!",
           "type": "string"
@@ -351,6 +385,9 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
             "null"
           ],
           "properties": {
+            "__typename": {
+              "const": "Privacy"
+            },
             "profileVisible": {
               "title": "Privacy.profileVisible: Boolean!",
               "type": "boolean"
@@ -361,6 +398,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
             }
           },
           "required": [
+            "__typename",
             "profileVisible",
             "emailVisible"
           ],
@@ -368,6 +406,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
         }
       },
       "required": [
+        "__typename",
         "theme",
         "notifications",
         "privacy"
@@ -376,6 +415,7 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
     }
   },
   "required": [
+    "__typename",
     "id",
     "name",
     "profile",
@@ -393,6 +433,9 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
     "type": "object",
     "title": "fragment UserBasic on Query",
     "properties": {
+      "__typename": {
+        "const": "Query"
+      },
       "id": {
         "title": "Query.id: Int!",
         "type": "integer"
@@ -403,6 +446,7 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
       }
     },
     "required": [
+      "__typename",
       "id",
       "name"
     ],
@@ -414,6 +458,9 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
     "type": "object",
     "title": "fragment UserFull on Query",
     "properties": {
+      "__typename": {
+        "const": "Query"
+      },
       "id": {
         "title": "Query.id: Int!",
         "type": "integer"
@@ -443,6 +490,9 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
           "null"
         ],
         "properties": {
+          "__typename": {
+            "const": "Address"
+          },
           "street": {
             "title": "Address.street: String!",
             "type": "string"
@@ -457,6 +507,7 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
           }
         },
         "required": [
+          "__typename",
           "street",
           "city",
           "country"
@@ -465,6 +516,7 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
       }
     },
     "required": [
+      "__typename",
       "id",
       "name",
       "email",

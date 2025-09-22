@@ -36,7 +36,7 @@ test("getFragmentSchema/json-schema - generates schema for simple fragment", (t:
   );
   t.assert.strictEqual(jsonSchema.title, "fragment UserDetails on Query");
   t.assert.strictEqual(jsonSchema.type, "object");
-  t.assert.deepStrictEqual(jsonSchema.required, ["id", "name", "email"]);
+  t.assert.deepStrictEqual(jsonSchema.required, ["__typename", "id", "name", "email"]);
 
   t.assert.deepStrictEqual(jsonSchema.properties.id, {
     title: "Query.id: Int!",
@@ -52,6 +52,7 @@ test("getFragmentSchema/json-schema - generates schema for simple fragment", (t:
   });
 
   const validData = {
+    __typename: "Query",
     id: 1,
     name: "Alice",
     email: "alice@example.com",
@@ -152,21 +153,26 @@ test("getFragmentSchema/json-schema - handles fragment with nested objects", (t:
   });
 
   const validData = {
+    __typename: "Query",
     id: 1,
     name: "Alice",
     profile: {
+      __typename: "Profile",
       bio: "Developer",
       avatar: "avatar.jpg",
       social: {
+        __typename: "Social",
         twitter: "@alice",
         github: "alice-dev",
         website: "https://alice.dev",
       },
     },
     settings: {
+      __typename: "Settings",
       theme: "dark",
       notifications: true,
       privacy: {
+        __typename: "Privacy",
         profileVisible: true,
         emailVisible: false,
       },
@@ -244,12 +250,13 @@ test("getFragmentSchema/json-schema - handles fragment with arrays", (t: test.Te
   });
 
   const validData = {
+    __typename: "Query",
     id: 1,
     tags: ["tech", "web"],
     scores: [95, null, 88],
     items: [
-      { id: 1, name: "Item 1", attributes: ["fast", "reliable"] },
-      { id: 2, name: "Item 2", attributes: null },
+      { __typename: "Item", id: 1, name: "Item 1", attributes: ["fast", "reliable"] },
+      { __typename: "Item", id: 2, name: "Item 2", attributes: null },
     ],
     matrix: [
       [1.0, 2.0],
@@ -322,6 +329,7 @@ test("getFragmentSchema/json-schema - handles fragment with aliases", (t: test.T
   );
 
   const validData = {
+    __typename: "Query",
     userId: 1,
     userName: "Alice",
     userEmail: "alice@example.com",
@@ -443,6 +451,7 @@ test("getFragmentSchema/json-schema - handles multiple fragments with selection"
 
   t.assert.strictEqual(basicJsonSchema.title, "fragment UserBasic on Query");
   t.assert.deepStrictEqual(Object.keys(basicJsonSchema.properties), [
+    "__typename",
     "id",
     "name",
   ]);
@@ -484,11 +493,13 @@ test("getFragmentSchema/json-schema - handles multiple fragments with selection"
   t.assert.ok(fullJsonSchema.properties.address, "Should have address field");
 
   const validFullData = {
+    __typename: "Query",
     id: 1,
     name: "Alice",
     email: "alice@example.com",
     phone: "+1234567890",
     address: {
+      __typename: "Address",
       street: "123 Main St",
       city: "New York",
       country: "USA",
@@ -565,6 +576,7 @@ test("getFragmentSchema/json-schema - handles all scalar types in fragment", (t:
   });
 
   const validData = {
+    __typename: "Query",
     stringField: "test",
     intField: 42,
     floatField: 3.14,
