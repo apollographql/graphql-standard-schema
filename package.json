@@ -28,8 +28,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "echo TODO",
-    "test": "node --test"
+    "build": "tsc",
+    "test": "node --test",
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^24.3.1",
