@@ -293,6 +293,7 @@ export function buildOutputSchema(
           ...mergedSelections[alias].selectionSet.selections,
           ...selection.selectionSet.selections,
         ];
+        continue;
       }
       throw new Error(
         `Incorrect selection for field ${selection.name.value} cannot be a mix of field and sub-selections`
