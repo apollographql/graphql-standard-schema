@@ -25,6 +25,7 @@ import {
 } from "graphql";
 import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
 import { equal } from "@wry/equality";
+import { assert } from "./assert.ts";
 
 export function buildOutputSchema(
   schema: GraphQLSchema,
@@ -301,11 +302,5 @@ export function buildOutputSchema(
     }
 
     return Object.values(mergedSelections);
-  }
-}
-
-function assert(condition: any, message?: string): asserts condition {
-  if (!condition) {
-    throw new Error(message || "Assertion failed");
   }
 }
