@@ -1,10 +1,13 @@
-export interface OpenAiSupportedJsonSchema
-  extends OpenAiSupportedJsonSchema.ObjectDef {
+export type OpenAiSupportedJsonSchema = (
+  | OpenAiSupportedJsonSchema.ObjectDef
+  // top level `anyOf` is not directly supported by OpenAI, but we allow it here - the resulting schema can still be nested into a property using `composeStandardSchema`
+  | OpenAiSupportedJsonSchema.AnyOf
+) & {
   $defs?: {
     [k: string]: Partial<OpenAiSupportedJsonSchema.Anything>;
   };
   [k: string]: unknown;
-}
+};
 
 // see https://platform.openai.com/docs/guides/structured-outputs?type-restrictions=number-restrictions#supported-schemas
 export namespace OpenAiSupportedJsonSchema {

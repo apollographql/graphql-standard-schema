@@ -4,6 +4,7 @@ import {
   execute,
   type FormattedExecutionResult,
   type FragmentDefinitionNode,
+  getVariableValues,
   GraphQLBoolean,
   GraphQLFloat,
   type GraphQLFormattedError,
@@ -311,27 +312,37 @@ export class GraphQLStandardSchemaGenerator {
   getVariablesSchema<TVariables>(
     document: TypedDocumentNode<any, TVariables>
   ): GraphQLStandardSchemaGenerator.ValidationSchema<TVariables> {
-    return {
-      ["~standard"]: {
-        types: {
-          input: {} as TVariables,
-          output: {} as TVariables,
-        },
-        jsonSchema: {
-          input: () => {
-            throw new Error("Not implemented");
-          },
-          output: () => {
-            throw new Error("Not implemented");
-          },
-        },
-        validate(value) {
-          throw new Error("Not implemented");
-        },
-        vendor: "@apollo/graphql-standard-schema",
-        version: 1,
+    return standardSchema({
+      jsonSchema: (options) => {
+        throw new Error("Not implemented");
       },
-    };
+      validate: (variables): StandardSchemaV1.Result<TVariables> => {
+        if (typeof variables !== "object" || variables === null) {
+          return {
+            issues: [
+              {
+                message: `Expected variables to be an object, got ${typeof variables}`,
+              },
+            ],
+          };
+        }
+        const result = getVariableValues(
+          this.schema,
+          document.definitions.find(
+            (node) => node.kind === Kind.OPERATION_DEFINITION
+          )!.variableDefinitions || [],
+          variables as Record<string, unknown>
+        );
+        if (result.coerced) {
+          return { value: result.coerced as TVariables };
+        }
+        return {
+          issues: result.errors?.map((error) => ({
+            message: error.message,
+          })),
+        };
+      },
+    });
   }
 }
 
@@ -352,20 +363,26 @@ function buildFragmentSchema(
       fragment.selectionSet
     );
   } else if (isAbstractType(parentType)) {
-    //https://platform.openai.com/docs/guides/structured-outputs?type-restrictions=number-restrictions#root-objects-must-not-be-anyof-and-must-be-an-object
-    throw new Error("not supported by OpenAI");
-    // const possibleTypes = schema.getPossibleTypes(parentType);
-    // dataSchema = {
-    //   anyOf: possibleTypes.map((type) =>
-    //     buildOutputSchema(
-    //       schema,
-    //       document,
-    //       scalarTypes,
-    //       type,
-    //       fragment.selectionSet
-    //     )
-    //   ),
-    // };
+    // this is not directly allowed with OpenAI Structured Output, but other tools might benefit from it - and for OpenAI, `composeStandardSchemas` can be used to nest this schema under a property, which would then be supported
+    // https://platform.openai.com/docs/guides/structured-outputs?type-restrictions=number-restrictions#root-objects-must-not-be-anyof-and-must-be-an-object
+    const possibleTypes = schema.getPossibleTypes(parentType);
+    const schemas = possibleTypes.map((type) =>
+      buildOutputSchema(
+        schema,
+        document,
+        scalarTypes,
+        type,
+        fragment.selectionSet
+      )
+    );
+    dataSchema = {
+      anyOf: schemas.map(({ $defs, ...schema }) => schema),
+      $defs: schemas.reduce<NonNullable<OpenAiSupportedJsonSchema["$defs"]>>(
+        (acc, schema) =>
+          schema.$defs ? Object.assign(acc, schema.$defs) : acc,
+        {}
+      ),
+    };
   } else {
     throw new Error(
       `Fragment type condition must be an object, union or interface, got: ${parentType?.name}`
