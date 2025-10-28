@@ -25,8 +25,7 @@ test("getFragmentSchema/json-schema - generates schema for simple fragment", (t:
     `)
   );
 
-  const jsonSchema = fragmentSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = fragmentSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -36,7 +35,12 @@ test("getFragmentSchema/json-schema - generates schema for simple fragment", (t:
   );
   t.assert.strictEqual(jsonSchema.title, "fragment UserDetails on Query");
   t.assert.strictEqual(jsonSchema.type, "object");
-  t.assert.deepStrictEqual(jsonSchema.required, ["__typename", "id", "name", "email"]);
+  t.assert.deepStrictEqual(jsonSchema.required, [
+    "__typename",
+    "id",
+    "name",
+    "email",
+  ]);
 
   t.assert.deepStrictEqual(jsonSchema.properties.id, {
     title: "Query.id: Int!",
@@ -125,8 +129,7 @@ test("getFragmentSchema/json-schema - handles fragment with nested objects", (t:
     `)
   );
 
-  const jsonSchema = fragmentSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = fragmentSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -137,7 +140,7 @@ test("getFragmentSchema/json-schema - handles fragment with nested objects", (t:
   });
 
   // Check nested profile structure
-  const profileSchema = jsonSchema.properties.profile;
+  const profileSchema: any = jsonSchema.properties.profile;
   t.assert.deepStrictEqual(
     profileSchema.type,
     ["object", "null"],
@@ -145,7 +148,7 @@ test("getFragmentSchema/json-schema - handles fragment with nested objects", (t:
   );
 
   // Check nested settings structure
-  const settingsSchema = jsonSchema.properties.settings;
+  const settingsSchema: any = jsonSchema.properties.settings;
   t.assert.strictEqual(settingsSchema.type, "object");
   t.assert.deepStrictEqual(settingsSchema.properties.theme, {
     title: "Settings.theme: String!",
@@ -220,8 +223,7 @@ test("getFragmentSchema/json-schema - handles fragment with arrays", (t: test.Te
     `)
   );
 
-  const jsonSchema = fragmentSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = fragmentSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -255,7 +257,12 @@ test("getFragmentSchema/json-schema - handles fragment with arrays", (t: test.Te
     tags: ["tech", "web"],
     scores: [95, null, 88],
     items: [
-      { __typename: "Item", id: 1, name: "Item 1", attributes: ["fast", "reliable"] },
+      {
+        __typename: "Item",
+        id: 1,
+        name: "Item 1",
+        attributes: ["fast", "reliable"],
+      },
       { __typename: "Item", id: 2, name: "Item 2", attributes: null },
     ],
     matrix: [
@@ -295,8 +302,7 @@ test("getFragmentSchema/json-schema - handles fragment with aliases", (t: test.T
     `)
   );
 
-  const jsonSchema = fragmentSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = fragmentSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -365,8 +371,7 @@ test("getFragmentSchema/json-schema - handles fragment with __typename", (t: tes
     `)
   );
 
-  const jsonSchema = fragmentSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = fragmentSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -444,8 +449,7 @@ test("getFragmentSchema/json-schema - handles multiple fragments with selection"
     { fragmentName: "UserBasic" }
   );
 
-  const basicJsonSchema = basicFragmentSchema["~standard"].toJSONSchema({
-    io: "input",
+  const basicJsonSchema = basicFragmentSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -484,8 +488,7 @@ test("getFragmentSchema/json-schema - handles multiple fragments with selection"
     { fragmentName: "UserFull" }
   );
 
-  const fullJsonSchema = fullFragmentSchema["~standard"].toJSONSchema({
-    io: "input",
+  const fullJsonSchema = fullFragmentSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -544,8 +547,7 @@ test("getFragmentSchema/json-schema - handles all scalar types in fragment", (t:
     `)
   );
 
-  const jsonSchema = fragmentSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = fragmentSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 

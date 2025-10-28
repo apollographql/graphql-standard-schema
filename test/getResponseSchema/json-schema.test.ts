@@ -2,9 +2,10 @@ import { test } from "node:test";
 
 import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
 import { buildSchema } from "graphql";
+import { gql } from "../utils/test-helpers.ts";
 // import { gql, validateWithAjv, snapshot } from "../utils/test-helpers.ts";
 
-test.skip("getResponseSchema/json-schema - stub for future implementation", () => {
+test.skip("getResponseSchema/json-schema - stub for future implementation", (t) => {
   // This method is not yet implemented
   const generator = new GraphQLStandardSchemaGenerator({
     schema: buildSchema(`

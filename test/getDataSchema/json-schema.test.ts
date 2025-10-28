@@ -22,8 +22,7 @@ test("getDataSchema/json-schema - generates schema for simple query", (t: test.T
     `)
   );
 
-  const jsonSchema = dataSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = dataSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -33,7 +32,11 @@ test("getDataSchema/json-schema - generates schema for simple query", (t: test.T
   );
   t.assert.strictEqual(jsonSchema.title, "query SimpleQuery");
   t.assert.strictEqual(jsonSchema.type, "object");
-  t.assert.deepStrictEqual(jsonSchema.required, ["__typename", "hello", "count"]);
+  t.assert.deepStrictEqual(jsonSchema.required, [
+    "__typename",
+    "hello",
+    "count",
+  ]);
 
   // Validate with AJV
   const validData = { __typename: "Query", hello: "world", count: 42 };
@@ -69,8 +72,7 @@ test("getDataSchema/json-schema - handles all scalar types", (t: test.TestContex
     `)
   );
 
-  const jsonSchema = dataSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = dataSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -133,8 +135,7 @@ test("getDataSchema/json-schema - handles nullable vs non-nullable", (t: test.Te
     `)
   );
 
-  const jsonSchema = dataSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = dataSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -195,8 +196,7 @@ test("getDataSchema/json-schema - handles arrays", (t: test.TestContext) => {
     `)
   );
 
-  const jsonSchema = dataSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = dataSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -313,8 +313,7 @@ test("getDataSchema/json-schema - handles nested objects", (t: test.TestContext)
     `)
   );
 
-  const jsonSchema = dataSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema: any = dataSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -352,7 +351,12 @@ test("getDataSchema/json-schema - handles nested objects", (t: test.TestContext)
         },
       },
       posts: [
-        { __typename: "Post", id: 1, title: "First Post", tags: ["tech", "web"] },
+        {
+          __typename: "Post",
+          id: 1,
+          title: "First Post",
+          tags: ["tech", "web"],
+        },
         { __typename: "Post", id: 2, title: "Second Post", tags: null },
       ],
     },
@@ -399,8 +403,7 @@ test("getDataSchema/json-schema - handles field aliases", (t: test.TestContext) 
     `)
   );
 
-  const jsonSchema = dataSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema: any = dataSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -483,8 +486,7 @@ test("getDataSchema/json-schema - handles mutations", (t: test.TestContext) => {
     `)
   );
 
-  const createJsonSchema = createSchema["~standard"].toJSONSchema({
-    io: "input",
+  const createJsonSchema = createSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -531,8 +533,7 @@ test("getDataSchema/json-schema - handles mutations", (t: test.TestContext) => {
     `)
   );
 
-  const updateJsonSchema = updateSchema["~standard"].toJSONSchema({
-    io: "input",
+  const updateJsonSchema: any = updateSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -596,8 +597,7 @@ test("getDataSchema/json-schema - handles subscriptions", (t: test.TestContext) 
     `)
   );
 
-  const jsonSchema = dataSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema = dataSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -607,7 +607,7 @@ test("getDataSchema/json-schema - handles subscriptions", (t: test.TestContext) 
     type: "integer",
   });
 
-  const messageSchema = jsonSchema.properties.messageAdded;
+  const messageSchema: any = jsonSchema.properties.messageAdded;
   t.assert.strictEqual(messageSchema.type, "object");
   t.assert.deepStrictEqual(messageSchema.properties.content, {
     title: "Message.content: String!",
@@ -661,8 +661,7 @@ test("getDataSchema/json-schema - handles __typename field", (t: test.TestContex
     `)
   );
 
-  const jsonSchema = dataSchema["~standard"].toJSONSchema({
-    io: "input",
+  const jsonSchema: any = dataSchema["~standard"].jsonSchema.input({
     target: "draft-2020-12",
   });
 
@@ -715,12 +714,11 @@ test("getDataSchema/json-schema - throws for unsupported target", (t: test.TestC
 
   t.assert.throws(
     () => {
-      dataSchema["~standard"].toJSONSchema({
-        io: "input",
-        target: "draft-07" as any,
+      dataSchema["~standard"].jsonSchema.input({
+        target: "draft-08" as any,
       });
     },
-    /Only draft-2020-12 is supported/,
+    /Only draft-07 and draft-2020-12 are supported/,
     "Should throw for unsupported JSON Schema version"
   );
 });
