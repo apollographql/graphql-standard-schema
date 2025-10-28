@@ -18,12 +18,28 @@ import {
   OperationTypeNode,
 } from "graphql";
 import type {
-  StandardJSONSchemaSourceV1,
+  StandardJSONSchemaV1,
   StandardSchemaV1,
 } from "./standard-schema-spec.ts";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import { buildOutputSchema } from "./buildOutputSchema.ts";
 import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
+
+export interface CombinedProps<Input = unknown, Output = Input>
+  extends StandardSchemaV1.Props<Input, Output>,
+    StandardJSONSchemaV1.Props<Input, Output> {}
+
+/**
+ * An interface that combines StandardJSONSchema and StandardSchema.
+ * */
+export interface CombinedSpec<Input = unknown, Output = Input> {
+  "~standard": CombinedProps<Input, Output>;
+}
+
+type JSONSchemaFn = (
+  params?: StandardJSONSchemaV1.Options
+) => OpenAiSupportedJsonSchema;
+
 export namespace GraphQLStandardSchemaGenerator {
   export interface Options {
     schema: GraphQLSchema | DocumentNode;
@@ -32,15 +48,12 @@ export namespace GraphQLStandardSchemaGenerator {
 
   export type JSONSchema = OpenAiSupportedJsonSchema;
 
-  export interface ValidationSchema<T>
-    extends StandardSchemaV1.WithJSONSchemaSource<T, T> {
-    ["~standard"]: Omit<
-      StandardJSONSchemaSourceV1.PropsWithStandardSchema<T, T>,
-      "toJSONSchema"
-    > & {
-      toJSONSchema: (
-        options: StandardJSONSchemaSourceV1.Options
-      ) => OpenAiSupportedJsonSchema;
+  export interface ValidationSchema<T> extends CombinedSpec<T, T> {
+    ["~standard"]: StandardSchemaV1.Props<T, T> & {
+      jsonSchema: {
+        input: JSONSchemaFn;
+        output: JSONSchemaFn;
+      };
     };
   }
 }
@@ -76,22 +89,15 @@ export class GraphQLStandardSchemaGenerator {
       throw new Error("Document must contain exactly one named operation");
     }
     const definition = definitions[0]!;
+    const jsonSchema: JSONSchemaFn = (options) => {
+      return {
+        ...schemaBase(options),
+        ...buildOperationSchema(schema, document, definition, this.scalarTypes),
+      };
+    };
 
     return standardSchema({
-      toJSONSchema: ({ target }) => {
-        if (target !== "draft-2020-12") {
-          throw new Error("Only draft-2020-12 is supported");
-        }
-        return {
-          ...schemaBase,
-          ...buildOperationSchema(
-            schema,
-            document,
-            definition,
-            this.scalarTypes
-          ),
-        };
-      },
+      jsonSchema: { input: jsonSchema, output: jsonSchema },
       validate(value): StandardSchemaV1.Result<TData> {
         const result = execute({
           schema,
@@ -184,79 +190,78 @@ export class GraphQLStandardSchemaGenerator {
     }
     const definition = definitions[0]!;
 
-    return standardSchema({
-      toJSONSchema: ({ target, io }): OpenAiSupportedJsonSchema => {
-        if (target !== "draft-2020-12") {
-          throw new Error("Only draft-2020-12 is supported");
-        }
-        const { $defs, ...dataJSONSchema }: OpenAiSupportedJsonSchema =
-          dataSchema["~standard"].toJSONSchema({
-            target,
-            io,
-          });
+    const jsonSchema: JSONSchemaFn = (options): OpenAiSupportedJsonSchema => {
+      const { $defs, ...dataJSONSchema }: OpenAiSupportedJsonSchema =
+        dataSchema["~standard"].jsonSchema.input(options);
 
-        return {
-          ...schemaBase,
-          title: `Full response for ${definition.operation} ${
-            definition.name?.value || "Anonymous"
-          }`,
-          type: "object",
-          properties: {
-            data: dataJSONSchema,
-            errors: {
-              anyOf: [
-                { type: "null" },
-                {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      message: { type: "string" },
-                      locations: {
-                        anyOf: [
-                          { type: "null" },
-                          {
-                            type: "array",
-                            items: {
-                              type: "object",
-                              properties: {
-                                line: { type: "number" },
-                                column: { type: "number" },
-                              },
-                              required: ["line", "column"],
-                              additionalProperties: false,
+      return {
+        ...schemaBase(options),
+        title: `Full response for ${definition.operation} ${
+          definition.name?.value || "Anonymous"
+        }`,
+        type: "object",
+        properties: {
+          data: dataJSONSchema,
+          errors: {
+            anyOf: [
+              { type: "null" },
+              {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string" },
+                    locations: {
+                      anyOf: [
+                        { type: "null" },
+                        {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              line: { type: "number" },
+                              column: { type: "number" },
                             },
+                            required: ["line", "column"],
+                            additionalProperties: false,
                           },
-                        ],
-                      },
-                      path: {
-                        anyOf: [
-                          {
-                            type: "array",
-                            items: {
-                              anyOf: [{ type: "string" }, { type: "number" }],
-                            },
-                          },
-                        ],
-                      },
-                      // any-type object not supported by OpenAI
-                      // extensions: { type: "object" },
+                        },
+                      ],
                     },
-                    additionalProperties: false,
-                    required: ["message", "locations", "path", "extensions"],
+                    path: {
+                      anyOf: [
+                        {
+                          type: "array",
+                          items: {
+                            anyOf: [{ type: "string" }, { type: "number" }],
+                          },
+                        },
+                      ],
+                    },
+                    // any-type object not supported by OpenAI
+                    // extensions: { type: "object" },
                   },
+                  additionalProperties: false,
+                  required: ["message", "locations", "path", "extensions"],
                 },
-              ],
-            },
-            // any-type object not supported by OpenAI
-            // extensions: { type: "object" },
+              },
+            ],
           },
-          required: ["data", "errors"],
-          additionalProperties: false as const,
-          ...($defs ? { $defs } : {}),
-          // not supported by OpenAI
-          // oneOf: [{ required: "data" }, { required: "errors" }],
-        };
+          // any-type object not supported by OpenAI
+          // extensions: { type: "object" },
+        },
+        required: ["data", "errors"],
+        additionalProperties: false as const,
+        ...($defs ? { $defs } : {}),
+        // not supported by OpenAI
+        // oneOf: [{ required: "data" }, { required: "errors" }],
+      };
+    };
+
+    return standardSchema({
+      jsonSchema: {
+        input: jsonSchema,
+        output: jsonSchema,
       },
       validate(value) {
         throw new Error("Not implemented");
@@ -316,20 +321,22 @@ export class GraphQLStandardSchemaGenerator {
       ],
     };
 
+    const jsonSchema: JSONSchemaFn = (options) => {
+      return {
+        ...schemaBase(options),
+        ...buildFragmentSchema(
+          this.schema,
+          document,
+          fragment,
+          this.scalarTypes
+        ),
+      };
+    };
+
     return standardSchema({
-      toJSONSchema: ({ target }) => {
-        if (target !== "draft-2020-12") {
-          throw new Error("Only draft-2020-12 is supported");
-        }
-        return {
-          ...schemaBase,
-          ...buildFragmentSchema(
-            this.schema,
-            document,
-            fragment,
-            this.scalarTypes
-          ),
-        };
+      jsonSchema: {
+        input: jsonSchema,
+        output: jsonSchema,
       },
       validate(value): StandardSchemaV1.Result<TData> {
         // const dataSchema = this.getDataSchema<TData>(queryDocument);
@@ -347,8 +354,13 @@ export class GraphQLStandardSchemaGenerator {
           input: {} as TVariables,
           output: {} as TVariables,
         },
-        toJSONSchema: () => {
-          throw new Error("Not implemented");
+        jsonSchema: {
+          input: () => {
+            throw new Error("Not implemented");
+          },
+          output: () => {
+            throw new Error("Not implemented");
+          },
         },
         validate(value) {
           throw new Error("Not implemented");
@@ -360,9 +372,17 @@ export class GraphQLStandardSchemaGenerator {
   }
 }
 
-const schemaBase = {
-  $schema: "https://json-schema.org/draft/2020-12/schema",
-};
+function schemaBase(params: StandardJSONSchemaV1.Options = {}) {
+  const schema: Record<string, unknown> = {};
+  if (params?.target === "draft-2020-12" || params?.target === undefined) {
+    schema.$schema = "https://json-schema.org/draft/2020-12/schema";
+  } else if (params?.target === "draft-07") {
+    schema.$schema = "http://json-schema.org/draft-07/schema#";
+  } else {
+    throw new Error("Only draft-07 and draft-2020-12 are supported");
+  }
+  return schema;
+}
 
 function buildFragmentSchema(
   schema: GraphQLSchema,
@@ -448,16 +468,16 @@ function buildVariablesSchema(
 }
 
 function standardSchema<T>({
-  toJSONSchema,
+  jsonSchema,
   validate,
 }: Pick<
   GraphQLStandardSchemaGenerator.ValidationSchema<T>["~standard"],
-  "validate" | "toJSONSchema"
+  "validate" | "jsonSchema"
 >): GraphQLStandardSchemaGenerator.ValidationSchema<T> {
   return {
     "~standard": {
       validate,
-      toJSONSchema,
+      jsonSchema,
       vendor: "@apollo/graphql-standard-schema",
       version: 1,
     },
