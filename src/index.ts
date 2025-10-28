@@ -29,6 +29,7 @@ import type { CombinedSpec } from "./types.ts";
 import { composeStandardSchemas } from "./composeStandardSchemas.ts";
 import { responseShapeSchema } from "./responseShapeSchema.ts";
 import { schemaBase } from "./schemaBase.ts";
+import { assert } from "./assert.ts";
 
 type JSONSchemaFn = (
   params?: StandardJSONSchemaV1.Options
@@ -241,8 +242,8 @@ export class GraphQLStandardSchemaGenerator {
         `Fragment with name ${fragmentName} not found in document`
       );
     }
-    const queryDocument: TypedDocumentNode<TData> = {
-      ...document,
+    const queryDocument: TypedDocumentNode<{ fragmentData: TData }> = {
+      ...(document as TypedDocumentNode<any>),
       definitions: [
         ...fragments,
         {
@@ -253,8 +254,17 @@ export class GraphQLStandardSchemaGenerator {
             kind: Kind.SELECTION_SET,
             selections: [
               {
-                kind: Kind.FRAGMENT_SPREAD,
-                name: { kind: Kind.NAME, value: fragment.name.value },
+                kind: Kind.FIELD,
+                name: { kind: Kind.NAME, value: "fragmentData" },
+                selectionSet: {
+                  kind: Kind.SELECTION_SET,
+                  selections: [
+                    {
+                      kind: Kind.FRAGMENT_SPREAD,
+                      name: { kind: Kind.NAME, value: fragment.name.value },
+                    },
+                  ],
+                },
               },
             ],
           },
@@ -274,9 +284,26 @@ export class GraphQLStandardSchemaGenerator {
           ),
         };
       },
-      validate(value): StandardSchemaV1.Result<TData> {
-        // const dataSchema = this.getDataSchema<TData>(queryDocument);
-        throw new Error("TODO");
+      validate: (value): StandardSchemaV1.Result<TData> => {
+        const dataSchema = this.getDataSchema(queryDocument);
+        const result = dataSchema["~standard"].validate({
+          fragmentData: value,
+        });
+        // our own `dataSchema` won't return an async validator
+        assert(!("then" in result));
+        if ("value" in result) {
+          return { value: result.value.fragmentData };
+        }
+        return {
+          issues: result.issues?.map((issue) =>
+            "path" in issue
+              ? {
+                  ...issue,
+                  path: issue.path?.slice(1),
+                }
+              : issue
+          ),
+        };
       },
     });
   }

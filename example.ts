@@ -1,4 +1,4 @@
-import Ajv from "ajv/dist/2020.js";
+import Ajv from "ajv";
 import { parse } from "graphql";
 import { writeFileSync } from "node:fs";
 import { GraphQLStandardSchemaGenerator } from "./src/index.ts";
@@ -118,7 +118,7 @@ const testSchema = new GraphQLStandardSchemaGenerator({
       }
     `)
   )
-  ["~standard"].toJSONSchema({ io: "input", target: "draft-2020-12" });
+  ["~standard"].jsonSchema.input({ target: "draft-07" });
 
 writeFileSync(
   "./test-schema.json",
