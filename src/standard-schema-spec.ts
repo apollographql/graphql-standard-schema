@@ -1,3 +1,5 @@
+// from https://github.com/standard-schema/standard-schema/blob/13fc1e63b53ee494f6f4838c335725d0ea67afc9/packages/spec/src/index.ts
+
 /** The base properties shared among all specs */
 interface StandardBaseProps<Input = unknown, Output = Input> {
   /** The version number of the standard. */
