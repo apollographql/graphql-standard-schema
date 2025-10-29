@@ -72,8 +72,7 @@
                     "__typename",
                     "name",
                     "author"
-                  ],
-                  "additionalProperties": false
+                  ]
                 }
               ]
             }
@@ -83,11 +82,8 @@
           "__typename",
           "id",
           "name",
-          "role",
-          "birthDate",
           "favourites"
-        ],
-        "additionalProperties": false
+        ]
       }
     },
     "search": {
@@ -112,8 +108,7 @@
             "required": [
               "__typename",
               "name"
-            ],
-            "additionalProperties": false
+            ]
           },
           {
             "$ref": "#/$defs/Book",
@@ -141,8 +136,7 @@
               "id",
               "name",
               "author"
-            ],
-            "additionalProperties": false
+            ]
           },
           {
             "$ref": "#/$defs/Color",
@@ -165,8 +159,7 @@
               "__typename",
               "name",
               "hex"
-            ],
-            "additionalProperties": false
+            ]
           }
         ]
       }
@@ -174,10 +167,8 @@
   },
   "required": [
     "__typename",
-    "users",
     "search"
   ],
-  "additionalProperties": false,
   "$defs": {
     "enum_maybe_Role": {
       "title": "Role",

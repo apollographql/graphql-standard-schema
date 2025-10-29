@@ -26,10 +26,8 @@ exports[`getFragmentSchema/json-schema - generates schema for simple fragment 1`
   "required": [
     "__typename",
     "id",
-    "name",
-    "email"
+    "name"
   ],
-  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -84,11 +82,8 @@ exports[`getFragmentSchema/json-schema - handles all scalar types in fragment 1`
     "intField",
     "floatField",
     "booleanField",
-    "idField",
-    "nullableString",
-    "nullableInt"
+    "idField"
   ],
-  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -121,7 +116,6 @@ exports[`getFragmentSchema/json-schema - handles fragment with __typename 1`] = 
     "name",
     "type"
   ],
-  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -164,10 +158,8 @@ exports[`getFragmentSchema/json-schema - handles fragment with aliases 1`] = `
     "userId",
     "userName",
     "userEmail",
-    "joinDate",
-    "lastModified"
+    "joinDate"
   ],
-  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -240,10 +232,8 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
         "required": [
           "__typename",
           "id",
-          "name",
-          "attributes"
-        ],
-        "additionalProperties": false
+          "name"
+        ]
       }
     },
     "matrix": {
@@ -264,11 +254,8 @@ exports[`getFragmentSchema/json-schema - handles fragment with arrays 1`] = `
     "__typename",
     "id",
     "tags",
-    "scores",
-    "items",
-    "matrix"
+    "items"
   ],
-  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -344,21 +331,14 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
             }
           },
           "required": [
-            "__typename",
-            "twitter",
-            "github",
-            "website"
-          ],
-          "additionalProperties": false
+            "__typename"
+          ]
         }
       },
       "required": [
         "__typename",
-        "bio",
-        "avatar",
-        "social"
-      ],
-      "additionalProperties": false
+        "avatar"
+      ]
     },
     "settings": {
       "title": "Settings",
@@ -401,27 +381,21 @@ exports[`getFragmentSchema/json-schema - handles fragment with nested objects 1`
             "__typename",
             "profileVisible",
             "emailVisible"
-          ],
-          "additionalProperties": false
+          ]
         }
       },
       "required": [
         "__typename",
-        "theme",
-        "notifications",
-        "privacy"
-      ],
-      "additionalProperties": false
+        "theme"
+      ]
     }
   },
   "required": [
     "__typename",
     "id",
     "name",
-    "profile",
     "settings"
   ],
-  "additionalProperties": false,
   "$defs": {}
 }
 `;
@@ -450,7 +424,6 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
       "id",
       "name"
     ],
-    "additionalProperties": false,
     "$defs": {}
   },
   "full": {
@@ -511,19 +484,14 @@ exports[`getFragmentSchema/json-schema - handles multiple fragments with selecti
           "street",
           "city",
           "country"
-        ],
-        "additionalProperties": false
+        ]
       }
     },
     "required": [
       "__typename",
       "id",
-      "name",
-      "email",
-      "phone",
-      "address"
+      "name"
     ],
-    "additionalProperties": false,
     "$defs": {}
   }
 }

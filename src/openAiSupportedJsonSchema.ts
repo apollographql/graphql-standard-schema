@@ -89,7 +89,8 @@ export namespace OpenAiSupportedJsonSchema {
     type: "object";
     properties: Record<string, Anything>;
     required: string[];
-    additionalProperties: false;
+    // required to be `false` for OpenAI structured outputs
+    additionalProperties?: boolean;
   }
 
   export interface ArrayDef extends Shared {

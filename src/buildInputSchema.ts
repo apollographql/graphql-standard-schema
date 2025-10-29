@@ -13,18 +13,22 @@ import {
   GraphQLFloat,
   GraphQLBoolean,
   isScalarType,
-  getNamedType,
   isEnumType,
   GraphQLInputObjectType,
 } from "graphql";
 import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
-import { assert } from "./assert.ts";
+import type { GraphQLStandardSchemaGenerator } from "./index.ts";
 
 export function buildInputSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
-  scalarTypes: Record<string, OpenAiSupportedJsonSchema.Anything> | undefined
+  scalarTypes: Record<string, OpenAiSupportedJsonSchema.Anything> | undefined,
+  options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
+  const objectTypeSpread: { additionalProperties?: boolean } =
+    options.additionalProperties !== undefined
+      ? { additionalProperties: options.additionalProperties }
+      : {};
   const variableDefs =
     document.definitions.find(
       (def) => def.kind === Kind.OPERATION_DEFINITION && isDefinitionNode(def)
@@ -35,6 +39,7 @@ export function buildInputSchema(
     input?: Record<string, OpenAiSupportedJsonSchema.ObjectDef>;
     scalar?: OpenAiSupportedJsonSchema.Definitions;
   } = {};
+  const required: string[] = [];
   const properties = Object.fromEntries(
     variableDefs.map((varDef) => {
       const name = varDef.variable.name.value;
@@ -48,6 +53,10 @@ export function buildInputSchema(
             const type = schema.getType(
               typeNode.name.value
             ) as GraphQLInputType;
+
+            if (!options.optionalNullableProperties || !nullable) {
+              required.push(name);
+            }
             return handleMaybe(nullable ? type : new GraphQLNonNull(type));
           case Kind.LIST_TYPE:
             return {
@@ -63,9 +72,9 @@ export function buildInputSchema(
 
   return {
     type: "object",
+    ...objectTypeSpread,
     properties,
-    required: Object.keys(properties),
-    additionalProperties: false,
+    required,
     $defs: defs,
   };
 
@@ -168,25 +177,26 @@ export function buildInputSchema(
     const fields = parentType.getFields();
     defs.input ??= {};
     const name = parentType.name;
-    console.log(name);
     if (!defs.input[name]) {
       const properties: NonNullable<
         OpenAiSupportedJsonSchema.ObjectDef["properties"]
       > = {};
       defs.input[name] = {
         type: "object" as const,
+        ...objectTypeSpread,
         title: parentType.name,
         ...(parentType.description
           ? { description: parentType.description }
           : {}),
         properties: {},
         required: [],
-        additionalProperties: false as const,
       };
       for (const fieldName of Object.keys(fields)) {
         const field = fields[fieldName]!;
         defs.input[name].properties[fieldName] = handleMaybe(field.type);
-        defs.input[name].required.push(fieldName);
+        if (!options.optionalNullableProperties || isNonNullType(field.type)) {
+          defs.input[name].required.push(fieldName);
+        }
       }
     }
     return { $ref: `#/$defs/input/${name}` };

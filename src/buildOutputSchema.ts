@@ -26,15 +26,22 @@ import {
 import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
 import { equal } from "@wry/equality";
 import { assert } from "./assert.ts";
+import type { GraphQLStandardSchemaGenerator } from "./index.ts";
 
 export function buildOutputSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
   scalarTypes: Record<string, OpenAiSupportedJsonSchema.Anything> | undefined,
   parentType: GraphQLObjectType,
-  selections: SelectionSetNode
+  selections: SelectionSetNode,
+  options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
   const defs: NonNullable<OpenAiSupportedJsonSchema["$defs"]> = {};
+
+  const objectTypeSpread: { additionalProperties?: boolean } =
+    options.additionalProperties !== undefined
+      ? { additionalProperties: options.additionalProperties }
+      : {};
 
   function documentType<T extends OpenAiSupportedJsonSchema.Anything>(
     type: GraphQLOutputType,
@@ -195,9 +202,12 @@ export function buildOutputSchema(
     const fields = parentType.getFields();
     const properties: NonNullable<
       OpenAiSupportedJsonSchema.ObjectDef["properties"]
-    > = {
-      __typename: { const: parentType.name },
-    };
+    > = {};
+    const required = new Set();
+    if (options.addTypename) {
+      properties.__typename = { const: parentType.name };
+      required.add("__typename");
+    }
 
     const normalized = normalizeSelections(parentType, selections);
 
@@ -207,6 +217,7 @@ export function buildOutputSchema(
 
       if (selection.name.value === "__typename") {
         properties[alias] = { const: parentType.name };
+        required.add(alias);
         continue;
       } else {
         const type = fields[selection.name.value]!.type;
@@ -216,14 +227,17 @@ export function buildOutputSchema(
           }: ${type.toString()}`,
           ...handleMaybe(type, selection.selectionSet),
         };
+        if (!options.optionalNullableProperties || isNonNullType(type)) {
+          required.add(alias);
+        }
       }
     }
     return documentType(parentType, {
       type: "object" as const,
+      ...objectTypeSpread,
       title: parentType.name,
       properties,
-      required: Object.keys(properties),
-      additionalProperties: false as const,
+      required: [...required.values()],
     } satisfies OpenAiSupportedJsonSchema.ObjectDef);
   }
 

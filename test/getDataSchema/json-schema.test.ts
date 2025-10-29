@@ -32,11 +32,7 @@ test("getDataSchema/json-schema - generates schema for simple query", (t: test.T
   );
   t.assert.strictEqual(jsonSchema.title, "query SimpleQuery");
   t.assert.strictEqual(jsonSchema.type, "object");
-  t.assert.deepStrictEqual(jsonSchema.required, [
-    "__typename",
-    "hello",
-    "count",
-  ]);
+  t.assert.deepStrictEqual(jsonSchema.required, ["__typename"]);
 
   // Validate with AJV
   const validData = { __typename: "Query", hello: "world", count: 42 };
@@ -502,7 +498,6 @@ test("getDataSchema/json-schema - handles mutations", (t: test.TestContext) => {
       email: { title: "User.email: String!", type: "string" },
     },
     required: ["__typename", "id", "name", "email"],
-    additionalProperties: false,
   });
 
   const validCreateData = {

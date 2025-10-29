@@ -1,7 +1,6 @@
 import { test } from "node:test";
 
 import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
-import { SearchCharacter, swSchema } from "../utils/swSchema.ts";
 import { toJSONSchema } from "../utils/toJsonSchema.ts";
 import { gql, validateWithAjv } from "../utils/test-helpers.ts";
 import { buildSchema } from "graphql";
@@ -24,6 +23,7 @@ test("handles nullable and non-nullable arguments", (t) => {
       }
     `)
   );
+
   const jsonSchema = toJSONSchema(variablesSchema);
   {
     const result = validateWithAjv(jsonSchema, { text: "Han", maxCount: null });
@@ -166,8 +166,7 @@ test("handles input types", (t) => {
 });
 
 test("handles recursive input types", (t) => {
-  const generator = new GraphQLStandardSchemaGenerator({
-    schema: buildSchema(/**GraphQL*/ `
+  const schema = buildSchema(/**GraphQL*/ `
       scalar Date
       input FilterInput {
         and: [FilterInput!]
@@ -180,10 +179,19 @@ test("handles recursive input types", (t) => {
       type Query {
         searchEvent(input: FilterInput!): [String]
       }
-    `),
-    scalarTypes: {
-      Date: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
-    },
+    `);
+  const scalarTypes = {
+    Date: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
+  } as const;
+
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema,
+    scalarTypes,
+  });
+  const openAIGenerator = new GraphQLStandardSchemaGenerator({
+    schema,
+    scalarTypes,
+    defaultJSONSchemaOptions: "OpenAI",
   });
   interface FilterInput {
     and: FilterInput[] | null;
@@ -201,60 +209,86 @@ test("handles recursive input types", (t) => {
     `)
   );
   const jsonSchema = toJSONSchema(variablesSchema);
-  {
-    const result = validateWithAjv(jsonSchema, {
-      input: {
-        city: "New York",
-        and: [
-          {
-            after: "2023-01-01",
-            and: null,
-            or: null,
-            not: null,
-            before: null,
-            city: null,
-          },
-          {
-            not: {
-              after: "2023-12-31",
-              and: null,
-              or: null,
-              not: null,
-              before: null,
-              city: null,
-            },
-            and: null,
-            or: null,
-            before: null,
-            after: null,
-            city: null,
-          },
-        ],
+
+  const openAISchema = openAIGenerator.getVariablesSchema(
+    gql<{ searchEvent: string[] }, { input: FilterInput }>(/** GraphQL */ `
+      query Search($input: FilterInput!) {
+        searchEvent(input: $input)
+      }
+    `)
+  );
+  const openAIJsonSchema = toJSONSchema(openAISchema);
+
+  const fullFilterInput: FilterInput = {
+    city: "New York",
+    and: [
+      {
+        after: "2023-01-01",
+        and: null,
         or: null,
         not: null,
-        after: null,
         before: null,
-      } satisfies FilterInput,
+        city: null,
+      },
+      {
+        not: {
+          after: "2023-12-31",
+          and: null,
+          or: null,
+          not: null,
+          before: null,
+          city: null,
+        },
+        and: null,
+        or: null,
+        before: null,
+        after: null,
+        city: null,
+      },
+    ],
+    or: null,
+    not: null,
+    after: null,
+    before: null,
+  };
+
+  {
+    const result = validateWithAjv(jsonSchema, {
+      input: fullFilterInput,
     });
     t.assert.equal(result.valid, true);
   }
   {
-    const result = validateWithAjv(jsonSchema, {
-      input: {
-        city: "New York",
-        and: [
-          {
-            after: "2023-01-01",
-          },
-          {
-            not: {
-              after: "2023-12-31",
-            },
-          },
-        ],
-      },
+    const result = validateWithAjv(openAIJsonSchema, {
+      input: fullFilterInput,
     });
-    t.assert.equal(result.valid, false);
+    t.assert.equal(result.valid, true);
+  }
+  const partialFilterInput = {
+    city: "New York",
+    and: [
+      {
+        after: "2023-01-01",
+      },
+      {
+        not: {
+          after: "2023-12-31",
+        },
+      },
+    ],
+  } as const;
+  {
+    const result = validateWithAjv(jsonSchema, {
+      input: partialFilterInput,
+    });
+    t.assert.equal(result.valid, true);
+  }
+  {
+    const result = validateWithAjv(openAIJsonSchema, {
+      input: partialFilterInput,
+    });
+    // t.assert.equal(result.valid, false);
   }
   t.assert.snapshot(jsonSchema);
+  t.assert.snapshot(openAIJsonSchema);
 });

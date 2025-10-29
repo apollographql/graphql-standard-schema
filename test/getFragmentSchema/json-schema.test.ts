@@ -35,12 +35,7 @@ test("getFragmentSchema/json-schema - generates schema for simple fragment", (t:
   );
   t.assert.strictEqual(jsonSchema.title, "fragment UserDetails on Query");
   t.assert.strictEqual(jsonSchema.type, "object");
-  t.assert.deepStrictEqual(jsonSchema.required, [
-    "__typename",
-    "id",
-    "name",
-    "email",
-  ]);
+  t.assert.deepStrictEqual(jsonSchema.required, ["__typename", "id", "name"]);
 
   t.assert.deepStrictEqual(jsonSchema.properties.id, {
     title: "Query.id: Int!",

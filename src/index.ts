@@ -33,14 +33,37 @@ import { schemaBase } from "./schemaBase.ts";
 import { assert } from "./assert.ts";
 import { buildInputSchema } from "./buildInputSchema.ts";
 
-type JSONSchemaFn = (
-  params?: StandardJSONSchemaV1.Options
-) => OpenAiSupportedJsonSchema;
-
 export namespace GraphQLStandardSchemaGenerator {
   export interface Options {
     schema: GraphQLSchema | DocumentNode;
     scalarTypes?: Record<string, OpenAiSupportedJsonSchema.Anything>;
+    defaultJSONSchemaOptions?: JSONSchemaOptions | "OpenAI";
+  }
+
+  export type JSONSchemaCreator = (
+    params?: StandardJSONSchemaV1.Options & JSONSchemaOptions
+  ) => OpenAiSupportedJsonSchema;
+
+  export interface JSONSchemaOptions {
+    /**
+     * If true, nullable properties will be marked as optional in the generated JSON Schema.
+     *
+     * {@defaultValue true}
+     *
+     * When `defaultJSONSchemaOptions` is set to "OpenAI", this will be false.
+     */
+    optionalNullableProperties?: boolean;
+    /**
+     * If set to either `true` or `false`, this setting will be added to all object types.
+     * @defaultValue undefined
+     */
+    additionalProperties?: boolean;
+    /**
+     * If true, the `__typename` field will be added to all object types.
+     *
+     * {@defaultValue true}
+     */
+    addTypename?: boolean;
   }
 
   export type JSONSchema = OpenAiSupportedJsonSchema;
@@ -48,8 +71,8 @@ export namespace GraphQLStandardSchemaGenerator {
   export interface ValidationSchema<T> extends CombinedSpec<T, T> {
     ["~standard"]: StandardSchemaV1.Props<T, T> & {
       jsonSchema: {
-        input: JSONSchemaFn;
-        output: JSONSchemaFn;
+        input: JSONSchemaCreator;
+        output: JSONSchemaCreator;
       };
     };
   }
@@ -57,9 +80,26 @@ export namespace GraphQLStandardSchemaGenerator {
 export class GraphQLStandardSchemaGenerator {
   private schema!: GraphQLSchema;
   private scalarTypes?: GraphQLStandardSchemaGenerator.Options["scalarTypes"];
-  constructor({ schema, scalarTypes }: GraphQLStandardSchemaGenerator.Options) {
+  private defaultJSONSchemaOptions: GraphQLStandardSchemaGenerator.JSONSchemaOptions;
+  constructor({
+    schema,
+    scalarTypes,
+    defaultJSONSchemaOptions,
+  }: GraphQLStandardSchemaGenerator.Options) {
     this.replaceSchema(schema);
     this.scalarTypes = scalarTypes;
+    this.defaultJSONSchemaOptions =
+      defaultJSONSchemaOptions === "OpenAI"
+        ? {
+            additionalProperties: false,
+            optionalNullableProperties: false,
+            addTypename: true,
+          }
+        : {
+            optionalNullableProperties: true,
+            addTypename: true,
+            ...defaultJSONSchemaOptions,
+          };
   }
 
   replaceSchema(schema: GraphQLSchema | DocumentNode) {
@@ -87,7 +127,8 @@ export class GraphQLStandardSchemaGenerator {
             schema,
             document,
             definition,
-            this.scalarTypes
+            this.scalarTypes,
+            { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
       },
@@ -275,7 +316,8 @@ export class GraphQLStandardSchemaGenerator {
             this.schema,
             document,
             fragment,
-            this.scalarTypes
+            this.scalarTypes,
+            { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
       },
@@ -316,7 +358,8 @@ export class GraphQLStandardSchemaGenerator {
             schema,
             document,
             operation,
-            this.scalarTypes
+            this.scalarTypes,
+            { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
       },
@@ -352,7 +395,10 @@ function buildFragmentSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
   fragment: FragmentDefinitionNode,
-  scalarTypes?: GraphQLStandardSchemaGenerator.Options["scalarTypes"]
+  scalarTypes:
+    | GraphQLStandardSchemaGenerator.Options["scalarTypes"]
+    | undefined,
+  options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
   const parentType = schema.getType(fragment.typeCondition.name.value);
   let dataSchema: OpenAiSupportedJsonSchema;
@@ -362,7 +408,8 @@ function buildFragmentSchema(
       document,
       scalarTypes,
       parentType,
-      fragment.selectionSet
+      fragment.selectionSet,
+      options
     );
   } else if (isAbstractType(parentType)) {
     // this is not directly allowed with OpenAI Structured Output, but other tools might benefit from it - and for OpenAI, `composeStandardSchemas` can be used to nest this schema under a property, which would then be supported
@@ -374,7 +421,8 @@ function buildFragmentSchema(
         document,
         scalarTypes,
         type,
-        fragment.selectionSet
+        fragment.selectionSet,
+        options
       )
     );
     dataSchema = {
@@ -419,7 +467,10 @@ function buildOperationSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
   operation: OperationDefinitionNode,
-  scalarTypes?: GraphQLStandardSchemaGenerator.Options["scalarTypes"]
+  scalarTypes:
+    | GraphQLStandardSchemaGenerator.Options["scalarTypes"]
+    | undefined,
+  options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
   return {
     ...(operation.description
@@ -429,14 +480,13 @@ function buildOperationSchema(
       schema,
       document,
       scalarTypes,
-
       operation.operation === OperationTypeNode.QUERY
         ? schema.getQueryType()!
         : operation.operation === OperationTypeNode.SUBSCRIPTION
           ? schema.getSubscriptionType()!
           : schema.getMutationType()!,
-
-      operation.selectionSet
+      operation.selectionSet,
+      options
     ),
     title: `${operation.operation} ${operation.name?.value || "Anonymous"}`,
   };
@@ -446,13 +496,16 @@ function buildVariablesSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
   operation: OperationDefinitionNode,
-  scalarTypes?: GraphQLStandardSchemaGenerator.Options["scalarTypes"]
+  scalarTypes:
+    | GraphQLStandardSchemaGenerator.Options["scalarTypes"]
+    | undefined,
+  options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
   return {
     ...(operation.description
       ? { description: operation.description?.value }
       : {}),
-    ...buildInputSchema(schema, document, scalarTypes),
+    ...buildInputSchema(schema, document, scalarTypes, options),
     title: `Variables for ${operation.operation} ${operation.name?.value || "Anonymous"}`,
   };
 }

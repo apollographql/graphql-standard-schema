@@ -14,7 +14,6 @@ exports[`handles custom scalars 1`] = `
     "after",
     "before"
   ],
-  "additionalProperties": false,
   "$defs": {
     "scalar": {
       "Date": {
@@ -43,7 +42,6 @@ exports[`handles enums 1`] = `
     "text",
     "kind"
   ],
-  "additionalProperties": false,
   "$defs": {
     "enum": {
       "MediaKind": {
@@ -71,7 +69,6 @@ exports[`handles input types 1`] = `
   "required": [
     "input"
   ],
-  "additionalProperties": false,
   "$defs": {
     "input": {
       "EventSearchInput": {
@@ -103,11 +100,8 @@ exports[`handles input types 1`] = `
           }
         },
         "required": [
-          "after",
-          "before",
           "city"
-        ],
-        "additionalProperties": false
+        ]
       }
     },
     "scalar": {
@@ -137,10 +131,8 @@ exports[`handles nullable and non-nullable arguments 1`] = `
     }
   },
   "required": [
-    "text",
-    "maxCount"
+    "text"
   ],
-  "additionalProperties": false,
   "$defs": {},
   "title": "Variables for query Search"
 }
@@ -158,11 +150,99 @@ exports[`handles recursive input types 1`] = `
   "required": [
     "input"
   ],
-  "additionalProperties": false,
   "$defs": {
     "input": {
       "FilterInput": {
         "type": "object",
+        "title": "FilterInput",
+        "properties": {
+          "and": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/$defs/input/FilterInput"
+            }
+          },
+          "or": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/$defs/input/FilterInput"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/input/FilterInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "after": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/scalar/Date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "before": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/scalar/Date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    "scalar": {
+      "Date": {
+        "type": "string",
+        "pattern": "\\\\d{4}-\\\\d{1,2}-\\\\d{1,2}"
+      }
+    }
+  },
+  "title": "Variables for query Search"
+}
+`;
+
+exports[`handles recursive input types 2`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "input": {
+      "$ref": "#/$defs/input/FilterInput"
+    }
+  },
+  "required": [
+    "input"
+  ],
+  "$defs": {
+    "input": {
+      "FilterInput": {
+        "type": "object",
+        "additionalProperties": false,
         "title": "FilterInput",
         "properties": {
           "and": {
@@ -227,8 +307,7 @@ exports[`handles recursive input types 1`] = `
           "after",
           "before",
           "city"
-        ],
-        "additionalProperties": false
+        ]
       }
     },
     "scalar": {
