@@ -3,14 +3,16 @@ export type OpenAiSupportedJsonSchema = (
   // top level `anyOf` is not directly supported by OpenAI, but we allow it here - the resulting schema can still be nested into a property using `composeStandardSchema`
   | OpenAiSupportedJsonSchema.AnyOf
 ) & {
-  $defs?: {
-    [k: string]: Partial<OpenAiSupportedJsonSchema.Anything>;
-  };
+  $defs?: OpenAiSupportedJsonSchema.Definitions;
   [k: string]: unknown;
 };
 
 // see https://platform.openai.com/docs/guides/structured-outputs?type-restrictions=number-restrictions#supported-schemas
 export namespace OpenAiSupportedJsonSchema {
+  export type Definitions = {
+    [k: string]: Partial<OpenAiSupportedJsonSchema.Anything> | Definitions;
+  };
+
   export type Anything = IndividualTypes | Mixed;
   export type IndividualTypes =
     | StringDef

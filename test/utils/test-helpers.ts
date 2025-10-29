@@ -11,41 +11,6 @@ export function validateWithAjv(schema: unknown, data: unknown) {
   return { valid, errors: validate.errors || [] };
 }
 
-export function assertSchemaMatches(
-  actual: any,
-  expected: any,
-  message?: string
-) {
-  // Helper function to check if actual schema contains all expected properties
-  // while allowing additional properties like titles
-
-  if (typeof expected !== "object" || expected === null) {
-    assert.strictEqual(actual, expected, message);
-    return;
-  }
-
-  if (Array.isArray(expected)) {
-    assert.ok(Array.isArray(actual), `Expected array but got ${typeof actual}`);
-    assert.strictEqual(
-      actual.length,
-      expected.length,
-      "Array lengths should match"
-    );
-    for (let i = 0; i < expected.length; i++) {
-      assertSchemaMatches(actual[i], expected[i], `${message} [${i}]`);
-    }
-    return;
-  }
-
-  for (const [key, value] of Object.entries(expected)) {
-    assert.ok(
-      key in actual,
-      `Expected property '${key}' to exist in actual object`
-    );
-    assertSchemaMatches(actual[key], value, `${message}.${key}`);
-  }
-}
-
 export function validateSync<T>(
   schema: StandardSchemaV1<unknown, T>,
   data: unknown
@@ -88,19 +53,3 @@ type DeepNoBool<T> = T extends boolean
           ? T
           : { [K in keyof T]: DeepNoBool<T[K]> }
         : T;
-
-// @ts-ignore
-export function assertDeepNoBool<T>(obj: T): asserts obj is DeepNoBool<T> {
-  if (typeof obj === "boolean") {
-    throw new Error("Boolean found in object");
-  }
-  if (Array.isArray(obj)) {
-    for (const item of obj) {
-      assertDeepNoBool(item);
-    }
-  } else if (typeof obj === "object" && obj !== null) {
-    for (const key of Reflect.ownKeys(obj)) {
-      assertDeepNoBool((obj as any)[key]);
-    }
-  }
-}

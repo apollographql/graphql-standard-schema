@@ -31,6 +31,7 @@ import { composeStandardSchemas } from "./composeStandardSchemas.ts";
 import { responseShapeSchema } from "./responseShapeSchema.ts";
 import { schemaBase } from "./schemaBase.ts";
 import { assert } from "./assert.ts";
+import { buildInputSchema } from "./buildInputSchema.ts";
 
 type JSONSchemaFn = (
   params?: StandardJSONSchemaV1.Options
@@ -77,14 +78,7 @@ export class GraphQLStandardSchemaGenerator {
     document: TypedDocumentNode<TData>
   ): GraphQLStandardSchemaGenerator.ValidationSchema<TData> {
     const schema = this.schema;
-    const definitions = document.definitions.filter(
-      (def): def is OperationDefinitionNode =>
-        def.kind === "OperationDefinition" && !!def.name
-    );
-    if (definitions.length !== 1) {
-      throw new Error("Document must contain exactly one named operation");
-    }
-    const definition = definitions[0]!;
+    const definition = getOperation(document);
     return standardSchema({
       jsonSchema: (options) => {
         return {
@@ -312,11 +306,21 @@ export class GraphQLStandardSchemaGenerator {
   getVariablesSchema<TVariables>(
     document: TypedDocumentNode<any, TVariables>
   ): GraphQLStandardSchemaGenerator.ValidationSchema<TVariables> {
+    const schema = this.schema;
+    const operation = getOperation(document);
     return standardSchema({
       jsonSchema: (options) => {
-        throw new Error("Not implemented");
+        return {
+          ...schemaBase(options),
+          ...buildVariablesSchema(
+            schema,
+            document,
+            operation,
+            this.scalarTypes
+          ),
+        };
       },
-      validate: (variables): StandardSchemaV1.Result<TVariables> => {
+      validate(variables): StandardSchemaV1.Result<TVariables> {
         if (typeof variables !== "object" || variables === null) {
           return {
             issues: [
@@ -327,10 +331,8 @@ export class GraphQLStandardSchemaGenerator {
           };
         }
         const result = getVariableValues(
-          this.schema,
-          document.definitions.find(
-            (node) => node.kind === Kind.OPERATION_DEFINITION
-          )!.variableDefinitions || [],
+          schema,
+          operation.variableDefinitions || [],
           variables as Record<string, unknown>
         );
         if (result.coerced) {
@@ -400,6 +402,19 @@ function buildFragmentSchema(
   };
 }
 
+function getOperation(document: DocumentNode): OperationDefinitionNode {
+  const operations = document.definitions.filter(
+    (def): def is OperationDefinitionNode => def.kind === "OperationDefinition"
+  );
+  if (operations.length === 0) {
+    throw new Error("No operation definitions found in document");
+  }
+  if (operations.length > 1) {
+    throw new Error("Multiple operation definitions found in document");
+  }
+  return operations[0]!;
+}
+
 function buildOperationSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
@@ -429,10 +444,17 @@ function buildOperationSchema(
 
 function buildVariablesSchema(
   schema: GraphQLSchema,
+  document: DocumentNode,
   operation: OperationDefinitionNode,
   scalarTypes?: GraphQLStandardSchemaGenerator.Options["scalarTypes"]
 ): OpenAiSupportedJsonSchema {
-  throw new Error("Not implemented");
+  return {
+    ...(operation.description
+      ? { description: operation.description?.value }
+      : {}),
+    ...buildInputSchema(schema, document, scalarTypes),
+    title: `Variables for ${operation.operation} ${operation.name?.value || "Anonymous"}`,
+  };
 }
 
 export function standardSchema<T>({
