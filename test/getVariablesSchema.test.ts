@@ -1,8 +1,8 @@
 import { test } from "node:test";
 
-import { GraphQLStandardSchemaGenerator } from "../../src/index.ts";
-import { toJSONSchema } from "../utils/toJsonSchema.ts";
-import { gql, validateWithAjv } from "../utils/test-helpers.ts";
+import { GraphQLStandardSchemaGenerator } from "../src/index.ts";
+import { toJSONSchema } from "./utils/toJsonSchema.ts";
+import { gql, validateWithAjv } from "./utils/test-helpers.ts";
 import { buildSchema } from "graphql";
 
 test("handles nullable and non-nullable arguments", (t) => {
