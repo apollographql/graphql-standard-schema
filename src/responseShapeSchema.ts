@@ -8,7 +8,10 @@ import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
 import type { StandardSchemaV1 } from "./standard-schema-spec.ts";
 
 export function responseShapeSchema(definition: OperationDefinitionNode) {
-  return standardSchema({
+  return standardSchema<
+    Omit<FormattedExecutionResult, "data">,
+    Omit<FormattedExecutionResult, "data">
+  >({
     validate(value) {
       const issues: StandardSchemaV1.Issue[] = [];
       if (typeof value !== "object" || value === null) {
@@ -39,67 +42,71 @@ export function responseShapeSchema(definition: OperationDefinitionNode) {
       if (issues.length > 0) {
         return { issues };
       }
-      return { value } as { value: FormattedExecutionResult };
+      return { value } as { value: Omit<FormattedExecutionResult, "data"> };
     },
-    jsonSchema(options): OpenAiSupportedJsonSchema {
-      return {
-        ...schemaBase(options),
-        title: `Full response for ${definition.operation} ${definition.name?.value || "Anonymous"}`,
-        type: "object",
-        properties: {
-          errors: {
-            anyOf: [
-              { type: "null" },
-              {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    message: { type: "string" },
-                    locations: {
-                      anyOf: [
-                        { type: "null" },
-                        {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            properties: {
-                              line: { type: "number" },
-                              column: { type: "number" },
+    jsonSchema:
+      () =>
+      (options): OpenAiSupportedJsonSchema => {
+        return {
+          ...schemaBase(options),
+          title: `Full response for ${definition.operation} ${
+            definition.name?.value || "Anonymous"
+          }`,
+          type: "object",
+          properties: {
+            errors: {
+              anyOf: [
+                { type: "null" },
+                {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      message: { type: "string" },
+                      locations: {
+                        anyOf: [
+                          { type: "null" },
+                          {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              properties: {
+                                line: { type: "number" },
+                                column: { type: "number" },
+                              },
+                              required: ["line", "column"],
+                              additionalProperties: false,
                             },
-                            required: ["line", "column"],
-                            additionalProperties: false,
                           },
-                        },
-                      ],
-                    },
-                    path: {
-                      anyOf: [
-                        {
-                          type: "array",
-                          items: {
-                            anyOf: [{ type: "string" }, { type: "number" }],
+                        ],
+                      },
+                      path: {
+                        anyOf: [
+                          {
+                            type: "array",
+                            items: {
+                              anyOf: [{ type: "string" }, { type: "number" }],
+                            },
                           },
-                        },
-                      ],
+                        ],
+                      },
+                      // any-type object not supported by OpenAI
+                      // extensions: { type: "object" },
                     },
-                    // any-type object not supported by OpenAI
-                    // extensions: { type: "object" },
+                    additionalProperties: false,
+                    required: ["message", "locations", "path", "extensions"],
                   },
-                  additionalProperties: false,
-                  required: ["message", "locations", "path", "extensions"],
                 },
-              },
-            ],
+              ],
+            },
+            // any-type object not supported by OpenAI
+            // extensions: { type: "object" },
           },
-          // any-type object not supported by OpenAI
-          // extensions: { type: "object" },
-        },
-        required: ["errors"],
-        additionalProperties: false as const,
-        // not supported by OpenAI
-        // oneOf: [{ required: "data" }, { required: "errors" }],
-      };
-    },
+          required: ["errors"],
+          additionalProperties: false as const,
+          // not supported by OpenAI
+          // oneOf: [{ required: "data" }, { required: "errors" }],
+        };
+      },
   });
 }

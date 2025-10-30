@@ -20,21 +20,40 @@ type JsonSchemaFn = (
   params?: StandardJSONSchemaV1.Options
 ) => Record<string, unknown>;
 
+type Input<Spec extends CombinedSpec<any, any>> = NonNullable<
+  Spec["~standard"]["types"]
+>["input"];
+type Output<Spec extends CombinedSpec<any, any>> = NonNullable<
+  Spec["~standard"]["types"]
+>["output"];
+
 export function composeStandardSchemas<
-  Root extends object,
+  Root extends CombinedSpec<any, any>,
   P extends string[],
-  Extension,
+  Extension extends CombinedSpec<any, any>,
   Nullable extends boolean = false,
 >(
-  rootSchema: CombinedSpec<Root, Root>,
+  rootSchema: Root,
   path: P,
-  extension: CombinedSpec<Extension, Extension>,
+  extension: Extension,
   nullable: Nullable = false as Nullable
 ): CombinedSpec<
-  InsertAt<Root, P, Nullable extends true ? null | Extension : Extension>,
-  InsertAt<Root, P, Nullable extends true ? null | Extension : Extension>
+  InsertAt<
+    Input<Root>,
+    P,
+    Nullable extends true ? null | Input<Extension> : Input<Extension>
+  >,
+  InsertAt<
+    Output<Root>,
+    P,
+    Nullable extends true ? null | Output<Extension> : Output<Extension>
+  >
 > {
-  type CombinedResult = InsertAt<Root, P, Extension>;
+  type CombinedResult = InsertAt<
+    Output<Root>,
+    P,
+    Nullable extends true ? null | Output<Extension> : Output<Extension>
+  >;
   const jsonSchema: JsonSchemaFn = (params) => {
     const rootJson: Record<string, unknown> & { $defs?: {} } =
       rootSchema["~standard"].jsonSchema.input(params);
@@ -121,7 +140,7 @@ export function composeStandardSchemas<
         );
         const extensionResult =
           nullable && extensionValue == null
-            ? ({ value: null } as StandardSchemaV1.Result<Extension>)
+            ? ({ value: null } as StandardSchemaV1.Result<Output<Extension>>)
             : extension["~standard"].validate(extensionValue);
         function combineResults(
           result1: StandardSchemaV1.Result<Root>,

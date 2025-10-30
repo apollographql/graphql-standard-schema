@@ -3,7 +3,24 @@ import { test } from "node:test";
 import { GraphQLStandardSchemaGenerator } from "../src/index.ts";
 import { toJSONSchema } from "./utils/toJsonSchema.ts";
 import { gql, validateWithAjv } from "./utils/test-helpers.ts";
-import { buildSchema } from "graphql";
+import { buildSchema, GraphQLScalarType } from "graphql";
+
+const DateScalarDef = {
+  type: new GraphQLScalarType<Date, string>({
+    parseValue(value) {
+      return new Date(value as string);
+    },
+    serialize(value) {
+      return (value as Date).toISOString().split("T")[0];
+    },
+    name: "Date",
+    description: "A date string in YYYY-MM-DD format",
+  }),
+  jsonSchema: {
+    input: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
+    output: { type: "number" },
+  },
+} as const;
 
 test("handles nullable and non-nullable arguments", (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -83,13 +100,13 @@ test("handles custom scalars", (t) => {
       }
     `),
     scalarTypes: {
-      Date: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
+      Date: DateScalarDef,
     },
   });
   const variablesSchema = generator.getVariablesSchema(
     gql<
       { searchEvent: string[] },
-      { before: string; after: string }
+      { before: Date; after: Date }
     >(/** GraphQL */ `
       query Search($after: Date!, $before: Date!) {
         searchEvent(after: $after, before: $before)
@@ -128,13 +145,13 @@ test("handles input types", (t) => {
       }
     `),
     scalarTypes: {
-      Date: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
+      Date: DateScalarDef,
     },
   });
   const variablesSchema = generator.getVariablesSchema(
     gql<
       { searchEvent: string[] },
-      { input: { city: string; before?: string; after?: string } }
+      { input: { city: string; before?: Date; after?: Date } }
     >(/** GraphQL */ `
       query Search($input: EventSearchInput!) {
         searchEvent(input: $input)
@@ -181,7 +198,7 @@ test("handles recursive input types", (t) => {
       }
     `);
   const scalarTypes = {
-    Date: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
+    Date: DateScalarDef,
   } as const;
 
   const generator = new GraphQLStandardSchemaGenerator({
@@ -197,8 +214,8 @@ test("handles recursive input types", (t) => {
     and: FilterInput[] | null;
     or: FilterInput[] | null;
     not: FilterInput | null;
-    after: string | null;
-    before: string | null;
+    after: Date | null;
+    before: Date | null;
     city: string | null;
   }
   const variablesSchema = generator.getVariablesSchema(
@@ -219,7 +236,11 @@ test("handles recursive input types", (t) => {
   );
   const openAIJsonSchema = toJSONSchema(openAISchema);
 
-  const fullFilterInput: FilterInput = {
+  type InputType = NonNullable<
+    (typeof variablesSchema)["~standard"]["types"]
+  >["input"];
+
+  const fullFilterInput: InputType["input"] = {
     city: "New York",
     and: [
       {
