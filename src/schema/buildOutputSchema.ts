@@ -23,10 +23,10 @@ import {
   Kind,
   type SelectionSetNode,
 } from "graphql";
-import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
+import type { OpenAiSupportedJsonSchema } from "../openAiSupportedJsonSchema.ts";
 import { equal } from "@wry/equality";
-import { assert } from "./assert.ts";
-import type { GraphQLStandardSchemaGenerator } from "./index.ts";
+import { assert } from "../assert.ts";
+import type { GraphQLStandardSchemaGenerator } from "../index.ts";
 
 export function buildOutputSchema(
   schema: GraphQLSchema,
@@ -203,7 +203,7 @@ export function buildOutputSchema(
     const properties: NonNullable<
       OpenAiSupportedJsonSchema.ObjectDef["properties"]
     > = {};
-    const required = new Set();
+    const required = new Set<string>();
     if (options.addTypename) {
       properties.__typename = { const: parentType.name };
       required.add("__typename");

@@ -13,8 +13,6 @@ import {
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
-  isAbstractType,
-  isObjectType,
   Kind,
   type OperationDefinitionNode,
   OperationTypeNode,
@@ -24,7 +22,6 @@ import type {
   StandardSchemaV1,
 } from "./standard-schema-spec.ts";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
-import { buildOutputSchema } from "./buildOutputSchema.ts";
 import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
 import type {
   CombinedSpec,
@@ -35,7 +32,9 @@ import { composeStandardSchemas } from "./composeStandardSchemas.ts";
 import { responseShapeSchema } from "./responseShapeSchema.ts";
 import { schemaBase } from "./schemaBase.ts";
 import { assert } from "./assert.ts";
-import { buildInputSchema } from "./buildInputSchema.ts";
+import { buildVariablesSchema } from "./schema/buildVariablesSchema.ts";
+import { buildFragmentSchema } from "./schema/buildFragmentSchema.ts";
+import { buildOperationSchema } from "./schema/buildOperationSchema.ts";
 
 export declare namespace GraphQLStandardSchemaGenerator {
   export namespace Internal {
@@ -302,9 +301,10 @@ export class GraphQLStandardSchemaGenerator<
       (def): def is OperationDefinitionNode =>
         def.kind === "OperationDefinition" && !!def.name
     );
-    if (definitions.length !== 1) {
-      throw new Error("Document must contain exactly one named operation");
-    }
+    assert(
+      definitions.length == 1,
+      "Document must contain exactly one named operation"
+    );
 
     const responseShape = responseShapeSchema(definitions[0]!);
 
@@ -314,10 +314,6 @@ export class GraphQLStandardSchemaGenerator<
       this.getDataSchema<TData>(document),
       true
     );
-    const ret = composed["~standard"].validate({} as any);
-    if ("value" in ret) {
-      ret.value;
-    }
 
     return composed satisfies CombinedSpec<
       {
@@ -358,22 +354,20 @@ export class GraphQLStandardSchemaGenerator<
     }
     const fragments = document.definitions as FragmentDefinitionNode[];
 
-    if (fragments.length === 0) {
-      throw new Error("No fragments found in document");
-    }
-    if (fragments.length > 1 && !fragmentName) {
-      throw new Error(
-        "Multiple fragments found, please specify a fragmentName"
-      );
-    }
+    assert(fragments.length !== 0, "No fragments found in document");
+    assert(
+      fragments.length == 1 || fragmentName,
+      "Multiple fragments found, please specify a fragmentName"
+    );
+
     const fragment = fragments.find((def) =>
       fragmentName ? def.name.value === fragmentName : true
     );
-    if (!fragment) {
-      throw new Error(
-        `Fragment with name ${fragmentName} not found in document`
-      );
-    }
+    assert(
+      fragment,
+      `Fragment with name ${fragmentName} not found in document`
+    );
+
     const queryDocument: TypedDocumentNode<{ fragmentData: TData }> = {
       ...(document as TypedDocumentNode<any>),
       definitions: [
@@ -490,117 +484,16 @@ export class GraphQLStandardSchemaGenerator<
   }
 }
 
-function buildFragmentSchema(
-  schema: GraphQLSchema,
-  document: DocumentNode,
-  fragment: FragmentDefinitionNode,
-  scalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping,
-  options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
-): OpenAiSupportedJsonSchema {
-  const parentType = schema.getType(fragment.typeCondition.name.value);
-  let dataSchema: OpenAiSupportedJsonSchema;
-  if (isObjectType(parentType)) {
-    dataSchema = buildOutputSchema(
-      schema,
-      document,
-      scalarTypes,
-      parentType,
-      fragment.selectionSet,
-      options
-    );
-  } else if (isAbstractType(parentType)) {
-    // this is not directly allowed with OpenAI Structured Output, but other tools might benefit from it - and for OpenAI, `composeStandardSchemas` can be used to nest this schema under a property, which would then be supported
-    // https://platform.openai.com/docs/guides/structured-outputs?type-restrictions=number-restrictions#root-objects-must-not-be-anyof-and-must-be-an-object
-    const possibleTypes = schema.getPossibleTypes(parentType);
-    const schemas = possibleTypes.map((type) =>
-      buildOutputSchema(
-        schema,
-        document,
-        scalarTypes,
-        type,
-        fragment.selectionSet,
-        options
-      )
-    );
-    dataSchema = {
-      anyOf: schemas.map(({ $defs, ...schema }) => schema),
-      $defs: schemas.reduce<NonNullable<OpenAiSupportedJsonSchema["$defs"]>>(
-        (acc, schema) =>
-          schema.$defs ? Object.assign(acc, schema.$defs) : acc,
-        {}
-      ),
-    };
-  } else {
-    throw new Error(
-      `Fragment type condition must be an object, union or interface, got: ${parentType?.name}`
-    );
-  }
-
-  return {
-    ...dataSchema,
-    title: `fragment ${fragment.name?.value || "Anonymous"} on ${
-      fragment.typeCondition.name.value
-    }`,
-    ...(fragment.description
-      ? { description: fragment.description?.value }
-      : {}),
-  };
-}
-
 function getOperation(document: DocumentNode): OperationDefinitionNode {
   const operations = document.definitions.filter(
     (def): def is OperationDefinitionNode => def.kind === "OperationDefinition"
   );
-  if (operations.length === 0) {
-    throw new Error("No operation definitions found in document");
-  }
-  if (operations.length > 1) {
-    throw new Error("Multiple operation definitions found in document");
-  }
+  assert(operations.length > 0, "No operation definitions found in document");
+  assert(
+    operations.length == 1,
+    "Multiple operation definitions found in document"
+  );
   return operations[0]!;
-}
-
-function buildOperationSchema(
-  schema: GraphQLSchema,
-  document: DocumentNode,
-  operation: OperationDefinitionNode,
-  scalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping,
-  options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
-): OpenAiSupportedJsonSchema {
-  return {
-    ...(operation.description
-      ? { description: operation.description?.value }
-      : {}),
-    ...buildOutputSchema(
-      schema,
-      document,
-      scalarTypes,
-      operation.operation === OperationTypeNode.QUERY
-        ? schema.getQueryType()!
-        : operation.operation === OperationTypeNode.SUBSCRIPTION
-          ? schema.getSubscriptionType()!
-          : schema.getMutationType()!,
-      operation.selectionSet,
-      options
-    ),
-    title: `${operation.operation} ${operation.name?.value || "Anonymous"}`,
-  };
-}
-
-function buildVariablesSchema(
-  schema: GraphQLSchema,
-  document: DocumentNode,
-  operation: OperationDefinitionNode,
-  scalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping,
-  options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
-): OpenAiSupportedJsonSchema {
-  return {
-    ...(operation.description
-      ? { description: operation.description?.value }
-      : {}),
-    ...buildInputSchema(schema, document, scalarTypes, options),
-    title: `Variables for ${operation.operation} ${operation.name?.value || "Anonymous"}`,
-  };
 }
 
 export function standardSchema<Input, Output>({
