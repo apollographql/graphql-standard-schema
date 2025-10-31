@@ -20,44 +20,38 @@ type JsonSchemaFn = (
   params?: StandardJSONSchemaV1.Options
 ) => Record<string, unknown>;
 
-type Input<Spec extends CombinedSpec<any, any>> = NonNullable<
-  Spec["~standard"]["types"]
->["input"];
-type Output<Spec extends CombinedSpec<any, any>> = NonNullable<
-  Spec["~standard"]["types"]
->["output"];
-
 export function composeStandardSchemas<
   Root extends CombinedSpec<any, any>,
   P extends string[],
   Extension extends CombinedSpec<any, any>,
-  Nullable extends boolean = false,
 >(
   rootSchema: Root,
   path: P,
-  extension: Extension,
-  nullable: Nullable = false as Nullable
+  extension: Extension
 ): CombinedSpec<
   InsertAt<
-    Input<Root>,
+    StandardSchemaV1.InferInput<Root>,
     P,
-    Nullable extends true ? null | Input<Extension> : Input<Extension>
+    StandardSchemaV1.InferInput<Extension>
   >,
   InsertAt<
-    Output<Root>,
+    StandardSchemaV1.InferOutput<Root>,
     P,
-    Nullable extends true ? null | Output<Extension> : Output<Extension>
+    StandardSchemaV1.InferOutput<Extension>
   >
 > {
   type CombinedResult = InsertAt<
-    Output<Root>,
+    StandardSchemaV1.InferOutput<Root>,
     P,
-    Nullable extends true ? null | Output<Extension> : Output<Extension>
+    StandardSchemaV1.InferOutput<Extension>
   >;
   const jsonSchema: JsonSchemaFn = (params) => {
     const rootJson: Record<string, unknown> & { $defs?: {} } =
       rootSchema["~standard"].jsonSchema.input(params);
-    const extensionJson: Record<string, unknown> & { $defs?: {} } =
+    const {
+      $defs,
+      ...extensionJson
+    }: Record<string, unknown> & { $defs?: {} } =
       extension["~standard"].jsonSchema.input(params);
     let step: {
       type?: string;
@@ -81,16 +75,14 @@ export function composeStandardSchemas<
         step.required = [...(step.required || []), key];
       }
       if (i === path.length - 1) {
-        step.properties[key] = nullable
-          ? { anyOf: [{ type: "null" }, extensionJson] }
-          : extensionJson;
+        step.properties[key] = extensionJson;
       }
     }
-    if ("$defs" in extensionJson) {
+    if ($defs) {
       // note that this might override existing definitions in rootJson.$defs
       // this is okay while using this internally, but once exposed to users, we might
       // need to handle conflicts more gracefully
-      rootJson.$defs = { ...rootJson.$defs, ...extensionJson.$defs };
+      rootJson.$defs = { ...rootJson.$defs, ...$defs };
     }
     return rootJson;
   };
@@ -138,10 +130,7 @@ export function composeStandardSchemas<
           (obj: Record<string, any>, key) => obj[key],
           value
         );
-        const extensionResult =
-          nullable && extensionValue == null
-            ? ({ value: null } as StandardSchemaV1.Result<Output<Extension>>)
-            : extension["~standard"].validate(extensionValue);
+        const extensionResult = extension["~standard"].validate(extensionValue);
         function combineResults(
           result1: StandardSchemaV1.Result<Root>,
           result2: StandardSchemaV1.Result<Extension>
@@ -163,6 +152,43 @@ export function composeStandardSchemas<
       jsonSchema: {
         input: jsonSchema,
         output: jsonSchema,
+      },
+    },
+  };
+}
+
+export function nullable<Input, Output>(
+  schema: CombinedSpec<Input, Output>
+): CombinedSpec<Input | null, Output | null> {
+  return {
+    "~standard": {
+      vendor: schema["~standard"].vendor,
+      version: schema["~standard"].version,
+      validate(value) {
+        if (value === null) {
+          return { value: null };
+        }
+        return schema["~standard"].validate(
+          value
+        ) as StandardSchemaV1.Result<Output | null>;
+      },
+      jsonSchema: {
+        input(params) {
+          const { $defs, ...orig } =
+            schema["~standard"].jsonSchema.input(params);
+          return {
+            anyOf: [{ type: "null" }, orig],
+            $defs,
+          };
+        },
+        output(params) {
+          const { $defs, ...orig } =
+            schema["~standard"].jsonSchema.input(params);
+          return {
+            anyOf: [{ type: "null" }, orig],
+            $defs,
+          };
+        },
       },
     },
   };

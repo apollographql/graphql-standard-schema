@@ -28,7 +28,7 @@ import type {
   CalculateInputType,
   ScalarMapping,
 } from "./types.ts";
-import { composeStandardSchemas } from "./composeStandardSchemas.ts";
+import { composeStandardSchemas, nullable } from "./composeStandardSchemas.ts";
 import { responseShapeSchema } from "./responseShapeSchema.ts";
 import { schemaBase } from "./schemaBase.ts";
 import { assert } from "./assert.ts";
@@ -311,8 +311,7 @@ export class GraphQLStandardSchemaGenerator<
     const composed = composeStandardSchemas(
       responseShape,
       ["data"] as const,
-      this.getDataSchema<TData>(document),
-      true
+      nullable(this.getDataSchema<TData>(document))
     );
 
     return composed satisfies CombinedSpec<
