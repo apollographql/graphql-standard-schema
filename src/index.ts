@@ -29,12 +29,14 @@ import type {
   ScalarMapping,
 } from "./types.ts";
 import { composeStandardSchemas, nullable } from "./composeStandardSchemas.ts";
-import { responseShapeSchema } from "./responseShapeSchema.ts";
-import { schemaBase } from "./schemaBase.ts";
+import { responseShapeSchema } from "./schema/responseShapeSchema.ts";
+import { schemaBase } from "./schema/schemaBase.ts";
 import { assert } from "./assert.ts";
 import { buildVariablesSchema } from "./schema/buildVariablesSchema.ts";
 import { buildFragmentSchema } from "./schema/buildFragmentSchema.ts";
 import { buildOperationSchema } from "./schema/buildOperationSchema.ts";
+import { fakeVariables } from "./fakeVariables.ts";
+import { addTypename } from "./transforms/addTypename.ts";
 
 export declare namespace GraphQLStandardSchemaGenerator {
   export namespace Internal {
@@ -50,6 +52,8 @@ export declare namespace GraphQLStandardSchemaGenerator {
       input: OpenAiSupportedJsonSchema.Anything;
       output: OpenAiSupportedJsonSchema.Anything;
     };
+    /** Will be used as "fake variable value" if this scalar is ever used in a non-nullable variable input value. */
+    defaultValue?: any;
   }
 
   export type ScalarDefinitions = Record<
@@ -57,6 +61,7 @@ export declare namespace GraphQLStandardSchemaGenerator {
     GraphQLStandardSchemaGenerator.ScalarDefinition<any, any>
   >;
 
+  export type DocumentTransform = (document: DocumentNode) => DocumentNode;
   export interface Options<
     Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions = Record<
       string,
@@ -66,6 +71,7 @@ export declare namespace GraphQLStandardSchemaGenerator {
     schema: GraphQLSchema | DocumentNode;
     scalarTypes?: Scalars;
     defaultJSONSchemaOptions?: JSONSchemaOptions | "OpenAI";
+    documentTransfoms?: GraphQLStandardSchemaGenerator.DocumentTransform[];
   }
 
   export type InputType<
@@ -132,13 +138,16 @@ export class GraphQLStandardSchemaGenerator<
   >,
 > {
   private schema!: GraphQLSchema;
+  private scalarTypes: Scalars;
   private inputScalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping;
   private outputScalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping;
   private defaultJSONSchemaOptions: GraphQLStandardSchemaGenerator.JSONSchemaOptions;
+  private documentTransfoms: GraphQLStandardSchemaGenerator.DocumentTransform[];
   constructor({
     schema,
     scalarTypes = {} as Scalars,
     defaultJSONSchemaOptions,
+    documentTransfoms = [addTypename],
   }: GraphQLStandardSchemaGenerator.Options<Scalars>) {
     this.replaceSchema(schema);
     this.inputScalarTypes = Object.fromEntries(
@@ -153,6 +162,8 @@ export class GraphQLStandardSchemaGenerator<
         def.jsonSchema.output,
       ])
     );
+    this.documentTransfoms = documentTransfoms;
+    this.scalarTypes = scalarTypes;
     this.defaultJSONSchemaOptions =
       defaultJSONSchemaOptions === "OpenAI"
         ? {
@@ -180,12 +191,17 @@ export class GraphQLStandardSchemaGenerator<
   }
 
   getDataSchema<TData>(
-    document: TypedDocumentNode<TData>
+    document: TypedDocumentNode<TData, any>
   ): GraphQLStandardSchemaGenerator.ValidationSchema<
     GraphQLStandardSchemaGenerator.InputType<TData, Scalars>,
     GraphQLStandardSchemaGenerator.OutputType<TData, Scalars>
   > {
     const schema = this.schema;
+    const scalarTypes = this.scalarTypes;
+    document = this.documentTransfoms.reduce(
+      (doc, transform) => transform(doc),
+      document
+    );
     const definition = getOperation(document);
     return standardSchema({
       jsonSchema: (direction) => (options) => {
@@ -205,11 +221,15 @@ export class GraphQLStandardSchemaGenerator<
       ): StandardSchemaV1.Result<
         GraphQLStandardSchemaGenerator.OutputType<TData, Scalars>
       > {
+        const variableValues = fakeVariables(
+          getOperation(document).variableDefinitions || [],
+          schema,
+          scalarTypes
+        );
         const result = execute({
           schema,
           document,
-          // TODO: do we need to fake variables here?
-          // variableValues: operation.variables,
+          variableValues,
           fieldResolver: (source, args, context, info) => {
             const value = source[info.fieldName];
 
@@ -351,6 +371,10 @@ export class GraphQLStandardSchemaGenerator<
     ) {
       throw new Error("Document must only contain fragment definitions");
     }
+    document = this.documentTransfoms.reduce(
+      (doc, transform) => transform(doc),
+      document
+    );
     const fragments = document.definitions as FragmentDefinitionNode[];
 
     assert(fragments.length !== 0, "No fragments found in document");
@@ -441,6 +465,10 @@ export class GraphQLStandardSchemaGenerator<
     GraphQLStandardSchemaGenerator.OutputType<TVariables, Scalars>
   > {
     const schema = this.schema;
+    document = this.documentTransfoms.reduce(
+      (doc, transform) => transform(doc),
+      document
+    );
     const operation = getOperation(document);
     return standardSchema({
       jsonSchema: (direction) => (options) => {

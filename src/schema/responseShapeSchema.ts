@@ -2,10 +2,10 @@ import type {
   OperationDefinitionNode,
   FormattedExecutionResult,
 } from "graphql";
-import { standardSchema } from "./index.ts";
+import { standardSchema } from "../index.ts";
 import { schemaBase } from "./schemaBase.ts";
-import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
-import type { StandardSchemaV1 } from "./standard-schema-spec.ts";
+import type { OpenAiSupportedJsonSchema } from "../openAiSupportedJsonSchema.ts";
+import type { StandardSchemaV1 } from "../standard-schema-spec.ts";
 
 export function responseShapeSchema(definition: OperationDefinitionNode) {
   return standardSchema<

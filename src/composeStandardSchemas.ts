@@ -5,16 +5,24 @@ import type {
 } from "./standard-schema-spec.ts";
 import { assert } from "./assert.ts";
 
-type InsertAt<Root, P extends string[], V> = P extends [
-  infer Head extends string,
-  ...infer Tail extends string[],
-]
-  ? {
-      [K in keyof Root | Head]: K extends Head
-        ? InsertAt<K extends keyof Root ? Root[K] : {}, Tail, V>
-        : Root[K & keyof Root];
-    }
-  : V;
+type Id<T> = { [K in keyof T]: T[K] } & {};
+
+type InsertAt<
+  Root,
+  P extends string[],
+  V,
+  Required extends boolean,
+> = P extends [infer Head extends string]
+  ? Id<
+      Root & (Required extends true ? { [K in Head]: V } : { [K in Head]?: V })
+    >
+  : P extends [infer Head extends string, ...infer Tail extends string[]]
+    ? {
+        [K in keyof Root | Head]: K extends Head
+          ? InsertAt<K extends keyof Root ? Root[K] : {}, Tail, V, Required>
+          : Root[K & keyof Root];
+      }
+    : { wat: P };
 
 type JsonSchemaFn = (
   params?: StandardJSONSchemaV1.Options
@@ -22,34 +30,40 @@ type JsonSchemaFn = (
 
 export function composeStandardSchemas<
   Root extends CombinedSpec<any, any>,
-  P extends string[],
+  const P extends string[],
   Extension extends CombinedSpec<any, any>,
+  Required extends boolean = true,
 >(
   rootSchema: Root,
   path: P,
-  extension: Extension
+  extension: Extension,
+  required: Required = true as Required
 ): CombinedSpec<
   InsertAt<
     StandardSchemaV1.InferInput<Root>,
     P,
-    StandardSchemaV1.InferInput<Extension>
+    StandardSchemaV1.InferInput<Extension>,
+    Required
   >,
   InsertAt<
     StandardSchemaV1.InferOutput<Root>,
     P,
-    StandardSchemaV1.InferOutput<Extension>
+    StandardSchemaV1.InferOutput<Extension>,
+    Required
   >
 > {
   type CombinedResult = InsertAt<
     StandardSchemaV1.InferOutput<Root>,
     P,
-    StandardSchemaV1.InferOutput<Extension>
+    StandardSchemaV1.InferOutput<Extension>,
+    Required
   >;
   const jsonSchema: JsonSchemaFn = (params) => {
     const rootJson: Record<string, unknown> & { $defs?: {} } =
       rootSchema["~standard"].jsonSchema.input(params);
     const {
       $defs,
+      $schema,
       ...extensionJson
     }: Record<string, unknown> & { $defs?: {} } =
       extension["~standard"].jsonSchema.input(params);
@@ -72,11 +86,14 @@ export function composeStandardSchemas<
           required: [],
           additionalProperties: false,
         };
-        step.required = [...(step.required || []), key];
+        if (required) {
+          step.required = [...(step.required || []), key];
+        }
       }
       if (i === path.length - 1) {
         step.properties[key] = extensionJson;
       }
+      step = step.properties[key];
     }
     if ($defs) {
       // note that this might override existing definitions in rootJson.$defs
@@ -130,7 +147,10 @@ export function composeStandardSchemas<
           (obj: Record<string, any>, key) => obj[key],
           value
         );
-        const extensionResult = extension["~standard"].validate(extensionValue);
+        const extensionResult =
+          extensionValue === undefined && !required
+            ? { value: undefined }
+            : extension["~standard"].validate(extensionValue);
         function combineResults(
           result1: StandardSchemaV1.Result<Root>,
           result2: StandardSchemaV1.Result<Extension>

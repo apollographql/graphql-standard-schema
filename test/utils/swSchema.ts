@@ -5,7 +5,7 @@ export const swSchema = buildSchema(/**GraphQL*/ `
 """
 A character from the Star Wars universe
 """
-type Character implements Node{
+interface Character {
   id: ID!
   "The name of the character."
   name: String!
@@ -16,9 +16,9 @@ type Character implements Node{
 type Human implements Character & Node {
   id: ID!
   fullName: String
-  name: String @deprecated(reason: "Use fullName.")
+  name: String! @deprecated(reason: "Use fullName.")
   friends: [Character]
-  appearsIn: [Episode]!
+  appearsIn: [Episode!]!
   starships: [Starship]
   totalCredits: Int
 }
@@ -27,7 +27,7 @@ type Droid implements Character & Node {
   id: ID!
   name: String!
   friends: [Character]
-  appearsIn: [Episode]!
+  appearsIn: [Episode!]!
   primaryFunction: String
 }
 
@@ -108,7 +108,30 @@ type Subscription {
 `);
 
 export const SearchCharacter = gql<
-  { search: Array<{ id: string; name: string } | {}> },
+  {
+    search: Array<
+      {
+        id: string;
+        name: string;
+        friends: Array<{
+          __typename: "Human" | "Droid";
+          id: string;
+          name: string;
+        }>;
+      } & (
+        | {
+            __typename: "Human";
+            fullName: string;
+            starships: Array<{
+              __typename: "Starship";
+              id: string;
+              name: string;
+            }>;
+          }
+        | { __typename: "Droid"; primaryFunction: string }
+      )
+    >;
+  },
   { text: string }
 >(/*GraphQL*/ `
   query SearchCharacter($text: String!) {

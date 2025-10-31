@@ -4,5 +4,17 @@ export function toJSONSchema(
   standardSchema: StandardJSONSchemaV1<unknown, unknown>,
   options?: StandardJSONSchemaV1.Options
 ) {
-  return standardSchema["~standard"].jsonSchema.input(options);
+  return toJSONSchema.input(standardSchema, options);
 }
+toJSONSchema.input = function (
+  standardSchema: StandardJSONSchemaV1<unknown, unknown>,
+  options?: StandardJSONSchemaV1.Options
+) {
+  return standardSchema["~standard"].jsonSchema.input(options);
+};
+toJSONSchema.output = function (
+  standardSchema: StandardJSONSchemaV1<unknown, unknown>,
+  options?: StandardJSONSchemaV1.Options
+) {
+  return standardSchema["~standard"].jsonSchema.output(options);
+};

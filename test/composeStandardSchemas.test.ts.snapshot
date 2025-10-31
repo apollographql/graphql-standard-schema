@@ -1,0 +1,255 @@
+exports[`basic assumption about test schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/Query",
+  "type": "object",
+  "title": "query SearchCharacter",
+  "properties": {
+    "__typename": {
+      "const": "Query"
+    },
+    "search": {
+      "title": "Query.search: [SearchResult!]",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "title": "Human",
+            "properties": {
+              "__typename": {
+                "const": "Human"
+              },
+              "id": {
+                "title": "Human.id: ID!",
+                "type": "string"
+              },
+              "name": {
+                "title": "Human.name: String!",
+                "type": "string"
+              },
+              "friends": {
+                "title": "Human.friends: [Character]",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/$defs/Character",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "title": "Human",
+                      "properties": {
+                        "__typename": {
+                          "const": "Human"
+                        },
+                        "id": {
+                          "title": "Human.id: ID!",
+                          "type": "string"
+                        },
+                        "name": {
+                          "title": "Human.name: String!",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "__typename",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "title": "Droid",
+                      "properties": {
+                        "__typename": {
+                          "const": "Droid"
+                        },
+                        "id": {
+                          "title": "Droid.id: ID!",
+                          "type": "string"
+                        },
+                        "name": {
+                          "title": "Droid.name: String!",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "__typename",
+                        "id",
+                        "name"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "fullName": {
+                "title": "Human.fullName: String",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "starships": {
+                "title": "Human.starships: [Starship]",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "title": "Starship",
+                  "properties": {
+                    "__typename": {
+                      "const": "Starship"
+                    },
+                    "id": {
+                      "title": "Starship.id: ID!",
+                      "type": "string"
+                    },
+                    "name": {
+                      "title": "Starship.name: String!",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "__typename",
+                    "id",
+                    "name"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "__typename",
+              "id",
+              "name"
+            ]
+          },
+          {
+            "type": "object",
+            "title": "Droid",
+            "properties": {
+              "__typename": {
+                "const": "Droid"
+              },
+              "id": {
+                "title": "Droid.id: ID!",
+                "type": "string"
+              },
+              "name": {
+                "title": "Droid.name: String!",
+                "type": "string"
+              },
+              "friends": {
+                "title": "Droid.friends: [Character]",
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "$ref": "#/$defs/Character",
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "title": "Human",
+                      "properties": {
+                        "__typename": {
+                          "const": "Human"
+                        },
+                        "id": {
+                          "title": "Human.id: ID!",
+                          "type": "string"
+                        },
+                        "name": {
+                          "title": "Human.name: String!",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "__typename",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "title": "Droid",
+                      "properties": {
+                        "__typename": {
+                          "const": "Droid"
+                        },
+                        "id": {
+                          "title": "Droid.id: ID!",
+                          "type": "string"
+                        },
+                        "name": {
+                          "title": "Droid.name: String!",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "__typename",
+                        "id",
+                        "name"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "primaryFunction": {
+                "title": "Droid.primaryFunction: String",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "__typename",
+              "id",
+              "name"
+            ]
+          },
+          {
+            "type": "object",
+            "title": "Starship",
+            "properties": {
+              "__typename": {
+                "const": "Starship"
+              }
+            },
+            "required": [
+              "__typename"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "__typename"
+  ],
+  "$defs": {
+    "Character": {
+      "description": "A character from the Star Wars universe"
+    },
+    "Query": {
+      "description": "The query type, represents all of the entry points into our object graph"
+    }
+  }
+}
+`;

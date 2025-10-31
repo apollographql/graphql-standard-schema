@@ -41,15 +41,3 @@ export function gql<TData, TVariables = Record<string, unknown>>(
 > {
   return parse(query);
 }
-
-type DeepNoBool<T> = T extends boolean
-  ? never
-  : T extends (infer U)[]
-    ? DeepNoBool<U>[]
-    : T extends number | string | bigint | symbol | null | undefined
-      ? T
-      : T extends object
-        ? keyof T extends never
-          ? T
-          : { [K in keyof T]: DeepNoBool<T[K]> }
-        : T;
