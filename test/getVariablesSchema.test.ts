@@ -184,7 +184,6 @@ test("handles custom scalars", async (t) => {
         searchEvent(after: Date!, before: Date!): [String]
       }
     `);
-  schema["_typeMap"].Date = DateScalarDef.type;
   const generator = new GraphQLStandardSchemaGenerator({
     schema,
     scalarTypes: {
@@ -289,7 +288,7 @@ test("handles input types", async (t) => {
         value: {
           input: {
             city: "New York",
-            after: "2023-01-01",
+            after: new Date("2023-01-01"),
             before: null,
           },
         },
@@ -392,6 +391,7 @@ test("handles recursive input types", async (t) => {
   );
 
   type InputType = StandardSchemaV1.InferInput<typeof variablesSchema>;
+  type OutputType = StandardSchemaV1.InferOutput<typeof variablesSchema>;
   const fullFilterInput: InputType["input"] = {
     city: "New York",
     and: [
@@ -424,6 +424,38 @@ test("handles recursive input types", async (t) => {
     after: null,
     before: null,
   };
+  const fullFilterInputResult: OutputType["input"] = {
+    city: "New York",
+    and: [
+      {
+        after: new Date("2023-01-01"),
+        and: null,
+        or: null,
+        not: null,
+        before: null,
+        city: null,
+      },
+      {
+        not: {
+          after: new Date("2023-12-31"),
+          and: null,
+          or: null,
+          not: null,
+          before: null,
+          city: null,
+        },
+        and: null,
+        or: null,
+        before: null,
+        after: null,
+        city: null,
+      },
+    ],
+    or: null,
+    not: null,
+    after: null,
+    before: null,
+  };
   const partialFilterInput = {
     city: "New York",
     and: [
@@ -437,6 +469,19 @@ test("handles recursive input types", async (t) => {
       },
     ],
   } as const;
+  const partialFilterInputResult = {
+    city: "New York",
+    and: [
+      {
+        after: new Date("2023-01-01"),
+      },
+      {
+        not: {
+          after: new Date("2023-12-31"),
+        },
+      },
+    ],
+  } as const;
 
   await t.test("validateSync", () => {
     {
@@ -444,7 +489,7 @@ test("handles recursive input types", async (t) => {
         input: fullFilterInput,
       });
       assert.deepStrictEqual(result, {
-        value: { input: fullFilterInput },
+        value: { input: fullFilterInputResult },
       });
     }
     {
@@ -452,7 +497,7 @@ test("handles recursive input types", async (t) => {
         input: fullFilterInput,
       });
       assert.deepStrictEqual(result, {
-        value: { input: fullFilterInput },
+        value: { input: fullFilterInputResult },
       });
     }
     {
@@ -460,7 +505,7 @@ test("handles recursive input types", async (t) => {
         input: partialFilterInput,
       });
       assert.deepStrictEqual(result, {
-        value: { input: partialFilterInput },
+        value: { input: partialFilterInputResult },
       });
     }
     {
@@ -469,7 +514,7 @@ test("handles recursive input types", async (t) => {
         input: partialFilterInput,
       });
       assert.deepStrictEqual(result, {
-        value: { input: partialFilterInput },
+        value: { input: partialFilterInputResult },
       });
     }
   });

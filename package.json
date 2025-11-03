@@ -53,6 +53,7 @@
     }
   },
   "dependencies": {
+    "@graphql-tools/utils": "^10.10.0",
     "@graphql-typed-document-node/core": "^3.2.0"
   }
 }

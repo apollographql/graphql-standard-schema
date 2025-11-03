@@ -37,6 +37,7 @@ import { buildFragmentSchema } from "./schema/buildFragmentSchema.ts";
 import { buildOperationSchema } from "./schema/buildOperationSchema.ts";
 import { fakeVariables } from "./fakeVariables.ts";
 import { addTypename } from "./transforms/addTypename.ts";
+import { mapSchema, MapperKind } from "@graphql-tools/utils";
 
 export declare namespace GraphQLStandardSchemaGenerator {
   export namespace Internal {
@@ -149,6 +150,7 @@ export class GraphQLStandardSchemaGenerator<
     defaultJSONSchemaOptions,
     documentTransfoms = [addTypename],
   }: GraphQLStandardSchemaGenerator.Options<Scalars>) {
+    this.scalarTypes = scalarTypes;
     this.replaceSchema(schema);
     this.inputScalarTypes = Object.fromEntries(
       Object.entries(scalarTypes).map(([key, def]) => [
@@ -163,7 +165,6 @@ export class GraphQLStandardSchemaGenerator<
       ])
     );
     this.documentTransfoms = documentTransfoms;
-    this.scalarTypes = scalarTypes;
     this.defaultJSONSchemaOptions =
       defaultJSONSchemaOptions === "OpenAI"
         ? {
@@ -179,15 +180,20 @@ export class GraphQLStandardSchemaGenerator<
   }
 
   replaceSchema(schema: GraphQLSchema | DocumentNode) {
-    if ("getTypeMap" in schema) {
-      this.schema = schema;
-    } else if ("kind" in schema) {
-      this.schema = buildASTSchema(schema);
-    } else {
-      throw new Error(
-        "Schema needs to be of type GraphQLSchema or DocumentNode"
-      );
-    }
+    assert(
+      "getTypeMap" in schema || "kind" in schema,
+      "Schema needs to be of type GraphQLSchema or DocumentNode"
+    );
+
+    const schemaInstance =
+      "getTypeMap" in schema ? schema : buildASTSchema(schema);
+
+    // override pre-existing scalar types with scalars passed in via the `scalarTypes` option
+    this.schema = mapSchema(schemaInstance, {
+      [MapperKind.SCALAR_TYPE]: (type) => {
+        return this.scalarTypes[type.name]?.type ?? type;
+      },
+    });
   }
 
   getDataSchema<TData>(
@@ -337,13 +343,13 @@ export class GraphQLStandardSchemaGenerator<
     return composed satisfies CombinedSpec<
       {
         data: GraphQLStandardSchemaGenerator.InputType<TData, Scalars> | null;
-        errors: readonly GraphQLFormattedError[] | undefined;
-        extensions: Record<string, unknown> | undefined;
+        errors?: readonly GraphQLFormattedError[] | undefined;
+        extensions?: Record<string, unknown> | undefined;
       },
       {
         data: GraphQLStandardSchemaGenerator.OutputType<TData, Scalars> | null;
-        errors: readonly GraphQLFormattedError[] | undefined;
-        extensions: Record<string, unknown> | undefined;
+        errors?: readonly GraphQLFormattedError[] | undefined;
+        extensions?: Record<string, unknown> | undefined;
       }
     > as GraphQLStandardSchemaGenerator.ValidationSchema<
       FormattedExecutionResult<
