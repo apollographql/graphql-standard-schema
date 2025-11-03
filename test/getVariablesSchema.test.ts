@@ -2,13 +2,21 @@ import { test } from "node:test";
 
 import { GraphQLStandardSchemaGenerator } from "../src/index.ts";
 import { toJSONSchema } from "./utils/toJsonSchema.ts";
-import { gql, validateWithAjv } from "./utils/test-helpers.ts";
+import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
 import { buildSchema, GraphQLScalarType } from "graphql";
+import assert from "node:assert";
+import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
 
 const DateScalarDef = {
   type: new GraphQLScalarType<Date, string>({
     parseValue(value) {
-      return new Date(value as string);
+      const date = new Date(value as string);
+      if (isNaN(date.getTime())) {
+        throw new TypeError(
+          `Value is not a valid Date string: ${value as string}`
+        );
+      }
+      return date;
     },
     serialize(value) {
       return (value as Date).toISOString().split("T")[0];
@@ -22,7 +30,7 @@ const DateScalarDef = {
   },
 } as const;
 
-test("handles nullable and non-nullable arguments", (t) => {
+test("handles nullable and non-nullable arguments", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
     schema: buildSchema(/**GraphQL*/ `
       type Query {
@@ -40,24 +48,71 @@ test("handles nullable and non-nullable arguments", (t) => {
       }
     `)
   );
-
-  const jsonSchema = toJSONSchema(variablesSchema);
-  {
-    const result = validateWithAjv(jsonSchema, { text: "Han", maxCount: null });
-    t.assert.equal(result.valid, true);
-  }
-  {
-    const result = validateWithAjv(jsonSchema, { text: "Han", maxCount: 5 });
-    t.assert.equal(result.valid, true);
-  }
-  {
-    const result = validateWithAjv(jsonSchema, { text: 3, maxCount: null });
-    t.assert.equal(result.valid, false);
-  }
-  t.assert.snapshot(jsonSchema);
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(variablesSchema, {
+        text: "Han",
+        maxCount: null,
+      });
+      assert.deepStrictEqual(result, {
+        value: {
+          maxCount: null,
+          text: "Han",
+        },
+      });
+    }
+    {
+      const result = validateSync(variablesSchema, {
+        text: "Han",
+        maxCount: 5,
+      });
+      assert.deepStrictEqual(result, {
+        value: {
+          maxCount: 5,
+          text: "Han",
+        },
+      });
+    }
+    {
+      const result = validateSync(variablesSchema, {
+        text: null,
+        maxCount: null,
+      });
+      assert.deepStrictEqual(result, {
+        issues: [
+          {
+            message:
+              'Variable "$text" of non-null type "String!" must not be null.',
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", () => {
+    const jsonSchema = toJSONSchema(variablesSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        text: "Han",
+        maxCount: null,
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, { text: "Han", maxCount: 5 });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        text: null,
+        maxCount: null,
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.snapshot(jsonSchema);
+  });
 });
 
-test("handles enums", (t) => {
+test("handles enums", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
     schema: buildSchema(/**GraphQL*/ `
       enum MediaKind {
@@ -79,26 +134,59 @@ test("handles enums", (t) => {
       }
     `)
   );
-  const jsonSchema = toJSONSchema(variablesSchema);
-  {
-    const result = validateWithAjv(jsonSchema, { text: "Han", kind: "MOVIE" });
-    t.assert.equal(result.valid, true);
-  }
-  {
-    const result = validateWithAjv(jsonSchema, { text: "Han", kind: "WRONG" });
-    t.assert.equal(result.valid, false);
-  }
-  t.assert.snapshot(jsonSchema);
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(variablesSchema, {
+        text: "Han",
+        kind: "MOVIE",
+      });
+      assert.deepStrictEqual(result, { value: { text: "Han", kind: "MOVIE" } });
+    }
+    {
+      const result = validateSync(variablesSchema, {
+        text: "Han",
+        kind: "WRONG",
+      });
+      assert.deepStrictEqual(result, {
+        issues: [
+          {
+            message:
+              'Variable "$kind" got invalid value "WRONG"; Value "WRONG" does not exist in "MediaKind" enum.',
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", () => {
+    const jsonSchema = toJSONSchema(variablesSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        text: "Han",
+        kind: "MOVIE",
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        text: "Han",
+        kind: "WRONG",
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.snapshot(jsonSchema);
+  });
 });
 
-test("handles custom scalars", (t) => {
-  const generator = new GraphQLStandardSchemaGenerator({
-    schema: buildSchema(/**GraphQL*/ `
+test("handles custom scalars", async (t) => {
+  const schema = buildSchema(/**GraphQL*/ `
       scalar Date
       type Query {
         searchEvent(after: Date!, before: Date!): [String]
       }
-    `),
+    `);
+  schema["_typeMap"].Date = DateScalarDef.type;
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema,
     scalarTypes: {
       Date: DateScalarDef,
     },
@@ -113,25 +201,55 @@ test("handles custom scalars", (t) => {
       }
     `)
   );
-  const jsonSchema = toJSONSchema(variablesSchema);
-  {
-    const result = validateWithAjv(jsonSchema, {
-      after: "2023-01-01",
-      before: "2023-12-31",
-    });
-    t.assert.equal(result.valid, true);
-  }
-  {
-    const result = validateWithAjv(jsonSchema, {
-      after: "2023-01-01",
-      before: "foobar",
-    });
-    t.assert.equal(result.valid, false);
-  }
-  t.assert.snapshot(jsonSchema);
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(variablesSchema, {
+        after: "2023-01-01",
+        before: "2023-12-31",
+      });
+      assert.deepStrictEqual(result, {
+        value: {
+          after: new Date("2023-01-01"),
+          before: new Date("2023-12-31"),
+        },
+      });
+    }
+    {
+      const result = validateSync(variablesSchema, {
+        after: "2023-01-01",
+        before: "foobar",
+      });
+      assert.deepStrictEqual(result, {
+        issues: [
+          {
+            message:
+              'Variable "$before" got invalid value "foobar"; Expected type "Date". Value is not a valid Date string: foobar',
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", () => {
+    const jsonSchema = toJSONSchema(variablesSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        after: "2023-01-01",
+        before: "2023-12-31",
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        after: "2023-01-01",
+        before: "foobar",
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.snapshot(jsonSchema);
+  });
 });
 
-test("handles input types", (t) => {
+test("handles input types", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
     schema: buildSchema(/**GraphQL*/ `
       scalar Date
@@ -158,31 +276,70 @@ test("handles input types", (t) => {
       }
     `)
   );
-  const jsonSchema = toJSONSchema(variablesSchema);
-  {
-    const result = validateWithAjv(jsonSchema, {
-      input: {
-        city: "New York",
-        after: "2023-01-01",
-        before: null,
-      },
-    });
-    t.assert.equal(result.valid, true);
-  }
-  {
-    const result = validateWithAjv(jsonSchema, {
-      input: {
-        city: 5,
-        after: "2023-01-01",
-        before: null,
-      },
-    });
-    t.assert.equal(result.valid, false);
-  }
-  t.assert.snapshot(jsonSchema);
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(variablesSchema, {
+        input: {
+          city: "New York",
+          after: "2023-01-01",
+          before: null,
+        },
+      });
+      assert.deepStrictEqual(result, {
+        value: {
+          input: {
+            city: "New York",
+            after: "2023-01-01",
+            before: null,
+          },
+        },
+      });
+    }
+    {
+      const result = validateSync(variablesSchema, {
+        input: {
+          city: 5,
+          after: "2023-01-01",
+          before: null,
+        },
+      });
+      assert.deepStrictEqual(result, {
+        issues: [
+          {
+            message:
+              'Variable "$input" got invalid value 5 at "input.city"; String cannot represent a non string value: 5',
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", () => {
+    const jsonSchema = toJSONSchema(variablesSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        input: {
+          city: "New York",
+          after: "2023-01-01",
+          before: null,
+        },
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        input: {
+          city: 5,
+          after: "2023-01-01",
+          before: null,
+        },
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.snapshot(jsonSchema);
+  });
 });
 
-test("handles recursive input types", (t) => {
+test("handles recursive input types", async (t) => {
   const schema = buildSchema(/**GraphQL*/ `
       scalar Date
       input FilterInput {
@@ -225,7 +382,6 @@ test("handles recursive input types", (t) => {
       }
     `)
   );
-  const jsonSchema = toJSONSchema(variablesSchema);
 
   const openAISchema = openAIGenerator.getVariablesSchema(
     gql<{ searchEvent: string[] }, { input: FilterInput }>(/** GraphQL */ `
@@ -234,12 +390,8 @@ test("handles recursive input types", (t) => {
       }
     `)
   );
-  const openAIJsonSchema = toJSONSchema(openAISchema);
 
-  type InputType = NonNullable<
-    (typeof variablesSchema)["~standard"]["types"]
-  >["input"];
-
+  type InputType = StandardSchemaV1.InferInput<typeof variablesSchema>;
   const fullFilterInput: InputType["input"] = {
     city: "New York",
     and: [
@@ -272,19 +424,6 @@ test("handles recursive input types", (t) => {
     after: null,
     before: null,
   };
-
-  {
-    const result = validateWithAjv(jsonSchema, {
-      input: fullFilterInput,
-    });
-    t.assert.equal(result.valid, true);
-  }
-  {
-    const result = validateWithAjv(openAIJsonSchema, {
-      input: fullFilterInput,
-    });
-    t.assert.equal(result.valid, true);
-  }
   const partialFilterInput = {
     city: "New York",
     and: [
@@ -298,18 +437,70 @@ test("handles recursive input types", (t) => {
       },
     ],
   } as const;
-  {
-    const result = validateWithAjv(jsonSchema, {
-      input: partialFilterInput,
-    });
-    t.assert.equal(result.valid, true);
-  }
-  {
-    const result = validateWithAjv(openAIJsonSchema, {
-      input: partialFilterInput,
-    });
-    // t.assert.equal(result.valid, false);
-  }
-  t.assert.snapshot(jsonSchema);
-  t.assert.snapshot(openAIJsonSchema);
+
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(variablesSchema, {
+        input: fullFilterInput,
+      });
+      assert.deepStrictEqual(result, {
+        value: { input: fullFilterInput },
+      });
+    }
+    {
+      const result = validateSync(openAISchema, {
+        input: fullFilterInput,
+      });
+      assert.deepStrictEqual(result, {
+        value: { input: fullFilterInput },
+      });
+    }
+    {
+      const result = validateSync(variablesSchema, {
+        input: partialFilterInput,
+      });
+      assert.deepStrictEqual(result, {
+        value: { input: partialFilterInput },
+      });
+    }
+    {
+      // will only create a different JSON schema, but behave the same as `variablesSchema` in runtime
+      const result = validateSync(openAISchema, {
+        input: partialFilterInput,
+      });
+      assert.deepStrictEqual(result, {
+        value: { input: partialFilterInput },
+      });
+    }
+  });
+  await t.test("JSON schema", () => {
+    const openAIJsonSchema = toJSONSchema(openAISchema);
+    const jsonSchema = toJSONSchema(variablesSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        input: fullFilterInput,
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(openAIJsonSchema, {
+        input: fullFilterInput,
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        input: partialFilterInput,
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(openAIJsonSchema, {
+        input: partialFilterInput,
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(openAIJsonSchema);
+  });
 });
