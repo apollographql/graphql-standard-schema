@@ -36,7 +36,11 @@ export function buildOutputSchema(
   selections: SelectionSetNode,
   options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
-  const defs: NonNullable<OpenAiSupportedJsonSchema["$defs"]> = {};
+  const defs: {
+    enum?: OpenAiSupportedJsonSchema.Definitions;
+    type?: OpenAiSupportedJsonSchema.Definitions;
+    scalar?: OpenAiSupportedJsonSchema.Definitions;
+  } = {};
 
   const objectTypeSpread: { additionalProperties?: boolean } =
     options.additionalProperties !== undefined
@@ -50,10 +54,11 @@ export function buildOutputSchema(
     const named = getNamedType(type);
 
     if (named.description) {
-      defs[named.name] = {
+      defs.type ??= {};
+      defs.type[named.name] = {
         description: named.description,
       };
-      return { $ref: `#/$defs/${named.name}`, ...obj };
+      return { $ref: `#/$defs/type/${named.name}`, ...obj };
     }
     return obj;
   }
@@ -116,17 +121,9 @@ export function buildOutputSchema(
         }
         return schema;
       } else if ("$ref" in schema) {
-        throw new Error(
-          "unhandled maybe $ref case in " + JSON.stringify(schema)
-        );
-      } else if ("enum" in schema) {
-        if (!schema.enum.includes(null)) {
-          return {
-            ...schema,
-            enum: [...schema.enum, null],
-          };
-        }
-        return schema;
+        return {
+          anyOf: [schema, { type: "null" }],
+        };
       } else {
         throw new Error("unhandled maybe case in " + JSON.stringify(schema));
       }
@@ -159,7 +156,15 @@ export function buildOutputSchema(
           `Scalar type ${parentType.name} not found in \`scalarTypes\`, but \`scalarTypes\` option was provided.`
         );
       }
-      return maybe(documentType(parentType, scalarType));
+      defs.scalar ??= {};
+      defs.scalar[parentType.name] = {
+        title: `${parentType.name}`,
+        ...(parentType.description
+          ? { description: parentType.description }
+          : {}),
+        ...scalarType,
+      };
+      return maybe({ $ref: `#/$defs/scalar/${parentType.name}` });
     }
     if (isInterfaceType(parentType) || isUnionType(parentType)) {
       if (!selections) {
@@ -180,9 +185,11 @@ export function buildOutputSchema(
       );
     }
     if (isEnumType(parentType)) {
-      const refName = `enum_${nullable ? "maybe_" : ""}${parentType.name}`;
+      const refName = `${parentType.name}`;
       const base: Array<string | null> = nullable ? [null] : [];
-      defs[refName] ??= {
+      const enumDefs = (defs.enum ??=
+        {}) as OpenAiSupportedJsonSchema.Definitions;
+      enumDefs[refName] ??= {
         title: `${parentType.name}`,
         ...(parentType.description
           ? { description: parentType.description }
@@ -190,7 +197,9 @@ export function buildOutputSchema(
         enum: base.concat(parentType.getValues().map((v) => v.name)),
       };
 
-      return { $ref: `#/$defs/${refName}` };
+      return maybe({
+        $ref: `#/$defs/enum/${refName}`,
+      });
     }
     return maybe(handleObjectType(parentType, selections!));
   }
@@ -293,8 +302,18 @@ export function buildOutputSchema(
         continue;
       }
       assert(selection.name.value === mergedSelections[alias].name.value);
-      assert(equal(selection.arguments, mergedSelections[alias].arguments));
-      assert(equal(selection.directives, mergedSelections[alias].directives));
+      assert(
+        equal(
+          selection.arguments ?? [],
+          mergedSelections[alias].arguments ?? []
+        )
+      );
+      assert(
+        equal(
+          selection.directives ?? [],
+          mergedSelections[alias].directives ?? []
+        )
+      );
       if (!selection.selectionSet && !mergedSelections[alias].selectionSet) {
         continue;
       }

@@ -6,6 +6,8 @@ import { expectTypeOf } from "expect-type";
 import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
 import assert from "node:assert";
 import { toJSONSchema } from "./utils/toJsonSchema.ts";
+import { DateScalarDef } from "./utils/DateScalarDef.ts";
+import { fa } from "zod/locales";
 
 test("generates schema for simple query", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -340,5 +342,464 @@ test("enforces non-null types", async (t) => {
       t.assert.equal(result.valid, false);
     }
     t.assert.snapshot(jsonSchema);
+  });
+});
+
+test("handles enums", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(/**GraphQL*/ `
+          enum MediaKind {
+            MOVIE
+            SERIES
+          }
+
+          type Query {
+            currentlyPlaying: MediaKind!
+          }
+        `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    gql<{ currentlyPlaying: "MOVIE" | "SERIES" }>(`
+          query SimpleQuery {
+            currentlyPlaying
+          }
+        `)
+  );
+
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      currentlyPlaying: "MOVIE" | "SERIES";
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      currentlyPlaying: "MOVIE" | "SERIES";
+    }>();
+  });
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(dataSchema, {
+        currentlyPlaying: "MOVIE",
+      });
+      assert.deepEqual(result, { value: { currentlyPlaying: "MOVIE" } });
+    }
+    {
+      const result = validateSync(dataSchema, {
+        currentlyPlaying: "OPERA",
+      });
+      assert.deepEqual(result, {
+        issues: [
+          {
+            message: 'Enum "MediaKind" cannot represent value: "OPERA"',
+            path: ["currentlyPlaying"],
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", (t) => {
+    const jsonSchema = toJSONSchema(dataSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        currentlyPlaying: "MOVIE",
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        currentlyPlaying: "OPERA",
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.snapshot(jsonSchema);
+  });
+});
+
+test("handles custom scalars", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(/**GraphQL*/ `
+          scalar Date
+
+          type Query {
+            now: Date!
+          }
+        `),
+    scalarTypes: {
+      Date: DateScalarDef,
+    },
+  });
+
+  const dataSchema = generator.getDataSchema(
+    gql<{ now: Date }>(`
+          query {
+            now
+          }
+        `)
+  );
+
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      now: Date;
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      now: string;
+    }>();
+  });
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(dataSchema, {
+        now: new Date("2023-10-05"),
+      });
+      assert.deepEqual(result, { value: { now: "2023-10-05" } });
+    }
+    {
+      const result = validateSync(dataSchema, {
+        now: "not-a-date",
+      });
+      assert.deepEqual(result, {
+        issues: [
+          {
+            message: "Value is not a valid Date object: not-a-date",
+            path: ["now"],
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", (t) => {
+    {
+      const result = validateWithAjv(toJSONSchema.input(dataSchema), {
+        now: "2023-10-05",
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(toJSONSchema.input(dataSchema), {
+        now: 1234,
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.deepEqual(toJSONSchema.input(dataSchema), {
+      $defs: {
+        scalar: {
+          Date: {
+            description: "A date string in YYYY-MM-DD format",
+            pattern: "\\d{4}-\\d{1,2}-\\d{1,2}",
+            title: "Date",
+            type: "string",
+          },
+        },
+      },
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      properties: {
+        now: {
+          $ref: "#/$defs/scalar/Date",
+          title: "Query.now: Date!",
+        },
+      },
+      required: ["now"],
+      title: "query Anonymous",
+      type: "object",
+    });
+    {
+      const result = validateWithAjv(toJSONSchema.output(dataSchema), {
+        now: 1234,
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(toJSONSchema.output(dataSchema), {
+        now: "2023-10-05",
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.deepEqual(toJSONSchema.output(dataSchema), {
+      $defs: {
+        scalar: {
+          Date: {
+            description: "A date string in YYYY-MM-DD format",
+            title: "Date",
+            type: "number",
+          },
+        },
+      },
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      properties: {
+        now: {
+          $ref: "#/$defs/scalar/Date",
+          title: "Query.now: Date!",
+        },
+      },
+      required: ["now"],
+      title: "query Anonymous",
+      type: "object",
+    });
+  });
+});
+
+test("handles arrays", async (t) => {});
+
+test("handles interfaces", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(/**GraphQL*/ `
+          "Describes something that can be a 'favourite thing or concept'"
+          interface Favourite {
+            name: String!
+          }
+
+          interface Entity {
+            id: ID!
+          }
+
+          "A color"
+          type Color implements Favourite {
+            "The name of the color"
+            name: String!
+            "The hex color value without a leading #"
+            hex: String!
+          }
+
+          type Unreferenced implements Favourite {
+            name: String!
+          }
+
+          "A book"
+          type Book implements Favourite & Entity {
+            "Book ID, should be the ISBN"
+            id: ID!
+            "Book name"
+            name: String!
+            "The book's author"
+            author: String!
+          }
+
+          type Query {
+            favourite: Favourite!
+          }
+        `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    gql<{
+      favourite:
+        | { __typename: "Color"; name: string; hex: string }
+        | { __typename: "Book"; id: string; name: string; author: string };
+    }>(`
+          query SimpleQuery {
+            favourite {
+              __typename
+              ... on Entity {
+                id
+              }
+              ... on Favourite {
+                name
+              }
+              ... on Color {
+                hex
+              }
+              ... on Book {
+                name
+                author
+              }
+            }
+          }
+        `)
+  );
+
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      favourite:
+        | { __typename: "Color"; name: string; hex: string }
+        | { __typename: "Book"; id: string; name: string; author: string };
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      favourite:
+        | { __typename: "Color"; name: string; hex: string }
+        | { __typename: "Book"; id: string; name: string; author: string };
+    }>();
+  });
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(dataSchema, {
+        favourite: {
+          __typename: "Book",
+          id: "978-0345391803",
+          name: "The Hitchhiker's Guide to the Galaxy",
+          author: "Douglas Adams",
+        },
+      });
+      assert.deepEqual(result, {
+        value: {
+          favourite: {
+            __typename: "Book",
+            id: "978-0345391803",
+            name: "The Hitchhiker's Guide to the Galaxy",
+            author: "Douglas Adams",
+          },
+        },
+      });
+    }
+    {
+      const result = validateSync(dataSchema, {
+        favourite: {
+          __typename: "Color",
+          name: "red",
+          hex: "FF0000",
+        },
+      });
+      assert.deepEqual(result, {
+        value: {
+          favourite: {
+            __typename: "Color",
+            name: "red",
+            hex: "FF0000",
+          },
+        },
+      });
+    }
+    {
+      const result = validateSync(dataSchema, {
+        favourite: {
+          name: "red",
+          hex: "FF0000",
+        },
+      });
+      assert.deepEqual(result, {
+        issues: [
+          {
+            message:
+              'Abstract type "Favourite" must resolve to an Object type at runtime for field "Query.favourite". Either the "Favourite" type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.',
+            path: ["favourite"],
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", (t) => {
+    const jsonSchema = toJSONSchema(dataSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        favourite: {
+          __typename: "Book",
+          id: "978-0345391803",
+          name: "The Hitchhiker's Guide to the Galaxy",
+          author: "Douglas Adams",
+        },
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        favourite: {
+          __typename: "Color",
+          name: "red",
+          hex: "FF0000",
+        },
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        name: "red",
+        hex: "FF0000",
+      });
+      t.assert.equal(result.valid, false);
+    }
+    console.log(JSON.stringify(jsonSchema, null, 2));
+    t.assert.deepEqual(jsonSchema, {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      type: "object",
+      title: "query SimpleQuery",
+      properties: {
+        favourite: {
+          title: "Query.favourite: Favourite!",
+          $ref: "#/$defs/type/Favourite",
+          anyOf: [
+            {
+              $ref: "#/$defs/type/Color",
+              type: "object",
+              title: "Color",
+              properties: {
+                __typename: {
+                  const: "Color",
+                },
+                name: {
+                  title: "Color.name: String!",
+                  type: "string",
+                },
+                hex: {
+                  title: "Color.hex: String!",
+                  type: "string",
+                },
+              },
+              required: ["__typename", "name", "hex"],
+            },
+            {
+              type: "object",
+              title: "Unreferenced",
+              properties: {
+                __typename: {
+                  const: "Unreferenced",
+                },
+                name: {
+                  title: "Unreferenced.name: String!",
+                  type: "string",
+                },
+              },
+              required: ["__typename", "name"],
+            },
+            {
+              $ref: "#/$defs/type/Book",
+              type: "object",
+              title: "Book",
+              properties: {
+                __typename: {
+                  const: "Book",
+                },
+                id: {
+                  title: "Book.id: ID!",
+                  type: "string",
+                },
+                name: {
+                  title: "Book.name: String!",
+                  type: "string",
+                },
+                author: {
+                  title: "Book.author: String!",
+                  type: "string",
+                },
+              },
+              required: ["__typename", "id", "name", "author"],
+            },
+          ],
+        },
+      },
+      required: ["favourite"],
+      $defs: {
+        type: {
+          Color: {
+            description: "A color",
+          },
+          Book: {
+            description: "A book",
+          },
+          Favourite: {
+            description:
+              "Describes something that can be a 'favourite thing or concept'",
+          },
+        },
+      },
+    });
   });
 });

@@ -144,6 +144,34 @@ exports[`generates schema for simple query > JSON schema 1`] = `
 }
 `;
 
+exports[`handles enums > JSON schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query SimpleQuery",
+  "properties": {
+    "currentlyPlaying": {
+      "title": "Query.currentlyPlaying: MediaKind!",
+      "$ref": "#/$defs/enum/MediaKind"
+    }
+  },
+  "required": [
+    "currentlyPlaying"
+  ],
+  "$defs": {
+    "enum": {
+      "MediaKind": {
+        "title": "MediaKind",
+        "enum": [
+          "MOVIE",
+          "SERIES"
+        ]
+      }
+    }
+  }
+}
+`;
+
 exports[`works with field selection set > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",

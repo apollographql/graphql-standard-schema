@@ -3,33 +3,11 @@ import { test } from "node:test";
 import { GraphQLStandardSchemaGenerator } from "../src/index.ts";
 import { toJSONSchema } from "./utils/toJsonSchema.ts";
 import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
-import { buildSchema, GraphQLScalarType } from "graphql";
+import { buildSchema } from "graphql";
 import assert from "node:assert";
 import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
 import { expectTypeOf } from "expect-type";
-
-const DateScalarDef = {
-  type: new GraphQLScalarType<Date, string>({
-    parseValue(value) {
-      const date = new Date(value as string);
-      if (isNaN(date.getTime())) {
-        throw new TypeError(
-          `Value is not a valid Date string: ${value as string}`
-        );
-      }
-      return date;
-    },
-    serialize(value) {
-      return (value as Date).toISOString().split("T")[0];
-    },
-    name: "Date",
-    description: "A date string in YYYY-MM-DD format",
-  }),
-  jsonSchema: {
-    input: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
-    output: { type: "number" },
-  },
-} as const;
+import { DateScalarDef } from "./utils/DateScalarDef.ts";
 
 test("handles nullable and non-nullable arguments", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({

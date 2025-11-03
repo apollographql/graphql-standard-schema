@@ -188,8 +188,8 @@ export class GraphQLStandardSchemaGenerator<
   getDataSchema<TData>(
     document: TypedDocumentNode<TData, any>
   ): GraphQLStandardSchemaGenerator.ValidationSchema<
-    GraphQLStandardSchemaGenerator.InputType<TData, Scalars>,
-    GraphQLStandardSchemaGenerator.OutputType<TData, Scalars>
+    GraphQLStandardSchemaGenerator.OutputType<TData, Scalars>,
+    GraphQLStandardSchemaGenerator.InputType<TData, Scalars>
   > {
     const schema = this.schema;
     const scalarTypes = this.scalarTypes;
@@ -214,7 +214,7 @@ export class GraphQLStandardSchemaGenerator<
       validate(
         value: any
       ): StandardSchemaV1.Result<
-        GraphQLStandardSchemaGenerator.OutputType<TData, Scalars>
+        GraphQLStandardSchemaGenerator.InputType<TData, Scalars>
       > {
         const variableValues = fakeVariables(
           getOperation(document).variableDefinitions || [],
@@ -236,7 +236,12 @@ export class GraphQLStandardSchemaGenerator<
             issues: result.errors.map(formatError),
           };
         }
-        return { value: result.data as TData };
+        return {
+          value: result.data as GraphQLStandardSchemaGenerator.InputType<
+            TData,
+            Scalars
+          >,
+        };
       },
     });
   }
