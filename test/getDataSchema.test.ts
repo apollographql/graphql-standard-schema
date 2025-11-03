@@ -691,7 +691,6 @@ test("handles interfaces", async (t) => {
     }>(`
           query SimpleQuery {
             favourite {
-              __typename
               ... on Entity {
                 id
               }
@@ -813,7 +812,6 @@ test("handles interfaces", async (t) => {
       });
       t.assert.equal(result.valid, false);
     }
-    console.log(JSON.stringify(jsonSchema, null, 2));
     t.assert.deepEqual(jsonSchema, {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       type: "object",
@@ -878,6 +876,248 @@ test("handles interfaces", async (t) => {
                 },
               },
               required: ["__typename", "id", "name", "author"],
+            },
+          ],
+        },
+      },
+      required: ["favourite"],
+      $defs: {
+        type: {
+          Color: {
+            description: "A color",
+          },
+          Book: {
+            description: "A book",
+          },
+          Favourite: {
+            description:
+              "Describes something that can be a 'favourite thing or concept'",
+          },
+        },
+      },
+    });
+  });
+});
+
+test("handles unions", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(/**GraphQL*/ `
+          "Describes something that can be a 'favourite thing or concept'"
+          union Favourite = Color | Book | Unreferenced
+
+          "A color"
+          type Color {
+            "The name of the color"
+            name: String!
+            "The hex color value without a leading #"
+            hex: String!
+          }
+
+          type Unreferenced {
+            name: String!
+          }
+
+          "A book"
+          type Book {
+            "Book ID, should be the ISBN"
+            id: ID!
+            "Book name"
+            name: String!
+            "The book's author"
+            author: String!
+          }
+
+          type Query {
+            favourite: Favourite!
+          }
+        `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    gql<{
+      favourite:
+        | { __typename: "Color"; name: string; hex: string }
+        | { __typename: "Book"; id: string; name: string; author: string };
+    }>(`
+          query SimpleQuery {
+            favourite {
+              ... on Color {
+                name
+                hex
+              }
+              ... on Book {
+                id
+                name
+                author
+              }
+            }
+          }
+        `)
+  );
+
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      favourite:
+        | { __typename: "Color"; name: string; hex: string }
+        | { __typename: "Book"; id: string; name: string; author: string };
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      favourite:
+        | { __typename: "Color"; name: string; hex: string }
+        | { __typename: "Book"; id: string; name: string; author: string };
+    }>();
+  });
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(dataSchema, {
+        favourite: {
+          __typename: "Book",
+          id: "978-0345391803",
+          name: "The Hitchhiker's Guide to the Galaxy",
+          author: "Douglas Adams",
+        },
+      });
+      assert.deepEqual(result, {
+        value: {
+          favourite: {
+            __typename: "Book",
+            id: "978-0345391803",
+            name: "The Hitchhiker's Guide to the Galaxy",
+            author: "Douglas Adams",
+          },
+        },
+      });
+    }
+    {
+      const result = validateSync(dataSchema, {
+        favourite: {
+          __typename: "Color",
+          name: "red",
+          hex: "FF0000",
+        },
+      });
+      assert.deepEqual(result, {
+        value: {
+          favourite: {
+            __typename: "Color",
+            name: "red",
+            hex: "FF0000",
+          },
+        },
+      });
+    }
+    {
+      const result = validateSync(dataSchema, {
+        favourite: {
+          name: "red",
+          hex: "FF0000",
+        },
+      });
+      assert.deepEqual(result, {
+        issues: [
+          {
+            message:
+              'Abstract type "Favourite" must resolve to an Object type at runtime for field "Query.favourite". Either the "Favourite" type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.',
+            path: ["favourite"],
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", (t) => {
+    const jsonSchema = toJSONSchema(dataSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        favourite: {
+          __typename: "Book",
+          id: "978-0345391803",
+          name: "The Hitchhiker's Guide to the Galaxy",
+          author: "Douglas Adams",
+        },
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        favourite: {
+          __typename: "Color",
+          name: "red",
+          hex: "FF0000",
+        },
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        name: "red",
+        hex: "FF0000",
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.deepEqual(jsonSchema, {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      type: "object",
+      title: "query SimpleQuery",
+      properties: {
+        favourite: {
+          title: "Query.favourite: Favourite!",
+          $ref: "#/$defs/type/Favourite",
+          anyOf: [
+            {
+              $ref: "#/$defs/type/Color",
+              type: "object",
+              title: "Color",
+              properties: {
+                __typename: {
+                  const: "Color",
+                },
+                name: {
+                  title: "Color.name: String!",
+                  type: "string",
+                },
+                hex: {
+                  title: "Color.hex: String!",
+                  type: "string",
+                },
+              },
+              required: ["__typename", "name", "hex"],
+            },
+            {
+              $ref: "#/$defs/type/Book",
+              type: "object",
+              title: "Book",
+              properties: {
+                __typename: {
+                  const: "Book",
+                },
+                id: {
+                  title: "Book.id: ID!",
+                  type: "string",
+                },
+                name: {
+                  title: "Book.name: String!",
+                  type: "string",
+                },
+                author: {
+                  title: "Book.author: String!",
+                  type: "string",
+                },
+              },
+              required: ["__typename", "id", "name", "author"],
+            },
+            {
+              type: "object",
+              title: "Unreferenced",
+              properties: {
+                __typename: {
+                  const: "Unreferenced",
+                },
+              },
+              required: ["__typename"],
             },
           ],
         },
