@@ -66,6 +66,16 @@ test("generates schema for simple query", async (t) => {
       });
     }
   });
+  await t.test("value coercion", () => {
+    {
+      const result = validateSync(dataSchema, {
+        hello: 42,
+        count: "42",
+      });
+      // deepEqual because validateSync returns null objects
+      assert.deepEqual(result, { value: { hello: "42", count: 42 } });
+    }
+  });
   await t.test("JSON schema", (t) => {
     const jsonSchema = toJSONSchema(dataSchema);
     {
@@ -544,7 +554,94 @@ test("handles custom scalars", async (t) => {
   });
 });
 
-test("handles arrays", async (t) => {});
+test("handles arrays", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(/**GraphQL*/ `
+          type Query {
+            greetings: [String!]!
+            nullableGreetings: [String]
+          }
+        `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    gql<{
+      greetings: string[];
+      nullableGreetings?: null | Array<string | null>;
+    }>(`
+          query {
+            greetings
+            nullableGreetings
+          }
+        `)
+  );
+
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      greetings: string[];
+      nullableGreetings?: null | Array<string | null>;
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof dataSchema>
+    >().toEqualTypeOf<{
+      greetings: string[];
+      nullableGreetings?: null | Array<string | null>;
+    }>();
+  });
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(dataSchema, {
+        greetings: ["hello", "hi"],
+      });
+      assert.deepEqual(result, {
+        value: { greetings: ["hello", "hi"], nullableGreetings: null },
+      });
+    }
+    {
+      const result = validateSync(dataSchema, {
+        greetings: [],
+        nullableGreetings: ["hello", null, "hi"],
+      });
+      assert.deepEqual(result, {
+        value: { greetings: [], nullableGreetings: ["hello", null, "hi"] },
+      });
+    }
+    {
+      const result = validateSync(dataSchema, {
+        greetings: ["hello", "hi", null],
+      });
+      assert.deepEqual(result, {
+        issues: [
+          {
+            message:
+              "Cannot return null for non-nullable field Query.greetings.",
+            path: ["greetings", 2],
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", (t) => {
+    const jsonSchema = toJSONSchema(dataSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        greetings: ["hallo", "hey"],
+        nullableGreetings: ["hello", null, "hi"],
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        greetings: ["hallo", null, "hey"],
+        nullableGreetings: ["hello", null, "hi"],
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.snapshot(jsonSchema);
+  });
+});
 
 test("handles interfaces", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({

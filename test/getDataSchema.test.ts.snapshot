@@ -144,6 +144,40 @@ exports[`generates schema for simple query > JSON schema 1`] = `
 }
 `;
 
+exports[`handles arrays > JSON schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query Anonymous",
+  "properties": {
+    "greetings": {
+      "title": "Query.greetings: [String!]!",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "nullableGreetings": {
+      "title": "Query.nullableGreetings: [String]",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    }
+  },
+  "required": [
+    "greetings"
+  ],
+  "$defs": {}
+}
+`;
+
 exports[`handles enums > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
