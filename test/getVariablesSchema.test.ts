@@ -6,6 +6,7 @@ import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
 import { buildSchema, GraphQLScalarType } from "graphql";
 import assert from "node:assert";
 import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
+import { expectTypeOf } from "expect-type";
 
 const DateScalarDef = {
   type: new GraphQLScalarType<Date, string>({
@@ -48,6 +49,20 @@ test("handles nullable and non-nullable arguments", async (t) => {
       }
     `)
   );
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      text: string;
+      maxCount?: number | null | undefined;
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      text: string;
+      maxCount?: number | null | undefined;
+    }>();
+  });
   await t.test("validateSync", () => {
     {
       const result = validateSync(variablesSchema, {
@@ -88,7 +103,7 @@ test("handles nullable and non-nullable arguments", async (t) => {
       });
     }
   });
-  await t.test("JSON schema", () => {
+  await t.test("JSON schema", (t) => {
     const jsonSchema = toJSONSchema(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
@@ -134,6 +149,20 @@ test("handles enums", async (t) => {
       }
     `)
   );
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      text: string;
+      kind: "MOVIE" | "SERIES";
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      text: string;
+      kind: "MOVIE" | "SERIES";
+    }>();
+  });
   await t.test("validateSync", () => {
     {
       const result = validateSync(variablesSchema, {
@@ -157,7 +186,7 @@ test("handles enums", async (t) => {
       });
     }
   });
-  await t.test("JSON schema", () => {
+  await t.test("JSON schema", (t) => {
     const jsonSchema = toJSONSchema(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
@@ -200,6 +229,20 @@ test("handles custom scalars", async (t) => {
       }
     `)
   );
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      after: string;
+      before: string;
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      after: Date;
+      before: Date;
+    }>();
+  });
   await t.test("validateSync", () => {
     {
       const result = validateSync(variablesSchema, {
@@ -228,7 +271,7 @@ test("handles custom scalars", async (t) => {
       });
     }
   });
-  await t.test("JSON schema", () => {
+  await t.test("JSON schema", (t) => {
     const jsonSchema = toJSONSchema(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
@@ -275,6 +318,19 @@ test("handles input types", async (t) => {
       }
     `)
   );
+
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      input: { city: string; before?: string; after?: string };
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      input: { city: string; before?: Date; after?: Date };
+    }>();
+  });
   await t.test("validateSync", () => {
     {
       const result = validateSync(variablesSchema, {
@@ -312,7 +368,7 @@ test("handles input types", async (t) => {
       });
     }
   });
-  await t.test("JSON schema", () => {
+  await t.test("JSON schema", (t) => {
     const jsonSchema = toJSONSchema(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
@@ -518,7 +574,7 @@ test("handles recursive input types", async (t) => {
       });
     }
   });
-  await t.test("JSON schema", () => {
+  await t.test("JSON schema", (t) => {
     const openAIJsonSchema = toJSONSchema(openAISchema);
     const jsonSchema = toJSONSchema(variablesSchema);
     {

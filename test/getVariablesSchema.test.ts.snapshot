@@ -1,4 +1,4 @@
-exports[`handles custom scalars 1`] = `
+exports[`handles custom scalars > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
@@ -26,7 +26,7 @@ exports[`handles custom scalars 1`] = `
 }
 `;
 
-exports[`handles enums 1`] = `
+exports[`handles enums > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
@@ -57,7 +57,7 @@ exports[`handles enums 1`] = `
 }
 `;
 
-exports[`handles input types 1`] = `
+exports[`handles input types > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
@@ -115,7 +115,7 @@ exports[`handles input types 1`] = `
 }
 `;
 
-exports[`handles nullable and non-nullable arguments 1`] = `
+exports[`handles nullable and non-nullable arguments > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
@@ -138,7 +138,7 @@ exports[`handles nullable and non-nullable arguments 1`] = `
 }
 `;
 
-exports[`handles recursive input types 1`] = `
+exports[`handles recursive input types > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
@@ -225,7 +225,7 @@ exports[`handles recursive input types 1`] = `
 }
 `;
 
-exports[`handles recursive input types 2`] = `
+exports[`handles recursive input types > JSON schema 2`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",

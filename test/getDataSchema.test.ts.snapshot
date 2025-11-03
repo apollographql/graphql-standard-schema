@@ -1,0 +1,209 @@
+exports[`enforces non-null types > JSON schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query SimpleQuery",
+  "properties": {
+    "hello": {
+      "title": "Query.hello: String!",
+      "type": "string"
+    },
+    "world": {
+      "title": "Query.world: String",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "me": {
+      "title": "Person",
+      "type": "object",
+      "properties": {
+        "__typename": {
+          "const": "Person"
+        },
+        "id": {
+          "title": "Person.id: ID!",
+          "type": "string"
+        },
+        "name": {
+          "title": "Person.name: String!",
+          "type": "string"
+        },
+        "bestFriend": {
+          "title": "Person",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "__typename": {
+              "const": "Person"
+            },
+            "id": {
+              "title": "Person.id: ID!",
+              "type": "string"
+            },
+            "name": {
+              "title": "Person.name: String!",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__typename",
+            "id",
+            "name"
+          ]
+        }
+      },
+      "required": [
+        "__typename",
+        "id",
+        "name"
+      ]
+    },
+    "someoneElse": {
+      "title": "Person",
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "__typename": {
+          "const": "Person"
+        },
+        "id": {
+          "title": "Person.id: ID!",
+          "type": "string"
+        },
+        "name": {
+          "title": "Person.name: String!",
+          "type": "string"
+        },
+        "bestFriend": {
+          "title": "Person",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "__typename": {
+              "const": "Person"
+            },
+            "id": {
+              "title": "Person.id: ID!",
+              "type": "string"
+            },
+            "name": {
+              "title": "Person.name: String!",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__typename",
+            "id",
+            "name"
+          ]
+        }
+      },
+      "required": [
+        "__typename",
+        "id",
+        "name"
+      ]
+    }
+  },
+  "required": [
+    "hello",
+    "me"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`generates schema for simple query > JSON schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query SimpleQuery",
+  "properties": {
+    "hello": {
+      "title": "Query.hello: String!",
+      "type": "string"
+    },
+    "count": {
+      "title": "Query.count: Int!",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "hello",
+    "count"
+  ],
+  "$defs": {}
+}
+`;
+
+exports[`works with field selection set > JSON schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query Anonymous",
+  "properties": {
+    "me": {
+      "title": "Person",
+      "type": "object",
+      "properties": {
+        "__typename": {
+          "const": "Person"
+        },
+        "id": {
+          "title": "Person.id: ID!",
+          "type": "string"
+        },
+        "name": {
+          "title": "Person.name: String!",
+          "type": "string"
+        },
+        "age": {
+          "title": "Person.age: Int!",
+          "type": "integer"
+        },
+        "bestFriend": {
+          "title": "Person",
+          "type": "object",
+          "properties": {
+            "__typename": {
+              "const": "Person"
+            },
+            "id": {
+              "title": "Person.id: ID!",
+              "type": "string"
+            },
+            "name": {
+              "title": "Person.name: String!",
+              "type": "string"
+            }
+          },
+          "required": [
+            "__typename",
+            "id",
+            "name"
+          ]
+        }
+      },
+      "required": [
+        "__typename",
+        "id",
+        "name",
+        "age",
+        "bestFriend"
+      ]
+    }
+  },
+  "required": [
+    "me"
+  ],
+  "$defs": {}
+}
+`;

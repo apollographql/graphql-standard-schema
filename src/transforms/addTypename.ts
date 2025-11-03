@@ -50,7 +50,7 @@ export const addTypename: GraphQLStandardSchemaGenerator.DocumentTransform = (
         // Create and return a new SelectionSet with a __typename Field.
         return {
           ...node,
-          selections: [...selections, TYPENAME_FIELD],
+          selections: [TYPENAME_FIELD, ...selections],
         };
       },
     },

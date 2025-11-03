@@ -5,14 +5,11 @@ import {
   type FormattedExecutionResult,
   type FragmentDefinitionNode,
   getVariableValues,
-  GraphQLBoolean,
-  GraphQLFloat,
+  GraphQLError,
   type GraphQLFormattedError,
-  GraphQLInt,
   GraphQLNonNull,
   GraphQLScalarType,
   GraphQLSchema,
-  GraphQLString,
   Kind,
   type OperationDefinitionNode,
   OperationTypeNode,
@@ -109,12 +106,6 @@ export declare namespace GraphQLStandardSchemaGenerator {
      * @defaultValue undefined
      */
     additionalProperties?: boolean;
-    /**
-     * If true, the `__typename` field will be added to all object types.
-     *
-     * {@defaultValue true}
-     */
-    addTypename?: boolean;
   }
 
   export type JSONSchema = OpenAiSupportedJsonSchema;
@@ -170,11 +161,9 @@ export class GraphQLStandardSchemaGenerator<
         ? {
             additionalProperties: false,
             optionalNullableProperties: false,
-            addTypename: true,
           }
         : {
             optionalNullableProperties: true,
-            addTypename: true,
             ...defaultJSONSchemaOptions,
           };
   }
@@ -237,71 +226,14 @@ export class GraphQLStandardSchemaGenerator<
           document,
           variableValues,
           fieldResolver: (source, args, context, info) => {
-            const value = source[info.fieldName];
-
-            // We use field resolvers to be more strict with the value types that
-            // were returned by the AI.
-            let returnType = info.returnType;
-            let isNonNull = false;
-
-            // Check if it's a non-null type
-            if (returnType instanceof GraphQLNonNull) {
-              isNonNull = true;
-              returnType = returnType.ofType;
-            }
-
-            // Handle null values
-            if (value === null) {
-              if (isNonNull) {
-                throw new TypeError(
-                  `Non-nullable field ${info.fieldName} cannot be null`
-                );
-              }
-              return null; // Null is valid for nullable fields
-            }
-
-            // Validate scalar types
-            if (returnType instanceof GraphQLScalarType) {
-              switch (returnType.name) {
-                case GraphQLString.name:
-                  if (typeof value !== "string") {
-                    throw new TypeError(
-                      `Value for scalar type ${returnType.name} is not string: ${value}`
-                    );
-                  }
-                  break;
-                case GraphQLFloat.name:
-                  if (typeof value !== "number") {
-                    throw new TypeError(
-                      `Value for scalar type ${returnType.name} is not number: ${value}`
-                    );
-                  }
-                  break;
-                case GraphQLInt.name:
-                  if (typeof value !== "number") {
-                    throw new TypeError(
-                      `Value for scalar type ${returnType.name} is not number: ${value}`
-                    );
-                  }
-                  break;
-                case GraphQLBoolean.name:
-                  if (typeof value !== "boolean") {
-                    throw new TypeError(
-                      `Value for scalar type ${returnType.name} is not boolean: ${value}`
-                    );
-                  }
-                  break;
-              }
-            }
-
-            return value;
+            return source[info.fieldName];
           },
           rootValue: value,
         }) as FormattedExecutionResult;
 
         if (result.errors?.length) {
           return {
-            issues: result.errors,
+            issues: result.errors.map(formatError),
           };
         }
         return { value: result.data as TData };
@@ -508,9 +440,7 @@ export class GraphQLStandardSchemaGenerator<
           return { value: result.coerced as TVariables };
         }
         return {
-          issues: result.errors?.map((error) => ({
-            message: error.message,
-          })),
+          issues: result.errors?.map(formatError),
         };
       },
     });
@@ -552,4 +482,17 @@ export function standardSchema<Input, Output>({
       version: 1,
     },
   };
+}
+function formatError(
+  error: GraphQLError | GraphQLFormattedError
+): StandardSchemaV1.Issue {
+  let formatted = error instanceof GraphQLError ? error.toJSON() : error;
+  return formatted.path
+    ? {
+        message: formatted.message,
+        path: formatted.path,
+      }
+    : {
+        message: formatted.message,
+      };
 }

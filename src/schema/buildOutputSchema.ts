@@ -204,11 +204,6 @@ export function buildOutputSchema(
       OpenAiSupportedJsonSchema.ObjectDef["properties"]
     > = {};
     const required = new Set<string>();
-    if (options.addTypename) {
-      properties.__typename = { const: parentType.name };
-      required.add("__typename");
-    }
-
     const normalized = normalizeSelections(parentType, selections);
 
     for (let i = 0; i < normalized.length; i++) {
