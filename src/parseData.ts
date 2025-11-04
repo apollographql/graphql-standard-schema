@@ -1,11 +1,13 @@
 import {
   getDirectiveValues,
+  GraphQLEnumType,
   GraphQLIncludeDirective,
   GraphQLNonNull,
   GraphQLScalarType,
   GraphQLSkipDirective,
   GraphQLString,
   isAbstractType,
+  isEnumType,
   isListType,
   isNonNullType,
   isObjectType,
@@ -104,7 +106,10 @@ export function parseSelectionSet<
    */
   mode: Mode;
 }): StandardSchemaV1.Result<SchemaResult<TData, Scalars, Mode>> {
-  const parseScalar = (value: unknown, scalar: GraphQLScalarType) => {
+  const parseScalar = (
+    value: unknown,
+    scalar: GraphQLScalarType | GraphQLEnumType
+  ) => {
     const deserialized = scalar.parseValue(value);
     if (mode === "deserialize") {
       return deserialized;
@@ -213,7 +218,7 @@ export function parseSelectionSet<
               continue;
             }
           }
-          if (isScalarType(childType)) {
+          if (isScalarType(childType) || isEnumType(childType)) {
             accumulatedData[key] = parseScalar(fieldData, childType);
             continue;
           }
