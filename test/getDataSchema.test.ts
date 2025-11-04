@@ -7,7 +7,25 @@ import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
 import assert from "node:assert";
 import { toJSONSchema } from "./utils/toJsonSchema.ts";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
-import { fa } from "zod/locales";
+
+function getJsonSchemas(
+  base: ReturnType<GraphQLStandardSchemaGenerator["getDataSchema"]>
+) {
+  const serializedJsonSchema = toJSONSchema.output(base.serialize);
+  const deserializedJsonSchema = toJSONSchema.output(base.deserialize);
+  assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base));
+  assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base));
+  assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base.parse));
+  assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base.parse));
+  assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base.deserialize));
+  assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base.serialize));
+  assert.deepEqual(deserializedJsonSchema, toJSONSchema.input(base.serialize));
+  assert.deepEqual(
+    deserializedJsonSchema,
+    toJSONSchema.output(base.deserialize)
+  );
+  return { serializedJsonSchema, deserializedJsonSchema };
+}
 
 test("generates schema for simple query", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -26,73 +44,167 @@ test("generates schema for simple query", async (t) => {
             count
           }
         `)
-  ).serialize;
+  );
 
-  await t.test("types", () => {
-    expectTypeOf<
-      StandardSchemaV1.InferInput<typeof dataSchema>
-    >().toEqualTypeOf<{
-      hello: string;
-      count: number;
-    }>();
-    expectTypeOf<
-      StandardSchemaV1.InferOutput<typeof dataSchema>
-    >().toEqualTypeOf<{
-      hello: string;
-      count: number;
-    }>();
+  await t.test("parse", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.parse);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<StandardSchemaV1.InferInput<typeof dataSchema.parse>>();
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<{ hello: string; count: number }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema.parse>
+      >();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<{ hello: string; count: number }>();
+    });
+
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(dataSchema, {
+          hello: "world",
+          count: 42,
+        });
+        t.assert.deepEqual(result, {
+          value: { hello: "world", count: 42 },
+        });
+      }
+      {
+        const result = validateSync(dataSchema, {
+          hello: "world",
+          count: "five",
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: 'Int cannot represent non-integer value: "five"',
+              path: ["count"],
+            },
+          ],
+        });
+      }
+    });
   });
-  await t.test("validateSync", () => {
-    {
-      const result = validateSync(dataSchema, {
-        hello: "world",
-        count: 42,
-      });
-      // deepEqual because validateSync returns null objects
-      assert.deepEqual(result, { value: { hello: "world", count: 42 } });
-    }
-    {
-      const result = validateSync(dataSchema, {
-        hello: "world",
-        count: "five",
-      });
-      assert.deepEqual(result, {
-        issues: [
-          {
-            message: 'Int cannot represent non-integer value: "five"',
-            path: ["count"],
-          },
-        ],
-      });
-    }
+  await t.test("deserialize", async (t) => {
+    const deserializeSchema = dataSchema.deserialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof deserializeSchema>
+      >().toEqualTypeOf<{
+        hello: string;
+        count: number;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof deserializeSchema>
+      >().toEqualTypeOf<{
+        hello: string;
+        count: number;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(deserializeSchema, {
+          hello: "world",
+          count: 42,
+        });
+        t.assert.deepEqual(result, {
+          value: { hello: "world", count: 42 },
+        });
+      }
+      {
+        const result = validateSync(deserializeSchema, {
+          hello: "world",
+          count: "five",
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: 'Int cannot represent non-integer value: "five"',
+              path: ["count"],
+            },
+          ],
+        });
+      }
+    });
   });
-  await t.test("value coercion", () => {
-    {
-      const result = validateSync(dataSchema, {
-        hello: 42,
-        count: "42",
-      });
-      // deepEqual because validateSync returns null objects
-      assert.deepEqual(result, { value: { hello: "42", count: 42 } });
-    }
+
+  await t.test("serialize", async (t) => {
+    const serializeSchema = dataSchema.serialize;
+
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        hello: string;
+        count: number;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        hello: string;
+        count: number;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          hello: "world",
+          count: 42,
+        });
+        t.assert.deepEqual(result, { value: { hello: "world", count: 42 } });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          hello: "world",
+          count: "five",
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: 'Int cannot represent non-integer value: "five"',
+              path: ["count"],
+            },
+          ],
+        });
+      }
+    });
+    await t.test("value coercion", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          hello: 42,
+          count: "42",
+        });
+        // deepEqual because validateSync returns null objects
+        t.assert.deepEqual(result, { value: { hello: "42", count: 42 } });
+      }
+    });
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(dataSchema);
+    const { serializedJsonSchema, deserializedJsonSchema } =
+      getJsonSchemas(dataSchema);
+    t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
+
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         hello: "world",
         count: 5,
       });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         hello: "world",
         count: "five",
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(serializedJsonSchema);
   });
 });
 
@@ -126,62 +238,119 @@ test("works with field selection set", async (t) => {
             }
           }
         `)
-  ).serialize;
+  );
 
-  await t.test("types", () => {
-    expectTypeOf<
-      StandardSchemaV1.InferInput<typeof dataSchema>
-    >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
-    expectTypeOf<
-      StandardSchemaV1.InferOutput<typeof dataSchema>
-    >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
-  });
-  await t.test("validateSync", () => {
-    {
-      const result = validateSync(dataSchema, {
-        me: {
-          id: "1",
-          name: "Alice",
-          age: 42,
-          bestFriend: { id: "2", name: "Bob" },
-        },
-      });
-      // deepEqual because validateSync returns null objects
-      assert.deepEqual(result, {
-        value: {
+  await t.test("deserialize", async (t) => {
+    const deserializeSchema = dataSchema.deserialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof deserializeSchema>
+      >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof deserializeSchema>
+      >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(deserializeSchema, {
           me: {
-            __typename: "Person",
             id: "1",
             name: "Alice",
             age: 42,
-            bestFriend: { __typename: "Person", id: "2", name: "Bob" },
+            bestFriend: { id: "2", name: "Bob" },
           },
-        },
-      });
-    }
-    {
-      const result = validateSync(dataSchema, {
-        me: {
-          id: "1",
-          name: "Alice",
-          age: "Bob",
-          bestFriend: { id: "2", name: "Bob" },
-        },
-      });
-      assert.deepEqual(result, {
-        issues: [
-          {
-            message: 'Int cannot represent non-integer value: "Bob"',
-            path: ["me", "age"],
+        });
+        t.assert.deepEqual(result, {
+          value: {
+            me: {
+              __typename: "Person",
+              id: "1",
+              name: "Alice",
+              age: 42,
+              bestFriend: { __typename: "Person", id: "2", name: "Bob" },
+            },
           },
-        ],
-      });
-    }
+        });
+      }
+      {
+        const result = validateSync(deserializeSchema, {
+          me: {
+            id: "1",
+            name: "Alice",
+            age: "Bob",
+            bestFriend: { id: "2", name: "Bob" },
+          },
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: 'Int cannot represent non-integer value: "Bob"',
+              path: ["me", "age"],
+            },
+          ],
+        });
+      }
+    });
+  });
+
+  await t.test("serialize", async (t) => {
+    const serializeSchema = dataSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          me: {
+            id: "1",
+            name: "Alice",
+            age: 42,
+            bestFriend: { id: "2", name: "Bob" },
+          },
+        });
+        t.assert.deepEqual(result, {
+          value: {
+            me: {
+              __typename: "Person",
+              id: "1",
+              name: "Alice",
+              age: 42,
+              bestFriend: { __typename: "Person", id: "2", name: "Bob" },
+            },
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          me: {
+            id: "1",
+            name: "Alice",
+            age: "Bob",
+            bestFriend: { id: "2", name: "Bob" },
+          },
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: 'Int cannot represent non-integer value: "Bob"',
+              path: ["me", "age"],
+            },
+          ],
+        });
+      }
+    });
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(dataSchema);
+    const { deserializedJsonSchema, serializedJsonSchema } =
+      getJsonSchemas(dataSchema);
+    t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(deserializedJsonSchema, {
         me: {
           __typename: "Person",
           id: "1",
@@ -193,7 +362,7 @@ test("works with field selection set", async (t) => {
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(deserializedJsonSchema, {
         me: {
           __typename: "Person",
           id: "1",
@@ -204,7 +373,7 @@ test("works with field selection set", async (t) => {
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(deserializedJsonSchema);
   });
 });
 
@@ -297,7 +466,7 @@ test("enforces non-null types", async (t) => {
       assert("value" in result);
       // null values are also accepted
       const result2 = validateSync(dataSchema, result.value);
-      assert.deepEqual(result2, result);
+      t.assert.deepEqual(result2, result);
     }
     {
       const result = validateSync(dataSchema, {
@@ -306,7 +475,7 @@ test("enforces non-null types", async (t) => {
         me: null,
         someoneElse: null,
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         issues: [
           {
             message: "Cannot return null for non-nullable field Query.hello.",
@@ -324,7 +493,7 @@ test("enforces non-null types", async (t) => {
         },
         someoneElse: null,
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         issues: [
           {
             message: "Cannot return null for non-nullable field Person.name.",
@@ -394,13 +563,13 @@ test("handles enums", async (t) => {
       const result = validateSync(dataSchema, {
         currentlyPlaying: "MOVIE",
       });
-      assert.deepEqual(result, { value: { currentlyPlaying: "MOVIE" } });
+      t.assert.deepEqual(result, { value: { currentlyPlaying: "MOVIE" } });
     }
     {
       const result = validateSync(dataSchema, {
         currentlyPlaying: "OPERA",
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         issues: [
           {
             message: 'Enum "MediaKind" cannot represent value: "OPERA"',
@@ -467,13 +636,13 @@ test("handles custom scalars", async (t) => {
       const result = validateSync(dataSchema, {
         now: new Date("2023-10-05"),
       });
-      assert.deepEqual(result, { value: { now: "2023-10-05" } });
+      t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
     }
     {
       const result = validateSync(dataSchema, {
         now: "not-a-date",
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         issues: [
           {
             message: "Value is not a valid Date object: not-a-date",
@@ -595,7 +764,7 @@ test("handles arrays", async (t) => {
       const result = validateSync(dataSchema, {
         greetings: ["hello", "hi"],
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         value: { greetings: ["hello", "hi"], nullableGreetings: null },
       });
     }
@@ -604,7 +773,7 @@ test("handles arrays", async (t) => {
         greetings: [],
         nullableGreetings: ["hello", null, "hi"],
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         value: { greetings: [], nullableGreetings: ["hello", null, "hi"] },
       });
     }
@@ -612,7 +781,7 @@ test("handles arrays", async (t) => {
       const result = validateSync(dataSchema, {
         greetings: ["hello", "hi", null],
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         issues: [
           {
             message:
@@ -735,7 +904,7 @@ test("handles interfaces", async (t) => {
           author: "Douglas Adams",
         },
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         value: {
           favourite: {
             __typename: "Book",
@@ -754,7 +923,7 @@ test("handles interfaces", async (t) => {
           hex: "FF0000",
         },
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         value: {
           favourite: {
             __typename: "Color",
@@ -771,7 +940,7 @@ test("handles interfaces", async (t) => {
           hex: "FF0000",
         },
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         issues: [
           {
             message:
@@ -981,7 +1150,7 @@ test("handles unions", async (t) => {
           author: "Douglas Adams",
         },
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         value: {
           favourite: {
             __typename: "Book",
@@ -1000,7 +1169,7 @@ test("handles unions", async (t) => {
           hex: "FF0000",
         },
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         value: {
           favourite: {
             __typename: "Color",
@@ -1017,7 +1186,7 @@ test("handles unions", async (t) => {
           hex: "FF0000",
         },
       });
-      assert.deepEqual(result, {
+      t.assert.deepEqual(result, {
         issues: [
           {
             message:

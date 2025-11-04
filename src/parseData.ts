@@ -4,9 +4,10 @@ import {
   GraphQLNonNull,
   GraphQLScalarType,
   GraphQLSkipDirective,
+  GraphQLString,
   isAbstractType,
   isListType,
-  isNullableType,
+  isNonNullType,
   isObjectType,
   isScalarType,
   type FieldNode,
@@ -149,117 +150,158 @@ export function parseSelectionSet<
 
     const unhandled = new Set(selections);
     for (const selection of unhandled) {
-      if (!shouldIncludeNode(variableValues, selection)) {
-        continue;
-      }
-      if (
-        selection.kind === "FragmentSpread" ||
-        selection.kind === "InlineFragment"
-      ) {
-        let fragment: FragmentDefinitionNode | InlineFragmentNode | undefined;
-        if (selection.kind === "FragmentSpread") {
-          const fragmentName = selection.name.value;
-          if (visitedFragments.has(fragmentName)) {
-            continue;
-          }
-          visitedFragments.add(fragmentName);
-          fragment = fragments[fragmentName];
-
-          assert(fragment, `Fragment "${fragmentName}" not found`);
-        } else {
-          fragment = selection;
-        }
-
-        if (fragment.typeCondition) {
-          const abstractType = schema.getType(
-            fragment.typeCondition.name.value
-          );
-          assert(
-            isAbstractType(abstractType),
-            `Abstract Type "${fragment.typeCondition.name.value}" not found in schema`
-          );
-          if (schema.isSubType(abstractType, parentType)) {
-            continue;
-          }
-        }
-        fragment.selectionSet.selections.forEach((fragmentSelection) =>
-          unhandled.add(fragmentSelection)
-        );
-      }
-      if (selection.kind === "Field") {
-        let childType = fields[selection.name.value]?.type;
-        const key = selection.alias?.value || selection.name.value;
-        const fieldData = data[key];
-        assert(
-          childType,
-          `Field "${selection.name.value}" not found on type "${parentType.name}"`
-        );
-        if (isNullableType(childType)) {
-          if (fieldData == null) {
-            accumulatedData[key] = null;
-            continue;
-          }
-          childType = (childType as GraphQLNonNull<GraphQLOutputType>).ofType;
-        }
-        if (isScalarType(childType)) {
-          accumulatedData[key] = parseScalar(fieldData, childType);
+      try {
+        if (!shouldIncludeNode(variableValues, selection)) {
           continue;
         }
-        accumulatedSelections[key] ??= {
-          schemaType: childType,
-          selections: [],
-        };
-        accumulatedSelections[key].selections.push(selection);
+        if (
+          selection.kind === "FragmentSpread" ||
+          selection.kind === "InlineFragment"
+        ) {
+          let fragment: FragmentDefinitionNode | InlineFragmentNode | undefined;
+          if (selection.kind === "FragmentSpread") {
+            const fragmentName = selection.name.value;
+            if (visitedFragments.has(fragmentName)) {
+              continue;
+            }
+            visitedFragments.add(fragmentName);
+            fragment = fragments[fragmentName];
+
+            assert(fragment, `Fragment "${fragmentName}" not found`);
+          } else {
+            fragment = selection;
+          }
+
+          if (fragment.typeCondition) {
+            const abstractType = schema.getType(
+              fragment.typeCondition.name.value
+            );
+            assert(
+              isAbstractType(abstractType),
+              `Abstract Type "${fragment.typeCondition.name.value}" not found in schema`
+            );
+            if (schema.isSubType(abstractType, parentType)) {
+              continue;
+            }
+          }
+          fragment.selectionSet.selections.forEach((fragmentSelection) =>
+            unhandled.add(fragmentSelection)
+          );
+        }
+        if (selection.kind === "Field") {
+          let childType =
+            selection.name.value === "__typename"
+              ? typenameType
+              : fields[selection.name.value]?.type;
+          const key = selection.alias?.value || selection.name.value;
+          let fieldData = data[key];
+          if (
+            selection.name.value === "__typename" &&
+            isObjectType(parentType)
+          ) {
+            fieldData = parentType.name;
+          }
+          assert(
+            childType,
+            `Field "${selection.name.value}" not found on type "${parentType.name}"`
+          );
+          if (isNonNullType(childType)) {
+            childType = (childType as GraphQLNonNull<GraphQLOutputType>).ofType;
+          } else {
+            if (fieldData == null) {
+              accumulatedData[key] = null;
+              continue;
+            }
+          }
+          if (isScalarType(childType)) {
+            accumulatedData[key] = parseScalar(fieldData, childType);
+            continue;
+          }
+          if (selection.selectionSet) {
+            accumulatedSelections[key] ??= {
+              schemaType: childType,
+              selections: [],
+            };
+            accumulatedSelections[key].selections.push(
+              ...selection.selectionSet?.selections
+            );
+          }
+        }
+      } catch (e) {
+        issues.push({
+          message: (e as Error).message,
+          path:
+            selection.kind === "Field"
+              ? path.concat(selection.alias?.value || selection.name.value)
+              : path,
+        });
       }
     }
     for (const [key, config] of Object.entries(accumulatedSelections)) {
-      const fieldData = data[key];
-      let childType = config.schemaType;
-      if (isListType(childType)) {
-        childType = childType.ofType;
-        let nullable = false;
-        if (isNullableType(childType)) {
-          nullable = true;
-          childType = (childType as GraphQLNonNull<GraphQLOutputType>).ofType;
+      try {
+        const fieldData = data[key];
+        let childType = config.schemaType;
+        if (isListType(childType)) {
+          childType = childType.ofType;
+          let nullable = true;
+          if (isNonNullType(childType)) {
+            nullable = false;
+            childType = (childType as GraphQLNonNull<GraphQLOutputType>).ofType;
+          }
+          assert(Array.isArray(fieldData), `Expected list for field "${key}"`);
+          accumulatedData[key] = fieldData.map((item, idx) => {
+            try {
+              if (item == null) {
+                assert(
+                  nullable,
+                  `Expected non-nullable type "${(childType as GraphQLObjectType).name}" not to be null.`
+                );
+                return null;
+              }
+              if (isScalarType(childType)) {
+                return parseScalar(item, childType);
+              }
+              assert(isObjectType(childType));
+              assert(typeof item === "object");
+              return handleSelections(
+                item,
+                config.selections,
+                childType,
+                path.concat(key, idx)
+              );
+            } catch (e) {
+              issues.push({
+                message: (e as Error).message,
+                path: path.concat(key, idx),
+              });
+            }
+          });
+          continue;
         }
-        assert(Array.isArray(fieldData), `Expected list for field "${key}"`);
-        accumulatedData[key] = fieldData.map((item, idx) => {
-          if (item == null) {
-            assert(
-              nullable,
-              `Expected non-nullable type "${(childType as GraphQLObjectType).name}" not to be null.`
-            );
-            return null;
-          }
-          if (isScalarType(childType)) {
-            return parseScalar(item, childType);
-          }
-          assert(isObjectType(childType));
-          assert(typeof item === "object");
-          return handleSelections(
-            item,
-            config.selections,
-            childType,
-            path.concat(key, idx)
-          );
+        assert(
+          isObjectType(childType),
+          `expected object type, but got ${childType.name}`
+        );
+        assert(
+          typeof fieldData === "object",
+          `Expected type "${childType.name}" to be an object.`
+        );
+        assert(
+          fieldData != null,
+          `Expected non-nullable type "${childType.name}" not to be null.`
+        );
+        accumulatedData[key] = handleSelections(
+          fieldData as Record<string, unknown>,
+          config.selections,
+          childType,
+          path.concat(key)
+        );
+      } catch (e) {
+        issues.push({
+          message: (e as Error).message,
+          path: path.concat(key),
         });
-        continue;
       }
-      assert(isObjectType(childType));
-      assert(
-        typeof fieldData === "object",
-        `Expected type "${childType.name}" to be an object.`
-      );
-      assert(
-        fieldData != null,
-        `Expected non-nullable type "${childType.name}" not to be null.`
-      );
-      accumulatedData[key] = handleSelections(
-        fieldData as Record<string, unknown>,
-        config.selections,
-        childType,
-        path.concat(key)
-      );
     }
 
     return accumulatedData;
@@ -289,3 +331,5 @@ function shouldIncludeNode(
   }
   return true;
 }
+
+const typenameType = new GraphQLNonNull(GraphQLString);
