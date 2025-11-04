@@ -35,7 +35,7 @@ type SerializedValue<TData, Mapping extends [any, any]> = Mapping extends [
   ? Serialized
   : never;
 
-export type CalculateInputType<TData, Mapping extends [any, any]> =
+export type CalculateSerializedType<TData, Mapping extends [any, any]> =
   SerializedValue<TData, Mapping> extends infer Serialized
     ? [Serialized] extends [never]
       ? RecurseCalculateInputType<TData, Mapping>
@@ -48,11 +48,11 @@ type RecurseCalculateInputType<
 > = TData extends number | string | boolean | null | undefined
   ? TData
   : TData extends Array<infer U>
-    ? Array<CalculateInputType<U, Mapping>>
+    ? Array<CalculateSerializedType<U, Mapping>>
     : TData extends ReadonlyArray<infer U>
-      ? ReadonlyArray<CalculateInputType<U, Mapping>>
+      ? ReadonlyArray<CalculateSerializedType<U, Mapping>>
       : TData extends object
         ? {
-            [K in keyof TData]: CalculateInputType<TData[K], Mapping>;
+            [K in keyof TData]: CalculateSerializedType<TData[K], Mapping>;
           }
         : never;

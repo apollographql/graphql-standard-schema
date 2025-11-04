@@ -21,7 +21,7 @@ export const DateScalarDef = {
     description: "A date string in YYYY-MM-DD format",
   }),
   jsonSchema: {
-    input: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
-    output: { type: "number" },
+    serialized: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
+    deserialized: { type: "number" },
   },
 } as const;

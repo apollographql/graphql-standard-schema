@@ -10,6 +10,7 @@ import {
   GraphQLNonNull,
   GraphQLScalarType,
   GraphQLSchema,
+  isObjectType,
   Kind,
   type OperationDefinitionNode,
   OperationTypeNode,
@@ -22,7 +23,7 @@ import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
 import type {
   CombinedSpec,
-  CalculateInputType,
+  CalculateSerializedType,
   ScalarMapping,
 } from "./types.ts";
 import { composeStandardSchemas, nullable } from "./composeStandardSchemas.ts";
@@ -35,6 +36,11 @@ import { buildOperationSchema } from "./schema/buildOperationSchema.ts";
 import { fakeVariables } from "./fakeVariables.ts";
 import { addTypename } from "./transforms/addTypename.ts";
 import { mapSchema, MapperKind } from "@graphql-tools/utils";
+import { getOperation } from "./getOperation.ts";
+import {
+  parseSelectionSet,
+  parseData as parseDataSelection,
+} from "./parseData.ts";
 
 export declare namespace GraphQLStandardSchemaGenerator {
   export namespace Internal {
@@ -47,8 +53,8 @@ export declare namespace GraphQLStandardSchemaGenerator {
   export interface ScalarDefinition<Input, Output> {
     type: GraphQLScalarType<Output, Input>;
     jsonSchema: {
-      input: OpenAiSupportedJsonSchema.Anything;
-      output: OpenAiSupportedJsonSchema.Anything;
+      deserialized: OpenAiSupportedJsonSchema.Anything;
+      serialized: OpenAiSupportedJsonSchema.Anything;
     };
     /** Will be used as "fake variable value" if this scalar is ever used in a non-nullable variable input value. */
     defaultValue?: any;
@@ -72,15 +78,15 @@ export declare namespace GraphQLStandardSchemaGenerator {
     documentTransfoms?: GraphQLStandardSchemaGenerator.DocumentTransform[];
   }
 
-  export type InputType<
+  export type Serialized<
     TData,
     Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions = Record<
       string,
       never
     >,
-  > = CalculateInputType<TData, ScalarMapping<Scalars>>;
+  > = CalculateSerializedType<TData, ScalarMapping<Scalars>>;
 
-  export type OutputType<
+  export type Deserialized<
     TData,
     Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions = Record<
       string,
@@ -110,17 +116,9 @@ export declare namespace GraphQLStandardSchemaGenerator {
 
   export type JSONSchema = OpenAiSupportedJsonSchema;
 
-  export interface ValidationSchema<Input, Output>
+  export interface ValidationSchema<Input, Output = Input>
     extends CombinedSpec<Input, Output> {
-    ["~standard"]: StandardSchemaV1.Props<Input, Output> & {
-      jsonSchema: {
-        input: JSONSchemaCreator;
-        output: JSONSchemaCreator;
-      };
-    };
-    // TODO
-    // isValid(value: unknown): value is T;
-    // isStrictlyValid(value: unknown): value is T;
+    (value: unknown): StandardSchemaV1.Result<Output>;
   }
 }
 export class GraphQLStandardSchemaGenerator<
@@ -131,8 +129,8 @@ export class GraphQLStandardSchemaGenerator<
 > {
   private schema!: GraphQLSchema;
   private scalarTypes: Scalars;
-  private inputScalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping;
-  private outputScalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping;
+  private deserializedScalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping;
+  private serializedScalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping;
   private defaultJSONSchemaOptions: GraphQLStandardSchemaGenerator.JSONSchemaOptions;
   private documentTransfoms: GraphQLStandardSchemaGenerator.DocumentTransform[];
   constructor({
@@ -143,16 +141,16 @@ export class GraphQLStandardSchemaGenerator<
   }: GraphQLStandardSchemaGenerator.Options<Scalars>) {
     this.scalarTypes = scalarTypes;
     this.replaceSchema(schema);
-    this.inputScalarTypes = Object.fromEntries(
+    this.deserializedScalarTypes = Object.fromEntries(
       Object.entries(scalarTypes).map(([key, def]) => [
         key,
-        def.jsonSchema.input,
+        def.jsonSchema.deserialized,
       ])
     );
-    this.outputScalarTypes = Object.fromEntries(
+    this.serializedScalarTypes = Object.fromEntries(
       Object.entries(scalarTypes).map(([key, def]) => [
         key,
-        def.jsonSchema.output,
+        def.jsonSchema.serialized,
       ])
     );
     this.documentTransfoms = documentTransfoms;
@@ -188,61 +186,119 @@ export class GraphQLStandardSchemaGenerator<
   getDataSchema<TData>(
     document: TypedDocumentNode<TData, any>
   ): GraphQLStandardSchemaGenerator.ValidationSchema<
-    GraphQLStandardSchemaGenerator.OutputType<TData, Scalars>,
-    GraphQLStandardSchemaGenerator.InputType<TData, Scalars>
-  > {
+    GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
+    GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
+  > & {
+    parse: GraphQLStandardSchemaGenerator.ValidationSchema<
+      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
+      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
+    >;
+    deserialize: GraphQLStandardSchemaGenerator.ValidationSchema<
+      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
+      GraphQLStandardSchemaGenerator.Deserialized<TData, Scalars>
+    >;
+    serialize: GraphQLStandardSchemaGenerator.ValidationSchema<
+      GraphQLStandardSchemaGenerator.Deserialized<TData, Scalars>,
+      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
+    >;
+  } {
+    type Serialized = GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>;
+    type Deserialized = GraphQLStandardSchemaGenerator.Deserialized<
+      TData,
+      Scalars
+    >;
     const schema = this.schema;
     const scalarTypes = this.scalarTypes;
     document = this.documentTransfoms.reduce(
       (doc, transform) => transform(doc),
       document
     );
-    const definition = getOperation(document);
-    return standardSchema({
-      jsonSchema: (direction) => (options) => {
+    const operation = getOperation(document);
+    const variableValues = fakeVariables(
+      operation.variableDefinitions || [],
+      schema,
+      scalarTypes
+    );
+
+    const buildSchema: (
+      direction: "serialized" | "deserialized"
+    ) => GraphQLStandardSchemaGenerator.JSONSchemaCreator =
+      (direction) => (options) => {
         return {
           ...schemaBase(options),
           ...buildOperationSchema(
             schema,
             document,
-            definition,
+            operation,
             this[`${direction}ScalarTypes`],
             { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
-      },
-      validate(
-        value: any
-      ): StandardSchemaV1.Result<
-        GraphQLStandardSchemaGenerator.InputType<TData, Scalars>
-      > {
-        const variableValues = fakeVariables(
-          getOperation(document).variableDefinitions || [],
-          schema,
-          scalarTypes
-        );
-        const result = execute({
-          schema,
-          document,
-          variableValues,
-          fieldResolver: (source, args, context, info) => {
-            return source[info.fieldName];
-          },
-          rootValue: value,
-        }) as FormattedExecutionResult;
+      };
 
-        if (result.errors?.length) {
-          return {
-            issues: result.errors.map(formatError),
-          };
-        }
+    function serializeData(value: any): StandardSchemaV1.Result<Serialized> {
+      const result = execute({
+        schema,
+        document,
+        variableValues,
+        fieldResolver: (source, args, context, info) => {
+          return source[info.fieldName];
+        },
+        rootValue: value,
+      }) as FormattedExecutionResult;
+
+      if (result.errors?.length) {
         return {
-          value: result.data as GraphQLStandardSchemaGenerator.InputType<
-            TData,
-            Scalars
-          >,
+          issues: result.errors.map(formatError),
         };
-      },
+      }
+      return {
+        value: result.data as GraphQLStandardSchemaGenerator.Serialized<
+          TData,
+          Scalars
+        >,
+      };
+    }
+    function deserializeData(
+      data: unknown
+    ): StandardSchemaV1.Result<Deserialized> {
+      return parseDataSelection(
+        data,
+        operation,
+        schema,
+        document,
+        variableValues,
+        "deserialize"
+      );
+    }
+    function parseData(data: unknown): StandardSchemaV1.Result<Serialized> {
+      return parseDataSelection(
+        data,
+        operation,
+        schema,
+        document,
+        variableValues,
+        "parse"
+      );
+    }
+
+    const base = validationSchema<Serialized, Serialized>(
+      parseData,
+      buildSchema("serialized"),
+      buildSchema("serialized")
+    );
+    return Object.assign(base, {
+      parse: base,
+      deserialize: validationSchema<Serialized, Deserialized>(
+        deserializeData,
+        buildSchema("serialized"),
+        buildSchema("deserialized")
+      ),
+      serialize: validationSchema<Deserialized, Serialized>(
+        serializeData,
+        buildSchema("deserialized"),
+        buildSchema("serialized")
+      ),
     });
   }
 
@@ -251,51 +307,32 @@ export class GraphQLStandardSchemaGenerator<
   ): GraphQLStandardSchemaGenerator.ValidationSchema<
     {
       errors?: ReadonlyArray<GraphQLFormattedError> | null;
-      data?: GraphQLStandardSchemaGenerator.InputType<TData, Scalars> | null;
+      data?: GraphQLStandardSchemaGenerator.Serialized<TData, Scalars> | null;
       extensions?: Record<string, unknown> | null;
     },
     {
       errors?: ReadonlyArray<GraphQLFormattedError> | null;
-      data?: GraphQLStandardSchemaGenerator.OutputType<TData, Scalars> | null;
+      data?: GraphQLStandardSchemaGenerator.Serialized<TData, Scalars> | null;
       extensions?: Record<string, unknown> | null;
     }
   > {
-    const definitions = document.definitions.filter(
-      (def): def is OperationDefinitionNode =>
-        def.kind === "OperationDefinition" && !!def.name
-    );
-    assert(
-      definitions.length == 1,
-      "Document must contain exactly one named operation"
-    );
-
-    const responseShape = responseShapeSchema(definitions[0]!);
-
     const composed = composeStandardSchemas(
-      responseShape,
+      responseShapeSchema(getOperation(document)),
       ["data"] as const,
-      nullable(this.getDataSchema<TData>(document))
+      nullable(this.getDataSchema<TData>(document).parse),
+      false
     );
-
-    return composed satisfies CombinedSpec<
-      {
-        data: GraphQLStandardSchemaGenerator.InputType<TData, Scalars> | null;
-        errors?: readonly GraphQLFormattedError[] | undefined;
-        extensions?: Record<string, unknown> | undefined;
+    return validationSchema(
+      function validate(value: unknown) {
+        const result = composed["~standard"].validate(value);
+        assert(!("then" in result));
+        return result;
       },
-      {
-        data: GraphQLStandardSchemaGenerator.OutputType<TData, Scalars> | null;
-        errors?: readonly GraphQLFormattedError[] | undefined;
-        extensions?: Record<string, unknown> | undefined;
-      }
-    > as GraphQLStandardSchemaGenerator.ValidationSchema<
-      FormattedExecutionResult<
-        GraphQLStandardSchemaGenerator.InputType<TData, Scalars>
-      >,
-      FormattedExecutionResult<
-        GraphQLStandardSchemaGenerator.OutputType<TData, Scalars>
-      >
-    >;
+      composed["~standard"].jsonSchema
+        .input as GraphQLStandardSchemaGenerator.JSONSchemaCreator,
+      composed["~standard"].jsonSchema
+        .output as GraphQLStandardSchemaGenerator.JSONSchemaCreator
+    );
   }
 
   getFragmentSchema<TData>(
@@ -306,8 +343,8 @@ export class GraphQLStandardSchemaGenerator<
       fragmentName?: string;
     } = {}
   ): GraphQLStandardSchemaGenerator.ValidationSchema<
-    GraphQLStandardSchemaGenerator.InputType<TData, Scalars>,
-    GraphQLStandardSchemaGenerator.OutputType<TData, Scalars>
+    GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
+    GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
   > {
     if (
       !document.definitions.every((def) => def.kind === "FragmentDefinition")
@@ -334,38 +371,40 @@ export class GraphQLStandardSchemaGenerator<
       `Fragment with name ${fragmentName} not found in document`
     );
 
-    const queryDocument: TypedDocumentNode<{ fragmentData: TData }> = {
-      ...(document as TypedDocumentNode<any>),
-      definitions: [
-        ...fragments,
-        {
-          kind: Kind.OPERATION_DEFINITION,
-          operation: OperationTypeNode.QUERY,
-          name: { kind: Kind.NAME, value: "FragmentQuery" },
-          selectionSet: {
-            kind: Kind.SELECTION_SET,
-            selections: [
-              {
-                kind: Kind.FIELD,
-                name: { kind: Kind.NAME, value: "fragmentData" },
-                selectionSet: {
-                  kind: Kind.SELECTION_SET,
-                  selections: [
-                    {
-                      kind: Kind.FRAGMENT_SPREAD,
-                      name: { kind: Kind.NAME, value: fragment.name.value },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-      ],
+    const validate = (
+      value: unknown
+    ): StandardSchemaV1.Result<
+      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
+    > => {
+      assert(typeof value === "object" && value !== null, "Expected object");
+      const typename = (value as any)["__typename"];
+      assert(typename, "Expected __typename field in fragment data");
+      const fragmentType = this.schema.getType(typename);
+      assert(
+        fragmentType,
+        `Type "${typename}" not found in schema for fragment`
+      );
+      assert(
+        isObjectType(fragmentType),
+        `Type "${typename}" is not an object type`
+      );
+
+      return parseSelectionSet({
+        data: value,
+        selections: fragment.selectionSet.selections,
+        rootType: fragmentType,
+        variableValues: {},
+        schema: this.schema,
+        rootPath: [],
+        document,
+        mode: "parse",
+      });
     };
 
-    return standardSchema({
-      jsonSchema: (direction) => (options) => {
+    const buildSchema: (
+      direction: "serialized" | "deserialized"
+    ) => GraphQLStandardSchemaGenerator.JSONSchemaCreator =
+      (direction) => (options) => {
         return {
           ...schemaBase(options),
           ...buildFragmentSchema(
@@ -376,36 +415,20 @@ export class GraphQLStandardSchemaGenerator<
             { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
-      },
-      validate: (value): StandardSchemaV1.Result<TData> => {
-        const dataSchema = this.getDataSchema(queryDocument);
-        const result = dataSchema["~standard"].validate({
-          fragmentData: value,
-        });
-        // our own `dataSchema` won't return an async validator
-        assert(!("then" in result));
-        if ("value" in result) {
-          return { value: result.value.fragmentData };
-        }
-        return {
-          issues: result.issues?.map((issue) =>
-            "path" in issue
-              ? {
-                  ...issue,
-                  path: issue.path?.slice(1),
-                }
-              : issue
-          ),
-        };
-      },
-    });
+      };
+
+    return validationSchema(
+      validate,
+      buildSchema("serialized"),
+      buildSchema("serialized")
+    );
   }
 
   getVariablesSchema<TVariables>(
     document: TypedDocumentNode<any, TVariables>
   ): GraphQLStandardSchemaGenerator.ValidationSchema<
-    GraphQLStandardSchemaGenerator.InputType<TVariables, Scalars>,
-    GraphQLStandardSchemaGenerator.OutputType<TVariables, Scalars>
+    GraphQLStandardSchemaGenerator.Serialized<TVariables, Scalars>,
+    GraphQLStandardSchemaGenerator.Deserialized<TVariables, Scalars>
   > {
     const schema = this.schema;
     document = this.documentTransfoms.reduce(
@@ -413,8 +436,10 @@ export class GraphQLStandardSchemaGenerator<
       document
     );
     const operation = getOperation(document);
-    return standardSchema({
-      jsonSchema: (direction) => (options) => {
+    const buildSchema: (
+      direction: "serialized" | "deserialized"
+    ) => GraphQLStandardSchemaGenerator.JSONSchemaCreator =
+      (direction) => (options) => {
         return {
           ...schemaBase(options),
           ...buildVariablesSchema(
@@ -425,66 +450,72 @@ export class GraphQLStandardSchemaGenerator<
             { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
-      },
-      validate(variables): StandardSchemaV1.Result<TVariables> {
-        if (typeof variables !== "object" || variables === null) {
-          return {
-            issues: [
-              {
-                message: `Expected variables to be an object, got ${typeof variables}`,
-              },
-            ],
-          };
-        }
-        const result = getVariableValues(
-          schema,
-          operation.variableDefinitions || [],
-          variables as Record<string, unknown>
-        );
-        if (result.coerced) {
-          return { value: result.coerced as TVariables };
-        }
+      };
+    function deserializeVariables(
+      variables: unknown
+    ): StandardSchemaV1.Result<TVariables> {
+      if (typeof variables !== "object" || variables === null) {
         return {
-          issues: result.errors?.map(formatError),
+          issues: [
+            {
+              message: `Expected variables to be an object, got ${typeof variables}`,
+            },
+          ],
         };
-      },
-    });
+      }
+      const result = getVariableValues(
+        schema,
+        operation.variableDefinitions || [],
+        variables as Record<string, unknown>
+      );
+      if (result.coerced) {
+        return { value: result.coerced as TVariables };
+      }
+      return {
+        issues: result.errors?.map(formatError),
+      };
+    }
+    return validationSchema(
+      deserializeVariables,
+      buildSchema("serialized"),
+      buildSchema("deserialized")
+    );
   }
 }
 
-function getOperation(document: DocumentNode): OperationDefinitionNode {
-  const operations = document.definitions.filter(
-    (def): def is OperationDefinitionNode => def.kind === "OperationDefinition"
+function validationSchema<Input, Output = Input>(
+  validate: (value: unknown) => StandardSchemaV1.Result<Output>,
+  inputSchema: GraphQLStandardSchemaGenerator.JSONSchemaCreator,
+  outputSchema: GraphQLStandardSchemaGenerator.JSONSchemaCreator
+): GraphQLStandardSchemaGenerator.ValidationSchema<Input, Output> {
+  const wrapper = {
+    [validate.name](arg: unknown) {
+      return validate(arg);
+    },
+  }[validate.name]!;
+  return Object.assign(
+    wrapper,
+    standardSchema<Input, Output>(wrapper, inputSchema, outputSchema)
   );
-  assert(operations.length > 0, "No operation definitions found in document");
-  assert(
-    operations.length == 1,
-    "Multiple operation definitions found in document"
-  );
-  return operations[0]!;
 }
 
-export function standardSchema<Input, Output>({
-  jsonSchema,
-  validate,
-}: {
+export function standardSchema<Input, Output>(
   validate: GraphQLStandardSchemaGenerator.ValidationSchema<
     Input,
     Output
-  >["~standard"]["validate"];
-  jsonSchema: (
-    direction: "input" | "output"
-  ) => GraphQLStandardSchemaGenerator.JSONSchemaCreator;
-}): GraphQLStandardSchemaGenerator.ValidationSchema<Input, Output> {
+  >["~standard"]["validate"],
+  input: GraphQLStandardSchemaGenerator.JSONSchemaCreator,
+  output: GraphQLStandardSchemaGenerator.JSONSchemaCreator
+): CombinedSpec<Input, Output> {
   return {
     "~standard": {
       validate,
       jsonSchema: {
-        input: jsonSchema("input"),
-        output: jsonSchema("output"),
+        input,
+        output,
       },
       vendor: "@apollo/graphql-standard-schema",
-      version: 1,
+      version: 1 as const,
     },
   };
 }

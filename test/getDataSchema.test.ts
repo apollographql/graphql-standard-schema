@@ -26,7 +26,7 @@ test("generates schema for simple query", async (t) => {
             count
           }
         `)
-  );
+  ).serialize;
 
   await t.test("types", () => {
     expectTypeOf<
@@ -126,7 +126,7 @@ test("works with field selection set", async (t) => {
             }
           }
         `)
-  );
+  ).serialize;
 
   await t.test("types", () => {
     expectTypeOf<
@@ -264,7 +264,7 @@ test("enforces non-null types", async (t) => {
             }
           }
         `)
-  );
+  ).serialize;
 
   await t.test("types", () => {
     expectTypeOf<
@@ -375,7 +375,7 @@ test("handles enums", async (t) => {
             currentlyPlaying
           }
         `)
-  );
+  ).serialize;
 
   await t.test("types", () => {
     expectTypeOf<
@@ -448,7 +448,7 @@ test("handles custom scalars", async (t) => {
             now
           }
         `)
-  );
+  ).serialize;
 
   await t.test("types", () => {
     expectTypeOf<
@@ -485,18 +485,18 @@ test("handles custom scalars", async (t) => {
   });
   await t.test("JSON schema", (t) => {
     {
-      const result = validateWithAjv(toJSONSchema.input(dataSchema), {
+      const result = validateWithAjv(toJSONSchema.output(dataSchema), {
         now: "2023-10-05",
       });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(toJSONSchema.input(dataSchema), {
+      const result = validateWithAjv(toJSONSchema.output(dataSchema), {
         now: 1234,
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.deepEqual(toJSONSchema.input(dataSchema), {
+    t.assert.deepEqual(toJSONSchema.output(dataSchema), {
       $defs: {
         scalar: {
           Date: {
@@ -519,18 +519,18 @@ test("handles custom scalars", async (t) => {
       type: "object",
     });
     {
-      const result = validateWithAjv(toJSONSchema.output(dataSchema), {
+      const result = validateWithAjv(toJSONSchema.input(dataSchema), {
         now: 1234,
       });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(toJSONSchema.output(dataSchema), {
+      const result = validateWithAjv(toJSONSchema.input(dataSchema), {
         now: "2023-10-05",
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.deepEqual(toJSONSchema.output(dataSchema), {
+    t.assert.deepEqual(toJSONSchema.input(dataSchema), {
       $defs: {
         scalar: {
           Date: {
@@ -574,7 +574,7 @@ test("handles arrays", async (t) => {
             nullableGreetings
           }
         `)
-  );
+  ).serialize;
 
   await t.test("types", () => {
     expectTypeOf<
@@ -707,7 +707,7 @@ test("handles interfaces", async (t) => {
             }
           }
         `)
-  );
+  ).serialize;
 
   await t.test("types", () => {
     expectTypeOf<
@@ -953,7 +953,7 @@ test("handles unions", async (t) => {
             }
           }
         `)
-  );
+  ).serialize;
 
   await t.test("types", () => {
     expectTypeOf<
