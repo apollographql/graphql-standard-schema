@@ -16,7 +16,7 @@ interface Character {
 type Human implements Character & Node {
   id: ID!
   fullName: String
-  born: Date
+  born: Date!
   name: String! @deprecated(reason: "Use fullName.")
   friends: [Character]
   appearsIn: [Episode!]!

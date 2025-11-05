@@ -228,3 +228,152 @@ await test("single fragment, picks only fragment", async (t) => {
     t.assert.snapshot(serializedJsonSchema);
   });
 });
+
+await test("multiple fragments, errors without `fragmentName`", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: swSchema,
+    scalarTypes: {
+      Date: DateScalarDef,
+    },
+  });
+
+  let error;
+  try {
+    generator.getFragmentSchema(
+      gql(/*GraphQL*/ `
+    fragment HumanFragment on Human {
+        fullName
+        born
+    }
+    fragment CharacterFragment on Character {
+        id
+        name
+        ...HumanFragment
+        ...DroidFragment
+    }
+    fragment DroidFragment on Droid {
+        primaryFunction
+    }
+    `)
+    );
+  } catch (e) {
+    error = e;
+  }
+  t.assert.deepEqual(
+    error,
+    new Error("Multiple fragments found, please specify a fragmentName")
+  );
+});
+
+await test("multiple fragments, uses `fragmentName` to pick", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: swSchema,
+    scalarTypes: {
+      Date: DateScalarDef,
+    },
+  });
+
+  const fragmentSchema = generator.getFragmentSchema(
+    gql<
+      | {
+          id: string;
+          name: string;
+          born: Date;
+        }
+      | {
+          id: string;
+          name: string;
+          primaryFunction?: string;
+        }
+    >(/*GraphQL*/ `
+    fragment HumanFragment on Human {
+        fullName
+        born
+    }
+    fragment CharacterFragment on Character {
+        id
+        name
+        ...HumanFragment
+        ...DroidFragment
+    }
+    fragment DroidFragment on Droid {
+        primaryFunction
+    }
+  `),
+    { fragmentName: "CharacterFragment" }
+  );
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof fragmentSchema.serialize>
+    >().toEqualTypeOf<
+      | {
+          id: string;
+          name: string;
+          born: string;
+        }
+      | {
+          id: string;
+          name: string;
+          primaryFunction?: string;
+        }
+    >();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof fragmentSchema.deserialize>
+    >().toEqualTypeOf<
+      | {
+          id: string;
+          name: string;
+          born: Date;
+        }
+      | {
+          id: string;
+          name: string;
+          primaryFunction?: string;
+        }
+    >();
+  });
+  await t.test("normalize", async (t) => {
+    t.assert.equal(fragmentSchema, fragmentSchema.normalize);
+    {
+      const result = fragmentSchema({
+        __typename: "Human",
+        id: "human-042",
+        name: "Luke",
+        fullName: "Luke Skywalker",
+        born: "1977-05-25",
+      });
+      t.assert.deepEqual(result, {
+        value: {
+          __typename: "Human",
+          id: "human-042",
+          name: "Luke",
+          fullName: "Luke Skywalker",
+          born: "1977-05-25",
+        },
+      });
+    }
+    {
+      const result = fragmentSchema({
+        __typename: "Droid",
+        id: "droid-008",
+        name: "C3-PO",
+      });
+      t.assert.deepEqual(result, {
+        value: {
+          __typename: "Droid",
+          id: "droid-008",
+          name: "C3-PO",
+          primaryFunction: null,
+        },
+      });
+    }
+  });
+  await t.test("JSON schema", async (t) => {
+    await t.test("deserialized", (t) =>
+      t.assert.snapshot(toJSONSchema.output(fragmentSchema.deserialize))
+    );
+    await t.test("serialized", (t) =>
+      t.assert.snapshot(toJSONSchema.output(fragmentSchema.serialize))
+    );
+  });
+});
