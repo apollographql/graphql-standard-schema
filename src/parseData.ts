@@ -15,6 +15,7 @@ import {
   type FieldNode,
   type FragmentDefinitionNode,
   type FragmentSpreadNode,
+  type GraphQLAbstractType,
   type GraphQLObjectType,
   type GraphQLOutputType,
   type GraphQLSchema,
@@ -74,7 +75,43 @@ export function parseData<
   });
 }
 
-export function parseSelectionSet<
+export function parseFragment<
+  TData,
+  TVariables extends Record<string, unknown>,
+  Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
+  Mode extends "parse" | "deserialize",
+>(
+  data: unknown,
+  fragment: FragmentDefinitionNode,
+  schema: GraphQLSchema,
+  document: TypedDocumentNode<TData, TVariables>,
+  variableValues: TVariables,
+  mode: Mode,
+  initialPath: Array<string | number> = []
+) {
+  try {
+    return parseSelectionSet({
+      data,
+      selections: fragment.selectionSet.selections,
+      rootType: getFragmentDataRootObjectType(data, schema),
+      variableValues: variableValues,
+      schema,
+      rootPath: initialPath,
+      document,
+      mode,
+    });
+  } catch (e) {
+    return {
+      issues: [
+        {
+          message: (e as Error).message,
+        },
+      ],
+    };
+  }
+}
+
+function parseSelectionSet<
   TData,
   TVariables extends Record<string, unknown>,
   Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
@@ -260,28 +297,32 @@ export function parseSelectionSet<
           assert(Array.isArray(fieldData), `Expected list for field "${key}"`);
           accumulatedData[key] = fieldData.map((item, idx) => {
             try {
+              let itemType = childType;
               if (item == null) {
                 assert(
                   nullable,
-                  `Expected non-nullable type "${(childType as GraphQLObjectType).name}" not to be null.`
+                  `Expected non-nullable type "${(itemType as GraphQLObjectType).name}" not to be null.`
                 );
                 return null;
               }
-              if (isScalarType(childType) || isEnumType(childType)) {
-                return parseScalar(item, childType);
+              if (isScalarType(itemType) || isEnumType(itemType)) {
+                return parseScalar(item, itemType);
+              }
+              if (isAbstractType(itemType)) {
+                itemType = specifyAbstractTypeFromFieldData(item, itemType);
               }
               assert(
-                isObjectType(childType),
-                `Expected ${childType} to be an object type.`
+                isObjectType(itemType),
+                `Expected ${itemType} to be an object type.`
               );
               assert(
                 typeof item === "object",
-                `Expected list item to be ${childType}, but got ${typeof item} instead.`
+                `Expected list item to be ${itemType}, but got ${typeof item} instead.`
               );
               return handleSelections(
                 item,
                 config.selections,
-                childType,
+                itemType,
                 path.concat(key, idx)
               );
             } catch (e) {
@@ -294,25 +335,7 @@ export function parseSelectionSet<
           continue;
         }
         if (isAbstractType(childType)) {
-          const typename =
-            typeof fieldData === "object" &&
-            fieldData &&
-            "__typename" in fieldData &&
-            fieldData["__typename"];
-          assert(
-            typename,
-            `Expected object with __typename for abstract type "${childType.name}"`
-          );
-          assert(
-            typeof typename === "string",
-            `Expected __typename to be a string, but got ${typeof typename}`
-          );
-          const specificType = schema.getType(typename);
-          assert(
-            specificType && isObjectType(specificType),
-            `Could not resolve concrete type for abstract type "${childType.name}" - "${typename}" is not an object type.`
-          );
-          childType = specificType;
+          childType = specifyAbstractTypeFromFieldData(fieldData, childType);
         }
         assert(
           isObjectType(childType),
@@ -342,6 +365,31 @@ export function parseSelectionSet<
 
     return accumulatedData;
   }
+
+  function specifyAbstractTypeFromFieldData(
+    fieldData: unknown,
+    childType: GraphQLAbstractType
+  ) {
+    const typename =
+      typeof fieldData === "object" &&
+      fieldData &&
+      "__typename" in fieldData &&
+      fieldData["__typename"];
+    assert(
+      typename,
+      `Expected object with __typename for abstract type "${childType.name}"`
+    );
+    assert(
+      typeof typename === "string",
+      `Expected __typename to be a string, but got ${typeof typename}`
+    );
+    const specificType = schema.getType(typename);
+    assert(
+      specificType && isObjectType(specificType),
+      `Could not resolve concrete type for abstract type "${childType.name}" - "${typename}" is not an object type.`
+    );
+    return specificType;
+  }
 }
 
 /**
@@ -368,4 +416,19 @@ function shouldIncludeNode(
   return true;
 }
 
+export function getFragmentDataRootObjectType(
+  data: unknown,
+  schema: GraphQLSchema
+) {
+  assert(typeof data === "object" && data !== null, "Expected object");
+  const typename = (data as any)["__typename"];
+  assert(typename, "Expected __typename field in fragment data");
+  const fragmentType = schema.getType(typename);
+  assert(fragmentType, `Type "${typename}" not found in schema for fragment`);
+  assert(
+    isObjectType(fragmentType),
+    `Type "${typename}" is not an object type`
+  );
+  return fragmentType;
+}
 const typenameType = new GraphQLNonNull(GraphQLString);
