@@ -9,6 +9,9 @@ import {
   type GraphQLFormattedError,
   GraphQLScalarType,
   GraphQLSchema,
+  Kind,
+  type OperationDefinitionNode,
+  OperationTypeNode,
 } from "graphql";
 import type {
   StandardJSONSchemaV1,
@@ -337,11 +340,11 @@ export class GraphQLStandardSchemaGenerator<
     const variableValues =
       variables ||
       // TODO: also find all stray referenced variables throughout the document and try to infer their types
-      fakeVariables(
+      (fakeVariables(
         fragment.variableDefinitions || [],
         schema,
         this.scalarTypes
-      );
+      ) as TVariables);
 
     const buildSchema: (
       direction: "serialized" | "deserialized"
@@ -370,10 +373,34 @@ export class GraphQLStandardSchemaGenerator<
           ...config,
           query: getFragmentDataRootObjectType(data, schema),
         });
+        const queryDocument: TypedDocumentNode<TData, TVariables> = {
+          ...document,
+          definitions: [
+            {
+              kind: Kind.OPERATION_DEFINITION,
+              operation: OperationTypeNode.QUERY,
+              selectionSet: {
+                kind: Kind.SELECTION_SET,
+                selections: [
+                  {
+                    kind: Kind.FRAGMENT_SPREAD,
+                    name: {
+                      kind: Kind.NAME,
+                      value: fragment!.name.value,
+                    },
+                  },
+                ],
+              },
+            } satisfies OperationDefinitionNode,
+            ...document.definitions.filter(
+              (d) => d.kind === Kind.FRAGMENT_DEFINITION
+            ),
+          ],
+        };
         return serializeWithSchema(
           data,
           fragmentSchema,
-          document,
+          queryDocument,
           variableValues
         );
       } catch (e) {
