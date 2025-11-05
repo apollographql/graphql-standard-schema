@@ -16,6 +16,13 @@ const generator = new GraphQLStandardSchemaGenerator({
 const schema = generator.getDataSchema(SearchCharacter);
 const basicSchemaJSON = toJSONSchema(schema);
 
+const adjustedSchemaJSON = JSON.parse(JSON.stringify(basicSchemaJSON));
+adjustedSchemaJSON.$ref = "#/$defs/" + "props.data/" + "type/Query";
+adjustedSchemaJSON.properties.search.items.anyOf[0].properties.friends.items.$ref =
+  "#/$defs/" + "props.data/" + "type/Character";
+adjustedSchemaJSON.properties.search.items.anyOf[1].properties.friends.items.$ref =
+  "#/$defs/" + "props.data/" + "type/Character";
+
 const validData: StandardSchemaV1.InferInput<typeof schema> = {
   search: [
     {
@@ -87,7 +94,7 @@ test("composes with zod", async (t) => {
       schema
     );
 
-    const { $defs, $schema, ...extension } = basicSchemaJSON;
+    const { $defs, $schema, ...extension } = adjustedSchemaJSON;
 
     assert.deepStrictEqual(toJSONSchema(combinedSchema), {
       $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -107,8 +114,9 @@ test("composes with zod", async (t) => {
       },
       required: ["props"],
       // +
-      $defs,
+      $defs: { "props.data": $defs },
     });
+    t.assert.snapshot(toJSONSchema(combinedSchema));
   });
   await t.test("optional", (t) => {
     const combinedSchema = composeStandardSchemas(
@@ -118,7 +126,7 @@ test("composes with zod", async (t) => {
       false
     );
 
-    const { $defs, $schema, ...extension } = basicSchemaJSON;
+    const { $defs, $schema, ...extension } = adjustedSchemaJSON;
 
     assert.deepStrictEqual(toJSONSchema(combinedSchema), {
       $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -138,7 +146,10 @@ test("composes with zod", async (t) => {
       },
       required: ["props"],
       // +
-      $defs,
+      $defs: {
+        "props.data": $defs,
+      },
     });
+    t.assert.snapshot(toJSONSchema(combinedSchema));
   });
 });

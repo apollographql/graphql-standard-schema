@@ -73,6 +73,9 @@ export function composeStandardSchemas<
       required?: string[];
       $defs?: Record<string, unknown>;
     } = rootJson;
+
+    const refPrefix = path.join(".");
+
     for (let i = 0; i < path.length; i++) {
       const key = path[i]!;
       assert(step.type === "object");
@@ -91,7 +94,19 @@ export function composeStandardSchemas<
         }
       }
       if (i === path.length - 1) {
-        step.properties[key] = extensionJson;
+        step.properties[key] = JSON.parse(
+          JSON.stringify(extensionJson),
+          (key, value) => {
+            if (
+              key === "$ref" &&
+              typeof value === "string" &&
+              value.startsWith("#/$defs")
+            ) {
+              return "#/$defs/" + refPrefix + value.slice("#/$defs".length);
+            }
+            return value;
+          }
+        ) as typeof extensionJson;
       }
       step = step.properties[key];
     }
@@ -99,7 +114,7 @@ export function composeStandardSchemas<
       // note that this might override existing definitions in rootJson.$defs
       // this is okay while using this internally, but once exposed to users, we might
       // need to handle conflicts more gracefully
-      rootJson.$defs = { ...rootJson.$defs, ...$defs };
+      rootJson.$defs = { ...rootJson.$defs, [refPrefix]: $defs };
     }
     return rootJson;
   };
