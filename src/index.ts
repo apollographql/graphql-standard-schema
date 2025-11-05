@@ -41,6 +41,7 @@ import {
   parseSelectionSet,
   parseData as parseDataSelection,
 } from "./parseData.ts";
+import type { normalize } from "path";
 
 export declare namespace GraphQLStandardSchemaGenerator {
   export namespace Internal {
@@ -189,8 +190,7 @@ export class GraphQLStandardSchemaGenerator<
     GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
     GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
   > & {
-    // TODO: should this be called normalize?
-    parse: GraphQLStandardSchemaGenerator.ValidationSchema<
+    normalize: GraphQLStandardSchemaGenerator.ValidationSchema<
       GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
       GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
     >;
@@ -289,7 +289,7 @@ export class GraphQLStandardSchemaGenerator<
       buildSchema("serialized")
     );
     return Object.assign(base, {
-      parse: base,
+      normalize: base,
       deserialize: validationSchema<Serialized, Deserialized>(
         deserializeData,
         buildSchema("serialized"),
@@ -320,7 +320,7 @@ export class GraphQLStandardSchemaGenerator<
     const composed = composeStandardSchemas(
       responseShapeSchema(getOperation(document)),
       ["data"] as const,
-      nullable(this.getDataSchema<TData>(document).parse),
+      nullable(this.getDataSchema<TData>(document).normalize),
       false
     );
     return validationSchema(

@@ -15,8 +15,8 @@ function getJsonSchemas(
   const deserializedJsonSchema = toJSONSchema.output(base.deserialize);
   assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base));
   assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base));
-  assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base.parse));
-  assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base.parse));
+  assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base.normalize));
+  assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base.normalize));
   assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base.deserialize));
   assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base.serialize));
   assert.deepEqual(deserializedJsonSchema, toJSONSchema.input(base.serialize));
@@ -46,19 +46,21 @@ test("generates schema for simple query", async (t) => {
         `)
   );
 
-  await t.test("parse", async (t) => {
-    t.assert.equal(dataSchema, dataSchema.parse);
+  await t.test("normalize", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.normalize);
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
-      >().toEqualTypeOf<StandardSchemaV1.InferInput<typeof dataSchema.parse>>();
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema.normalize>
+      >();
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<{ hello: string; count: number }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
       >().toEqualTypeOf<
-        StandardSchemaV1.InferOutput<typeof dataSchema.parse>
+        StandardSchemaV1.InferOutput<typeof dataSchema.normalize>
       >();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
@@ -240,22 +242,24 @@ test("works with field selection set", async (t) => {
         `)
   );
 
-  await t.test("parse", async (t) => {
-    assert.equal(dataSchema, dataSchema.parse);
+  await t.test("normalize", async (t) => {
+    assert.equal(dataSchema, dataSchema.normalize);
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
-      >().toEqualTypeOf<StandardSchemaV1.InferInput<typeof dataSchema.parse>>();
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema.normalize>
+      >();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
       >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
       >().toEqualTypeOf<
-        StandardSchemaV1.InferOutput<typeof dataSchema.parse>
+        StandardSchemaV1.InferOutput<typeof dataSchema.normalize>
       >();
     });
     await t.test("validateSync", () => {
@@ -495,22 +499,24 @@ test("enforces non-null types", async (t) => {
           }
         `)
   );
-  await t.test("parse", async (t) => {
-    t.assert.equal(dataSchema, dataSchema.parse);
+  await t.test("normalize", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.normalize);
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<Data>();
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
-      >().toEqualTypeOf<StandardSchemaV1.InferInput<typeof dataSchema.parse>>();
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema.normalize>
+      >();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
       >().toEqualTypeOf<Data>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
       >().toEqualTypeOf<
-        StandardSchemaV1.InferOutput<typeof dataSchema.parse>
+        StandardSchemaV1.InferOutput<typeof dataSchema.normalize>
       >();
     });
     await t.test("validateSync", () => {
@@ -768,8 +774,8 @@ test("handles enums", async (t) => {
         `)
   );
 
-  await t.test("parse", async (t) => {
-    assert.equal(dataSchema, dataSchema.parse);
+  await t.test("normalize", async (t) => {
+    assert.equal(dataSchema, dataSchema.normalize);
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
@@ -917,8 +923,8 @@ test("handles custom scalars", async (t) => {
           }
         `)
   );
-  await t.test("parse", async (t) => {
-    t.assert.equal(dataSchema, dataSchema.parse);
+  await t.test("normalize", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.normalize);
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
@@ -1127,8 +1133,8 @@ test("handles arrays", async (t) => {
         `)
   );
 
-  await t.test("parse", async (t) => {
-    t.assert.equal(dataSchema, dataSchema.parse);
+  await t.test("normalize", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.normalize);
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
@@ -1364,8 +1370,8 @@ test("handles interfaces", async (t) => {
           }
         `)
   );
-  await t.test("parse", async (t) => {
-    t.assert.equal(dataSchema, dataSchema.parse);
+  await t.test("normalize", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.normalize);
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
@@ -1766,8 +1772,8 @@ test("handles unions", async (t) => {
           }
         `)
   );
-  await t.test("parse", async (t) => {
-    t.assert.equal(dataSchema, dataSchema.parse);
+  await t.test("normalize", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.normalize);
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
