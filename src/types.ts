@@ -35,12 +35,19 @@ type SerializedValue<TData, Mapping extends [any, any]> = Mapping extends [
   ? Serialized
   : never;
 
+type IsUnknown<T> = unknown extends T
+  ? [keyof T] extends [never]
+    ? true
+    : false
+  : false;
 export type CalculateSerializedType<TData, Mapping extends [any, any]> =
-  SerializedValue<TData, Mapping> extends infer Serialized
-    ? [Serialized] extends [never]
-      ? RecurseCalculateInputType<TData, Mapping>
-      : Serialized
-    : never;
+  IsUnknown<TData> extends true
+    ? TData
+    : SerializedValue<TData, Mapping> extends infer Serialized
+      ? [Serialized] extends [never]
+        ? RecurseCalculateInputType<TData, Mapping>
+        : Serialized
+      : never;
 
 type RecurseCalculateInputType<
   TData,

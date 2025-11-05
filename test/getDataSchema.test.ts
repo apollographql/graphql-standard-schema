@@ -5,27 +5,8 @@ import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
 import { expectTypeOf } from "expect-type";
 import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
 import assert from "node:assert";
-import { toJSONSchema } from "./utils/toJsonSchema.ts";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
-
-function getJsonSchemas(
-  base: ReturnType<GraphQLStandardSchemaGenerator["getDataSchema"]>
-) {
-  const serializedJsonSchema = toJSONSchema.output(base.serialize);
-  const deserializedJsonSchema = toJSONSchema.output(base.deserialize);
-  assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base));
-  assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base));
-  assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base.normalize));
-  assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base.normalize));
-  assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base.deserialize));
-  assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base.serialize));
-  assert.deepEqual(deserializedJsonSchema, toJSONSchema.input(base.serialize));
-  assert.deepEqual(
-    deserializedJsonSchema,
-    toJSONSchema.output(base.deserialize)
-  );
-  return { serializedJsonSchema, deserializedJsonSchema };
-}
+import { getBidirectionalJsonSchemas } from "./utils/getBidirectionalJsonSchemas.ts";
 
 test("generates schema for simple query", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -203,7 +184,7 @@ test("generates schema for simple query", async (t) => {
   });
   await t.test("JSON schema", (t) => {
     const { serializedJsonSchema, deserializedJsonSchema } =
-      getJsonSchemas(dataSchema);
+      getBidirectionalJsonSchemas(dataSchema);
     t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
 
     {
@@ -438,7 +419,7 @@ test("works with field selection set", async (t) => {
   });
   await t.test("JSON schema", (t) => {
     const { deserializedJsonSchema, serializedJsonSchema } =
-      getJsonSchemas(dataSchema);
+      getBidirectionalJsonSchemas(dataSchema);
     t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
       const result = validateWithAjv(deserializedJsonSchema, {
@@ -770,7 +751,7 @@ test("enforces non-null types", async (t) => {
   });
   await t.test("JSON schema", (t) => {
     const { serializedJsonSchema, deserializedJsonSchema } =
-      getJsonSchemas(dataSchema);
+      getBidirectionalJsonSchemas(dataSchema);
     t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
       const result = validateWithAjv(serializedJsonSchema, {
@@ -944,7 +925,7 @@ test("handles enums", async (t) => {
   });
   await t.test("JSON schema", (t) => {
     const { serializedJsonSchema, deserializedJsonSchema } =
-      getJsonSchemas(dataSchema);
+      getBidirectionalJsonSchemas(dataSchema);
     t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
       const result = validateWithAjv(serializedJsonSchema, {
@@ -1124,7 +1105,7 @@ test("handles custom scalars", async (t) => {
   });
   await t.test("JSON schema", (t) => {
     const { serializedJsonSchema, deserializedJsonSchema } =
-      getJsonSchemas(dataSchema);
+      getBidirectionalJsonSchemas(dataSchema);
     {
       const result = validateWithAjv(serializedJsonSchema, {
         now: "2023-10-05",
@@ -1397,7 +1378,7 @@ test("handles arrays", async (t) => {
   });
   await t.test("JSON schema", (t) => {
     const { serializedJsonSchema, deserializedJsonSchema } =
-      getJsonSchemas(dataSchema);
+      getBidirectionalJsonSchemas(dataSchema);
     t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
       const result = validateWithAjv(serializedJsonSchema, {
@@ -1740,7 +1721,7 @@ test("handles interfaces", async (t) => {
   });
   await t.test("JSON schema", (t) => {
     const { deserializedJsonSchema, serializedJsonSchema } =
-      getJsonSchemas(dataSchema);
+      getBidirectionalJsonSchemas(dataSchema);
     t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
       const result = validateWithAjv(deserializedJsonSchema, {
@@ -2170,7 +2151,7 @@ test("handles unions", async (t) => {
   });
   await t.test("JSON schema", (t) => {
     const { deserializedJsonSchema, serializedJsonSchema } =
-      getJsonSchemas(dataSchema);
+      getBidirectionalJsonSchemas(dataSchema);
     t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
       const result = validateWithAjv(deserializedJsonSchema, {

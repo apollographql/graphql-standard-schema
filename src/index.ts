@@ -95,7 +95,7 @@ export declare namespace GraphQLStandardSchemaGenerator {
 
   export type JSONSchemaCreator = (
     params?: StandardJSONSchemaV1.Options & JSONSchemaOptions
-  ) => OpenAiSupportedJsonSchema;
+  ) => Record<string, unknown>;
 
   export interface JSONSchemaOptions {
     /**
@@ -268,35 +268,66 @@ export class GraphQLStandardSchemaGenerator<
 
   getResponseSchema<TData>(
     document: TypedDocumentNode<TData>
-  ): GraphQLStandardSchemaGenerator.ValidationSchema<
+  ): GraphQLStandardSchemaGenerator.BidirectionalValidationSchema<
     {
       errors?: ReadonlyArray<GraphQLFormattedError> | null;
-      data?: GraphQLStandardSchemaGenerator.Serialized<TData, Scalars> | null;
+      data?: TData | null;
       extensions?: Record<string, unknown> | null;
     },
-    {
-      errors?: ReadonlyArray<GraphQLFormattedError> | null;
-      data?: GraphQLStandardSchemaGenerator.Serialized<TData, Scalars> | null;
-      extensions?: Record<string, unknown> | null;
-    }
+    Scalars
   > {
-    const composed = composeStandardSchemas(
-      responseShapeSchema(getOperation(document)),
+    const dataSchema = this.getDataSchema(document);
+    const rootSchema = responseShapeSchema(getOperation(document));
+    const composedNormalize = composeStandardSchemas(
+      rootSchema,
       ["data"] as const,
-      nullable(this.getDataSchema(document).normalize),
+      nullable(dataSchema.normalize),
       false
     );
-    return validationSchema(
-      function validate(value: unknown) {
-        const result = composed["~standard"].validate(value);
+    const composedDeserialize = composeStandardSchemas(
+      rootSchema,
+      ["data"] as const,
+      nullable(dataSchema.deserialize),
+      false
+    );
+    const composedSerialize = composeStandardSchemas(
+      rootSchema,
+      ["data"] as const,
+      nullable(dataSchema.serialize),
+      false
+    );
+
+    function forceSync<Args extends any[], T extends {}>(
+      fn: (...args: Args) => T | Promise<T>
+    ): (...args: Args) => T {
+      return (...args: Args) => {
+        const result = fn(...args);
         assert(!("then" in result), "Async validation not supported here");
         return result;
+      };
+    }
+    const normalize = forceSync(composedNormalize["~standard"].validate);
+    const deserialize = forceSync(composedDeserialize["~standard"].validate);
+    const serialize = forceSync(composedSerialize["~standard"].validate);
+
+    return bidirectionalValidationSchema<
+      {
+        errors?: ReadonlyArray<GraphQLFormattedError> | null;
+        data?: TData | null;
+        extensions?: Record<string, unknown> | null;
       },
-      composed["~standard"].jsonSchema
-        .input as GraphQLStandardSchemaGenerator.JSONSchemaCreator,
-      composed["~standard"].jsonSchema
-        .output as GraphQLStandardSchemaGenerator.JSONSchemaCreator
-    );
+      Scalars
+    >({
+      // computation doesn't work out as `Scalars` is not known inside this function
+      normalize: normalize as any,
+      deserialize,
+      // computation doesn't work out as `Scalars` is not known inside this function
+      serialize: serialize as any,
+      buildSchema: (direction) =>
+        direction === "serialized"
+          ? composedSerialize["~standard"].jsonSchema.output
+          : composedDeserialize["~standard"].jsonSchema.output,
+    });
   }
 
   getFragmentSchema<TData, TVariables extends Record<string, unknown>>(
