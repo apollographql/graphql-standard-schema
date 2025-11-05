@@ -209,17 +209,15 @@ export function nullable<Input, Output>(
       },
       jsonSchema: {
         input(params) {
-          const { $defs, ...orig } =
+          const { $defs, $schema, ...orig } =
             schema["~standard"].jsonSchema.input(params);
-          return {
-            anyOf: [{ type: "null" }, orig],
-            $defs,
-          };
+          return { $schema, anyOf: [{ type: "null" }, orig], $defs };
         },
         output(params) {
-          const { $defs, ...orig } =
+          const { $defs, $schema, ...orig } =
             schema["~standard"].jsonSchema.input(params);
           return {
+            $schema,
             anyOf: [{ type: "null" }, orig],
             $defs,
           };

@@ -1,0 +1,292 @@
+exports[`simple query response > JSON Schema > deserialized JSON schema snapshot 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Full response for query CurrentlyPlaying",
+  "type": "object",
+  "properties": {
+    "errors": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "locations": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "line": {
+                          "type": "number"
+                        },
+                        "column": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "line",
+                        "column"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                ]
+              },
+              "path": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "message",
+              "locations",
+              "path",
+              "extensions"
+            ]
+          }
+        }
+      ]
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "title": "query CurrentlyPlaying",
+          "properties": {
+            "currentlyPlaying": {
+              "title": "Media",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "__typename": {
+                  "const": "Media"
+                },
+                "title": {
+                  "title": "Media.title: String!",
+                  "type": "string"
+                },
+                "kind": {
+                  "title": "Media.kind: MediaKind!",
+                  "$ref": "#/$defs/data/enum/MediaKind"
+                },
+                "startedAt": {
+                  "title": "Media.startedAt: Date!",
+                  "$ref": "#/$defs/data/scalar/Date"
+                }
+              },
+              "required": [
+                "__typename",
+                "title",
+                "kind",
+                "startedAt"
+              ]
+            }
+          },
+          "required": []
+        }
+      ]
+    }
+  },
+  "required": [
+    "errors"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "data": {
+      "enum": {
+        "MediaKind": {
+          "title": "MediaKind",
+          "enum": [
+            "MOVIE",
+            "SERIES"
+          ]
+        }
+      },
+      "scalar": {
+        "Date": {
+          "title": "Date",
+          "description": "A date string in YYYY-MM-DD format",
+          "type": "string",
+          "pattern": "\\\\d{4}-\\\\d{1,2}-\\\\d{1,2}"
+        }
+      }
+    }
+  }
+}
+`;
+
+exports[`simple query response > JSON Schema > serialized JSON schema snapshot 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Full response for query CurrentlyPlaying",
+  "type": "object",
+  "properties": {
+    "errors": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "locations": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "line": {
+                          "type": "number"
+                        },
+                        "column": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "line",
+                        "column"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                ]
+              },
+              "path": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "message",
+              "locations",
+              "path",
+              "extensions"
+            ]
+          }
+        }
+      ]
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "title": "query CurrentlyPlaying",
+          "properties": {
+            "currentlyPlaying": {
+              "title": "Media",
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "__typename": {
+                  "const": "Media"
+                },
+                "title": {
+                  "title": "Media.title: String!",
+                  "type": "string"
+                },
+                "kind": {
+                  "title": "Media.kind: MediaKind!",
+                  "$ref": "#/$defs/data/enum/MediaKind"
+                },
+                "startedAt": {
+                  "title": "Media.startedAt: Date!",
+                  "$ref": "#/$defs/data/scalar/Date"
+                }
+              },
+              "required": [
+                "__typename",
+                "title",
+                "kind",
+                "startedAt"
+              ]
+            }
+          },
+          "required": []
+        }
+      ]
+    }
+  },
+  "required": [
+    "errors"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "data": {
+      "enum": {
+        "MediaKind": {
+          "title": "MediaKind",
+          "enum": [
+            "MOVIE",
+            "SERIES"
+          ]
+        }
+      },
+      "scalar": {
+        "Date": {
+          "title": "Date",
+          "description": "Unix timestamp in milliseconds",
+          "type": "number"
+        }
+      }
+    }
+  }
+}
+`;

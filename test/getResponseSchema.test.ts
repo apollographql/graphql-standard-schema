@@ -1,13 +1,15 @@
 import { test } from "node:test";
 import { expectTypeOf } from "expect-type";
 import { GraphQLStandardSchemaGenerator } from "../src/index.ts";
-import { swSchema } from "./utils/swSchema.ts";
 import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
 import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
 import { toJSONSchema } from "./utils/toJsonSchema.ts";
 import { buildSchema, type GraphQLFormattedError } from "graphql";
 import { getBidirectionalJsonSchemas } from "./utils/getBidirectionalJsonSchemas.ts";
+import jsonPatch from "fast-json-patch";
+import { getOperation } from "../src/getOperation.ts";
+import { responseShapeSchema } from "../src/schema/responseShapeSchema.ts";
 
 await test("simple query response", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -33,14 +35,13 @@ await test("simple query response", async (t) => {
       Date: DateScalarDef,
     },
   });
-  const responseSchema = generator.getResponseSchema(
-    gql<{
-      currentlyPlaying: {
-        title: string;
-        kind: "MOVIE" | "SERIES";
-        startedAt: Date;
-      };
-    }>(/*GraphQL*/ `
+  const query = gql<{
+    currentlyPlaying: {
+      title: string;
+      kind: "MOVIE" | "SERIES";
+      startedAt: Date;
+    };
+  }>(/*GraphQL*/ `
     query CurrentlyPlaying {
       currentlyPlaying {
         title
@@ -48,8 +49,8 @@ await test("simple query response", async (t) => {
         startedAt
       }
     }
-  `)
-  );
+  `);
+  const responseSchema = generator.getResponseSchema(query);
   await t.test("normalize", async (t) => {
     t.assert.equal(responseSchema, responseSchema.normalize);
     await t.test("types", () => {
@@ -157,6 +158,156 @@ await test("simple query response", async (t) => {
     const { serializedJsonSchema, deserializedJsonSchema } =
       getBidirectionalJsonSchemas(responseSchema);
 
-    console.log(JSON.stringify(serializedJsonSchema, null, 2));
+    const rootSchema = toJSONSchema.input(
+      responseShapeSchema(getOperation(query))
+    );
+
+    let rootPatch: jsonPatch.Operation[];
+    await t.test("expected changes to generic root schema", (t) => {
+      rootPatch = jsonPatch.compare(rootSchema, serializedJsonSchema);
+      t.assert.deepEqual(rootPatch, [
+        {
+          op: "add",
+          path: "/properties/data",
+          value: {
+            anyOf: [
+              {
+                type: "null",
+              },
+              {
+                type: "object",
+                title: "query CurrentlyPlaying",
+                properties: {
+                  currentlyPlaying: {
+                    title: "Media",
+                    type: ["object", "null"],
+                    properties: {
+                      __typename: {
+                        const: "Media",
+                      },
+                      title: {
+                        title: "Media.title: String!",
+                        type: "string",
+                      },
+                      kind: {
+                        title: "Media.kind: MediaKind!",
+                        $ref: "#/$defs/data/enum/MediaKind",
+                      },
+                      startedAt: {
+                        title: "Media.startedAt: Date!",
+                        $ref: "#/$defs/data/scalar/Date",
+                      },
+                    },
+                    required: ["__typename", "title", "kind", "startedAt"],
+                  },
+                },
+                required: [],
+              },
+            ],
+          },
+        },
+        {
+          op: "add",
+          path: "/$defs",
+          value: {
+            data: {
+              enum: {
+                MediaKind: {
+                  title: "MediaKind",
+                  enum: ["MOVIE", "SERIES"],
+                },
+              },
+              scalar: {
+                Date: {
+                  title: "Date",
+                  description: "Unix timestamp in milliseconds",
+                  type: "number",
+                },
+              },
+            },
+          },
+        },
+      ]);
+    });
+
+    await t.test("expected changes to data schema", (t) => {
+      const added = (rootPatch as any)[0].value.anyOf[1];
+      const dataPatch = jsonPatch.compare(
+        getBidirectionalJsonSchemas(generator.getDataSchema(query))
+          .serializedJsonSchema,
+        added
+      );
+      t.assert.deepEqual(dataPatch, [
+        {
+          op: "remove",
+          path: "/$defs",
+        },
+        {
+          op: "replace",
+          path: "/properties/currentlyPlaying/properties/startedAt/$ref",
+          value: "#/$defs/data/scalar/Date",
+        },
+        {
+          op: "replace",
+          path: "/properties/currentlyPlaying/properties/kind/$ref",
+          value: "#/$defs/data/enum/MediaKind",
+        },
+        {
+          op: "remove",
+          path: "/$schema",
+        },
+      ]);
+    });
+
+    await t.test(
+      "expected differences between deserialize and serialized schemas",
+      (t) => {
+        t.assert.deepEqual(
+          jsonPatch.compare(serializedJsonSchema, deserializedJsonSchema),
+          [
+            {
+              op: "replace",
+              path: "/$defs/data/scalar/Date/type",
+              value: "string",
+            },
+            {
+              op: "replace",
+              path: "/$defs/data/scalar/Date/description",
+              value: "A date string in YYYY-MM-DD format",
+            },
+            {
+              op: "add",
+              path: "/$defs/data/scalar/Date/pattern",
+              value: "\\d{4}-\\d{1,2}-\\d{1,2}",
+            },
+          ]
+        );
+        t.assert.deepEqual(
+          jsonPatch.compare(deserializedJsonSchema, serializedJsonSchema),
+          [
+            {
+              op: "remove",
+              path: "/$defs/data/scalar/Date/pattern",
+            },
+            {
+              op: "replace",
+              path: "/$defs/data/scalar/Date/type",
+              value: "number",
+            },
+            {
+              op: "replace",
+              path: "/$defs/data/scalar/Date/description",
+              value: "Unix timestamp in milliseconds",
+            },
+          ]
+        );
+      }
+    );
+    await t.test("serialized JSON schema snapshot", (t) =>
+      t.assert.snapshot(serializedJsonSchema)
+    );
+    await t.test("deserialized JSON schema snapshot", (t) =>
+      t.assert.snapshot(deserializedJsonSchema)
+    );
   });
 });
