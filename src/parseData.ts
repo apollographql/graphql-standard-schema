@@ -147,7 +147,11 @@ export function parseSelectionSet<
   ): Record<string, unknown> {
     const accumulatedSelections: Record<
       string,
-      { schemaType: GraphQLOutputType; selections: SelectionNode[] }
+      {
+        schemaType: GraphQLOutputType | undefined;
+        fieldName: string;
+        selections: SelectionNode[];
+      }
     > = {};
     const accumulatedData: Record<string, unknown> = {};
     const fields = parentType.getFields();
@@ -155,97 +159,86 @@ export function parseSelectionSet<
 
     const unhandled = new Set(selections);
     for (const selection of unhandled) {
-      try {
-        if (!shouldIncludeNode(variableValues, selection)) {
-          continue;
-        }
-        if (
-          selection.kind === "FragmentSpread" ||
-          selection.kind === "InlineFragment"
-        ) {
-          let fragment: FragmentDefinitionNode | InlineFragmentNode | undefined;
-          if (selection.kind === "FragmentSpread") {
-            const fragmentName = selection.name.value;
-            if (visitedFragments.has(fragmentName)) {
-              continue;
-            }
-            visitedFragments.add(fragmentName);
-            fragment = fragments[fragmentName];
-
-            assert(fragment, `Fragment "${fragmentName}" not found`);
-          } else {
-            fragment = selection;
-          }
-
-          if (fragment.typeCondition) {
-            const abstractType = schema.getType(
-              fragment.typeCondition.name.value
-            );
-            assert(
-              isAbstractType(abstractType),
-              `Abstract Type "${fragment.typeCondition.name.value}" not found in schema`
-            );
-            if (schema.isSubType(abstractType, parentType)) {
-              continue;
-            }
-          }
-          fragment.selectionSet.selections.forEach((fragmentSelection) =>
-            unhandled.add(fragmentSelection)
-          );
-        }
-        if (selection.kind === "Field") {
-          let childType =
-            selection.name.value === "__typename"
-              ? typenameType
-              : fields[selection.name.value]?.type;
-          const key = selection.alias?.value || selection.name.value;
-          let fieldData = data[key];
-          if (
-            selection.name.value === "__typename" &&
-            isObjectType(parentType)
-          ) {
-            fieldData = parentType.name;
-          }
-          assert(
-            childType,
-            `Field "${selection.name.value}" not found on type "${parentType.name}"`
-          );
-          if (isNonNullType(childType)) {
-            childType = (childType as GraphQLNonNull<GraphQLOutputType>).ofType;
-          } else {
-            if (fieldData == null) {
-              accumulatedData[key] = null;
-              continue;
-            }
-          }
-          if (isScalarType(childType) || isEnumType(childType)) {
-            accumulatedData[key] = parseScalar(fieldData, childType);
+      if (!shouldIncludeNode(variableValues, selection)) {
+        continue;
+      }
+      if (
+        selection.kind === "FragmentSpread" ||
+        selection.kind === "InlineFragment"
+      ) {
+        let fragment: FragmentDefinitionNode | InlineFragmentNode | undefined;
+        if (selection.kind === "FragmentSpread") {
+          const fragmentName = selection.name.value;
+          if (visitedFragments.has(fragmentName)) {
             continue;
           }
-          accumulatedSelections[key] ??= {
-            schemaType: childType,
-            selections: [],
-          };
-          if (selection.selectionSet) {
-            accumulatedSelections[key].selections.push(
-              ...selection.selectionSet?.selections
-            );
+          visitedFragments.add(fragmentName);
+          fragment = fragments[fragmentName];
+
+          assert(fragment, `Fragment "${fragmentName}" not found`);
+        } else {
+          fragment = selection;
+        }
+
+        if (fragment.typeCondition) {
+          const abstractType = schema.getType(
+            fragment.typeCondition.name.value
+          );
+          assert(
+            isAbstractType(abstractType),
+            `Abstract Type "${fragment.typeCondition.name.value}" not found in schema`
+          );
+          if (!schema.isSubType(abstractType, parentType)) {
+            continue;
           }
         }
-      } catch (e) {
-        issues.push({
-          message: (e as Error).message,
-          path:
-            selection.kind === "Field"
-              ? path.concat(selection.alias?.value || selection.name.value)
-              : path,
-        });
+        fragment.selectionSet.selections.forEach((fragmentSelection) =>
+          unhandled.add(fragmentSelection)
+        );
+      }
+      if (selection.kind === "Field") {
+        let childType =
+          selection.name.value === "__typename"
+            ? typenameType
+            : fields[selection.name.value]?.type;
+        const key = selection.alias?.value || selection.name.value;
+
+        accumulatedSelections[key] ??= {
+          schemaType: childType,
+          fieldName: selection.name.value,
+          selections: [],
+        };
+        if (selection.selectionSet) {
+          accumulatedSelections[key].selections.push(
+            ...selection.selectionSet?.selections
+          );
+        }
       }
     }
     for (const [key, config] of Object.entries(accumulatedSelections)) {
       try {
-        const fieldData = data[key];
+        const fieldName = config.fieldName;
         let childType = config.schemaType;
+        let fieldData = data[key];
+        if (fieldName === "__typename" && isObjectType(parentType)) {
+          fieldData = parentType.name;
+        }
+        assert(
+          childType,
+          `Field "${fieldName}" not found on type "${parentType.name}"`
+        );
+        if (isNonNullType(childType)) {
+          childType = (childType as GraphQLNonNull<GraphQLOutputType>).ofType;
+        } else {
+          if (fieldData == null) {
+            accumulatedData[key] = null;
+            continue;
+          }
+        }
+        if (isScalarType(childType) || isEnumType(childType)) {
+          accumulatedData[key] = parseScalar(fieldData, childType);
+          continue;
+        }
         if (isListType(childType)) {
           childType = childType.ofType;
           let nullable = true;
