@@ -326,7 +326,7 @@ export class GraphQLStandardSchemaGenerator<
     return validationSchema(
       function validate(value: unknown) {
         const result = composed["~standard"].validate(value);
-        assert(!("then" in result));
+        assert(!("then" in result), "Async validation not supported here");
         return result;
       },
       composed["~standard"].jsonSchema
@@ -377,29 +377,39 @@ export class GraphQLStandardSchemaGenerator<
     ): StandardSchemaV1.Result<
       GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
     > => {
-      assert(typeof value === "object" && value !== null, "Expected object");
-      const typename = (value as any)["__typename"];
-      assert(typename, "Expected __typename field in fragment data");
-      const fragmentType = this.schema.getType(typename);
-      assert(
-        fragmentType,
-        `Type "${typename}" not found in schema for fragment`
-      );
-      assert(
-        isObjectType(fragmentType),
-        `Type "${typename}" is not an object type`
-      );
+      try {
+        assert(typeof value === "object" && value !== null, "Expected object");
+        const typename = (value as any)["__typename"];
+        assert(typename, "Expected __typename field in fragment data");
+        const fragmentType = this.schema.getType(typename);
+        assert(
+          fragmentType,
+          `Type "${typename}" not found in schema for fragment`
+        );
+        assert(
+          isObjectType(fragmentType),
+          `Type "${typename}" is not an object type`
+        );
 
-      return parseSelectionSet({
-        data: value,
-        selections: fragment.selectionSet.selections,
-        rootType: fragmentType,
-        variableValues: {},
-        schema: this.schema,
-        rootPath: [],
-        document,
-        mode: "parse",
-      });
+        return parseSelectionSet({
+          data: value,
+          selections: fragment.selectionSet.selections,
+          rootType: fragmentType,
+          variableValues: {},
+          schema: this.schema,
+          rootPath: [],
+          document,
+          mode: "parse",
+        });
+      } catch (e) {
+        return {
+          issues: [
+            {
+              message: (e as Error).message,
+            },
+          ],
+        };
+      }
     };
 
     const buildSchema: (

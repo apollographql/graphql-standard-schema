@@ -267,11 +267,17 @@ export function parseSelectionSet<
                 );
                 return null;
               }
-              if (isScalarType(childType)) {
+              if (isScalarType(childType) || isEnumType(childType)) {
                 return parseScalar(item, childType);
               }
-              assert(isObjectType(childType));
-              assert(typeof item === "object");
+              assert(
+                isObjectType(childType),
+                `Expected ${childType} to be an object type.`
+              );
+              assert(
+                typeof item === "object",
+                `Expected list item to be ${childType}, but got ${typeof item} instead.`
+              );
               return handleSelections(
                 item,
                 config.selections,
