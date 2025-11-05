@@ -916,55 +916,138 @@ test("handles custom scalars", async (t) => {
             now
           }
         `)
-  ).serialize;
-
-  await t.test("types", () => {
-    expectTypeOf<
-      StandardSchemaV1.InferInput<typeof dataSchema>
-    >().toEqualTypeOf<{
-      now: Date;
-    }>();
-    expectTypeOf<
-      StandardSchemaV1.InferOutput<typeof dataSchema>
-    >().toEqualTypeOf<{
-      now: string;
-    }>();
+  );
+  await t.test("parse", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.parse);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<{
+        now: string;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<{
+        now: string;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(dataSchema, {
+          now: "2023-10-05",
+        });
+        t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
+      }
+      {
+        const result = validateSync(dataSchema, {
+          now: "Oct 5 2023 23:00",
+        });
+        t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
+      }
+      {
+        const result = validateSync(dataSchema, {
+          now: "not-a-date",
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: "Value is not a valid Date string: not-a-date",
+              path: ["now"],
+            },
+          ],
+        });
+      }
+    });
   });
-  await t.test("validateSync", () => {
-    {
-      const result = validateSync(dataSchema, {
-        now: new Date("2023-10-05"),
-      });
-      t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
-    }
-    {
-      const result = validateSync(dataSchema, {
-        now: "not-a-date",
-      });
-      t.assert.deepEqual(result, {
-        issues: [
-          {
-            message: "Value is not a valid Date object: not-a-date",
-            path: ["now"],
-          },
-        ],
-      });
-    }
+  await t.test("deserialize", async (t) => {
+    const deserializeSchema = dataSchema.deserialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof deserializeSchema>
+      >().toEqualTypeOf<{
+        now: string;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof deserializeSchema>
+      >().toEqualTypeOf<{
+        now: Date;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(deserializeSchema, {
+          now: "2023-10-05",
+        });
+        t.assert.deepEqual(result, { value: { now: new Date("2023-10-05") } });
+      }
+      {
+        const result = validateSync(deserializeSchema, {
+          now: "not-a-date",
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: "Value is not a valid Date string: not-a-date",
+              path: ["now"],
+            },
+          ],
+        });
+      }
+    });
+  });
+
+  await t.test("serialize", async (t) => {
+    const serializeSchema = dataSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        now: Date;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        now: string;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          now: new Date("2023-10-05"),
+        });
+        t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          now: "not-a-date",
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: "Value is not a valid Date object: not-a-date",
+              path: ["now"],
+            },
+          ],
+        });
+      }
+    });
   });
   await t.test("JSON schema", (t) => {
+    const { serializedJsonSchema, deserializedJsonSchema } =
+      getJsonSchemas(dataSchema);
     {
-      const result = validateWithAjv(toJSONSchema.output(dataSchema), {
+      const result = validateWithAjv(serializedJsonSchema, {
         now: "2023-10-05",
       });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(toJSONSchema.output(dataSchema), {
+      const result = validateWithAjv(serializedJsonSchema, {
         now: 1234,
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.deepEqual(toJSONSchema.output(dataSchema), {
+    t.assert.deepEqual(serializedJsonSchema, {
       $defs: {
         scalar: {
           Date: {
@@ -987,22 +1070,22 @@ test("handles custom scalars", async (t) => {
       type: "object",
     });
     {
-      const result = validateWithAjv(toJSONSchema.input(dataSchema), {
+      const result = validateWithAjv(deserializedJsonSchema, {
         now: 1234,
       });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(toJSONSchema.input(dataSchema), {
+      const result = validateWithAjv(deserializedJsonSchema, {
         now: "2023-10-05",
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.deepEqual(toJSONSchema.input(dataSchema), {
+    t.assert.deepEqual(deserializedJsonSchema, {
       $defs: {
         scalar: {
           Date: {
-            description: "A date string in YYYY-MM-DD format",
+            description: "Unix timestamp in milliseconds",
             title: "Date",
             type: "number",
           },

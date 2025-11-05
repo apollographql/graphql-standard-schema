@@ -189,6 +189,7 @@ export class GraphQLStandardSchemaGenerator<
     GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
     GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
   > & {
+    // TODO: should this be called normalize?
     parse: GraphQLStandardSchemaGenerator.ValidationSchema<
       GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
       GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>

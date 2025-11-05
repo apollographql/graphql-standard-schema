@@ -22,6 +22,9 @@ export const DateScalarDef = {
   }),
   jsonSchema: {
     serialized: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
-    deserialized: { type: "number" },
+    deserialized: {
+      type: "number",
+      description: "Unix timestamp in milliseconds",
+    },
   },
 } as const;
