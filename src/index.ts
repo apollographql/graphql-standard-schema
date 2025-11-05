@@ -7,13 +7,8 @@ import {
   getVariableValues,
   GraphQLError,
   type GraphQLFormattedError,
-  GraphQLNonNull,
   GraphQLScalarType,
   GraphQLSchema,
-  isObjectType,
-  Kind,
-  type OperationDefinitionNode,
-  OperationTypeNode,
 } from "graphql";
 import type {
   StandardJSONSchemaV1,
@@ -38,10 +33,10 @@ import { addTypename } from "./transforms/addTypename.ts";
 import { mapSchema, MapperKind } from "@graphql-tools/utils";
 import { getOperation } from "./getOperation.ts";
 import {
-  parseSelectionSet,
+  getFragmentDataRootObjectType,
   parseData as parseDataSelection,
+  parseFragment,
 } from "./parseData.ts";
-import type { normalize } from "path";
 
 export declare namespace GraphQLStandardSchemaGenerator {
   export namespace Internal {
@@ -121,6 +116,27 @@ export declare namespace GraphQLStandardSchemaGenerator {
     extends CombinedSpec<Input, Output> {
     (value: unknown): StandardSchemaV1.Result<Output>;
   }
+
+  export type BidirectionalValidationSchema<
+    Deserialized,
+    Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
+  > = GraphQLStandardSchemaGenerator.ValidationSchema<
+    GraphQLStandardSchemaGenerator.Serialized<Deserialized, Scalars>,
+    GraphQLStandardSchemaGenerator.Serialized<Deserialized, Scalars>
+  > & {
+    normalize: GraphQLStandardSchemaGenerator.ValidationSchema<
+      GraphQLStandardSchemaGenerator.Serialized<Deserialized, Scalars>,
+      GraphQLStandardSchemaGenerator.Serialized<Deserialized, Scalars>
+    >;
+    deserialize: GraphQLStandardSchemaGenerator.ValidationSchema<
+      GraphQLStandardSchemaGenerator.Serialized<Deserialized, Scalars>,
+      GraphQLStandardSchemaGenerator.Deserialized<Deserialized, Scalars>
+    >;
+    serialize: GraphQLStandardSchemaGenerator.ValidationSchema<
+      GraphQLStandardSchemaGenerator.Deserialized<Deserialized, Scalars>,
+      GraphQLStandardSchemaGenerator.Serialized<Deserialized, Scalars>
+    >;
+  };
 }
 export class GraphQLStandardSchemaGenerator<
   Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions = Record<
@@ -184,30 +200,13 @@ export class GraphQLStandardSchemaGenerator<
     });
   }
 
-  getDataSchema<TData>(
-    document: TypedDocumentNode<TData, any>
-  ): GraphQLStandardSchemaGenerator.ValidationSchema<
-    GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
-    GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
-  > & {
-    normalize: GraphQLStandardSchemaGenerator.ValidationSchema<
-      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
-      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
-    >;
-    deserialize: GraphQLStandardSchemaGenerator.ValidationSchema<
-      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
-      GraphQLStandardSchemaGenerator.Deserialized<TData, Scalars>
-    >;
-    serialize: GraphQLStandardSchemaGenerator.ValidationSchema<
-      GraphQLStandardSchemaGenerator.Deserialized<TData, Scalars>,
-      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
-    >;
-  } {
-    type Serialized = GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>;
-    type Deserialized = GraphQLStandardSchemaGenerator.Deserialized<
-      TData,
-      Scalars
-    >;
+  getDataSchema<TData, TVariables extends Record<string, unknown>>(
+    document: TypedDocumentNode<TData, TVariables>,
+    variables?: TVariables
+  ): GraphQLStandardSchemaGenerator.BidirectionalValidationSchema<
+    TData,
+    Scalars
+  > {
     const schema = this.schema;
     const scalarTypes = this.scalarTypes;
     document = this.documentTransfoms.reduce(
@@ -215,11 +214,13 @@ export class GraphQLStandardSchemaGenerator<
       document
     );
     const operation = getOperation(document);
-    const variableValues = fakeVariables(
-      operation.variableDefinitions || [],
-      schema,
-      scalarTypes
-    );
+    const variableValues =
+      variables ||
+      (fakeVariables(
+        operation.variableDefinitions || [],
+        schema,
+        scalarTypes
+      ) as TVariables);
 
     const buildSchema: (
       direction: "serialized" | "deserialized"
@@ -237,69 +238,28 @@ export class GraphQLStandardSchemaGenerator<
         };
       };
 
-    function serializeData(value: any): StandardSchemaV1.Result<Serialized> {
-      const result = execute({
-        schema,
-        document,
-        variableValues,
-        fieldResolver: (source, args, context, info) => {
-          return source[info.fieldName];
-        },
-        rootValue: value,
-      }) as FormattedExecutionResult;
-
-      if (result.errors?.length) {
-        return {
-          issues: result.errors.map(formatError),
-        };
-      }
-      return {
-        value: result.data as GraphQLStandardSchemaGenerator.Serialized<
-          TData,
-          Scalars
-        >,
-      };
-    }
-    function deserializeData(
-      data: unknown
-    ): StandardSchemaV1.Result<Deserialized> {
-      return parseDataSelection(
-        data,
-        operation,
-        schema,
-        document,
-        variableValues,
-        "deserialize"
-      );
-    }
-    function parseData(data: unknown): StandardSchemaV1.Result<Serialized> {
-      return parseDataSelection(
-        data,
-        operation,
-        schema,
-        document,
-        variableValues,
-        "parse"
-      );
-    }
-
-    const base = validationSchema<Serialized, Serialized>(
-      parseData,
-      buildSchema("serialized"),
-      buildSchema("serialized")
-    );
-    return Object.assign(base, {
-      normalize: base,
-      deserialize: validationSchema<Serialized, Deserialized>(
-        deserializeData,
-        buildSchema("serialized"),
-        buildSchema("deserialized")
-      ),
-      serialize: validationSchema<Deserialized, Serialized>(
-        serializeData,
-        buildSchema("deserialized"),
-        buildSchema("serialized")
-      ),
+    return bidirectionalValidationSchema<TData, Scalars>({
+      normalize: (data) =>
+        parseDataSelection(
+          data,
+          operation,
+          schema,
+          document,
+          variableValues,
+          "parse"
+        ),
+      deserialize: (data) =>
+        parseDataSelection(
+          data,
+          operation,
+          schema,
+          document,
+          variableValues,
+          "deserialize"
+        ),
+      serialize: (data) =>
+        serializeWithSchema(data, schema, document, variableValues),
+      buildSchema,
     });
   }
 
@@ -320,7 +280,7 @@ export class GraphQLStandardSchemaGenerator<
     const composed = composeStandardSchemas(
       responseShapeSchema(getOperation(document)),
       ["data"] as const,
-      nullable(this.getDataSchema<TData>(document).normalize),
+      nullable(this.getDataSchema(document).normalize),
       false
     );
     return validationSchema(
@@ -336,16 +296,18 @@ export class GraphQLStandardSchemaGenerator<
     );
   }
 
-  getFragmentSchema<TData>(
+  getFragmentSchema<TData, TVariables extends Record<string, unknown>>(
     document: TypedDocumentNode<TData>,
     {
       fragmentName,
+      variables,
     }: {
       fragmentName?: string;
+      variables?: TVariables;
     } = {}
-  ): GraphQLStandardSchemaGenerator.ValidationSchema<
-    GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>,
-    GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
+  ): GraphQLStandardSchemaGenerator.BidirectionalValidationSchema<
+    TData,
+    Scalars
   > {
     if (
       !document.definitions.every((def) => def.kind === "FragmentDefinition")
@@ -371,36 +333,49 @@ export class GraphQLStandardSchemaGenerator<
       fragment,
       `Fragment with name ${fragmentName} not found in document`
     );
+    const schema = this.schema;
+    const variableValues =
+      variables ||
+      // TODO: also find all stray referenced variables throughout the document and try to infer their types
+      fakeVariables(
+        fragment.variableDefinitions || [],
+        schema,
+        this.scalarTypes
+      );
 
-    const validate = (
-      value: unknown
+    const buildSchema: (
+      direction: "serialized" | "deserialized"
+    ) => GraphQLStandardSchemaGenerator.JSONSchemaCreator =
+      (direction) => (options) => {
+        return {
+          ...schemaBase(options),
+          ...buildFragmentSchema(
+            schema,
+            document,
+            fragment,
+            this[`${direction}ScalarTypes`],
+            { ...this.defaultJSONSchemaOptions, ...options }
+          ),
+        };
+      };
+
+    function serialize(
+      data: any
     ): StandardSchemaV1.Result<
       GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
-    > => {
+    > {
       try {
-        assert(typeof value === "object" && value !== null, "Expected object");
-        const typename = (value as any)["__typename"];
-        assert(typename, "Expected __typename field in fragment data");
-        const fragmentType = this.schema.getType(typename);
-        assert(
-          fragmentType,
-          `Type "${typename}" not found in schema for fragment`
-        );
-        assert(
-          isObjectType(fragmentType),
-          `Type "${typename}" is not an object type`
-        );
-
-        return parseSelectionSet({
-          data: value,
-          selections: fragment.selectionSet.selections,
-          rootType: fragmentType,
-          variableValues: {},
-          schema: this.schema,
-          rootPath: [],
-          document,
-          mode: "parse",
+        const config = schema.toConfig();
+        const fragmentSchema = new GraphQLSchema({
+          ...config,
+          query: getFragmentDataRootObjectType(data, schema),
         });
+        return serializeWithSchema(
+          data,
+          fragmentSchema,
+          document,
+          variableValues
+        );
       } catch (e) {
         return {
           issues: [
@@ -410,29 +385,30 @@ export class GraphQLStandardSchemaGenerator<
           ],
         };
       }
-    };
+    }
 
-    const buildSchema: (
-      direction: "serialized" | "deserialized"
-    ) => GraphQLStandardSchemaGenerator.JSONSchemaCreator =
-      (direction) => (options) => {
-        return {
-          ...schemaBase(options),
-          ...buildFragmentSchema(
-            this.schema,
-            document,
-            fragment,
-            this[`${direction}ScalarTypes`],
-            { ...this.defaultJSONSchemaOptions, ...options }
-          ),
-        };
-      };
-
-    return validationSchema(
-      validate,
-      buildSchema("serialized"),
-      buildSchema("serialized")
-    );
+    return bidirectionalValidationSchema<TData, Scalars>({
+      normalize: (value) =>
+        parseFragment(
+          value,
+          fragment,
+          schema,
+          document,
+          variableValues,
+          "parse"
+        ),
+      deserialize: (value) =>
+        parseFragment(
+          value,
+          fragment,
+          schema,
+          document,
+          variableValues,
+          "deserialize"
+        ),
+      serialize,
+      buildSchema,
+    });
   }
 
   getVariablesSchema<TVariables>(
@@ -494,6 +470,61 @@ export class GraphQLStandardSchemaGenerator<
   }
 }
 
+function bidirectionalValidationSchema<
+  Deserialized,
+  Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions = Record<
+    string,
+    never
+  >,
+>({
+  normalize,
+  deserialize,
+  serialize,
+  buildSchema,
+}: {
+  normalize: (
+    value: unknown
+  ) => StandardSchemaV1.Result<
+    GraphQLStandardSchemaGenerator.Serialized<Deserialized, Scalars>
+  >;
+  deserialize: (value: unknown) => StandardSchemaV1.Result<Deserialized>;
+  serialize: (
+    value: unknown
+  ) => StandardSchemaV1.Result<
+    GraphQLStandardSchemaGenerator.Serialized<Deserialized, Scalars>
+  >;
+  buildSchema: (
+    direction: "serialized" | "deserialized"
+  ) => GraphQLStandardSchemaGenerator.JSONSchemaCreator;
+}): GraphQLStandardSchemaGenerator.BidirectionalValidationSchema<
+  Deserialized,
+  Scalars
+> {
+  type Serialized = GraphQLStandardSchemaGenerator.Serialized<
+    Deserialized,
+    Scalars
+  >;
+  const base = validationSchema<Serialized, Serialized>(
+    normalize,
+    buildSchema("serialized"),
+    buildSchema("serialized")
+  );
+
+  return Object.assign(base, {
+    normalize: base,
+    deserialize: validationSchema<Serialized, Deserialized>(
+      deserialize,
+      buildSchema("serialized"),
+      buildSchema("deserialized")
+    ),
+    serialize: validationSchema<Deserialized, Serialized>(
+      serialize,
+      buildSchema("deserialized"),
+      buildSchema("serialized")
+    ),
+  });
+}
+
 function validationSchema<Input, Output = Input>(
   validate: (value: unknown) => StandardSchemaV1.Result<Output>,
   inputSchema: GraphQLStandardSchemaGenerator.JSONSchemaCreator,
@@ -530,6 +561,7 @@ export function standardSchema<Input, Output>(
     },
   };
 }
+
 function formatError(
   error: GraphQLError | GraphQLFormattedError
 ): StandardSchemaV1.Issue {
@@ -542,4 +574,39 @@ function formatError(
     : {
         message: formatted.message,
       };
+}
+
+function serializeWithSchema<
+  TData,
+  TVariables extends Record<string, unknown>,
+  Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
+>(
+  data: unknown,
+  schema: GraphQLSchema,
+  document: TypedDocumentNode<TData, TVariables>,
+  variableValues: TVariables
+): StandardSchemaV1.Result<
+  GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
+> {
+  const result = execute({
+    schema,
+    document,
+    variableValues,
+    fieldResolver: (source, args, context, info) => {
+      return source[info.fieldName];
+    },
+    rootValue: data,
+  }) as FormattedExecutionResult;
+
+  if (result.errors?.length) {
+    return {
+      issues: result.errors.map(formatError),
+    };
+  }
+  return {
+    value: result.data as GraphQLStandardSchemaGenerator.Serialized<
+      TData,
+      Scalars
+    >,
+  };
 }

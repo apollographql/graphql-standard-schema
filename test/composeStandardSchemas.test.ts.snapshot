@@ -1,13 +1,10 @@
 exports[`basic assumption about test schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$ref": "#/$defs/Query",
+  "$ref": "#/$defs/type/Query",
   "type": "object",
   "title": "query SearchCharacter",
   "properties": {
-    "__typename": {
-      "const": "Query"
-    },
     "search": {
       "title": "Query.search: [SearchResult!]",
       "type": [
@@ -38,7 +35,7 @@ exports[`basic assumption about test schema 1`] = `
                   "null"
                 ],
                 "items": {
-                  "$ref": "#/$defs/Character",
+                  "$ref": "#/$defs/type/Character",
                   "anyOf": [
                     {
                       "type": "null"
@@ -158,7 +155,7 @@ exports[`basic assumption about test schema 1`] = `
                   "null"
                 ],
                 "items": {
-                  "$ref": "#/$defs/Character",
+                  "$ref": "#/$defs/type/Character",
                   "anyOf": [
                     {
                       "type": "null"
@@ -240,15 +237,15 @@ exports[`basic assumption about test schema 1`] = `
       }
     }
   },
-  "required": [
-    "__typename"
-  ],
+  "required": [],
   "$defs": {
-    "Character": {
-      "description": "A character from the Star Wars universe"
-    },
-    "Query": {
-      "description": "The query type, represents all of the entry points into our object graph"
+    "type": {
+      "Character": {
+        "description": "A character from the Star Wars universe"
+      },
+      "Query": {
+        "description": "The query type, represents all of the entry points into our object graph"
+      }
     }
   }
 }
