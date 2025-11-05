@@ -69,19 +69,23 @@ test("generates schema for simple query", async (t) => {
 
     await t.test("validateSync", () => {
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           hello: "world",
           count: 42,
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           value: { hello: "world", count: 42 },
         });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           hello: "world",
           count: "five",
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -111,19 +115,23 @@ test("generates schema for simple query", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           hello: "world",
           count: 42,
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: { hello: "world", count: 42 },
         });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           hello: "world",
           count: "five",
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -155,17 +163,21 @@ test("generates schema for simple query", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           hello: "world",
           count: 42,
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, { value: { hello: "world", count: 42 } });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           hello: "world",
           count: "five",
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -178,10 +190,12 @@ test("generates schema for simple query", async (t) => {
     });
     await t.test("value coercion", () => {
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           hello: 42,
           count: "42",
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         // deepEqual because validateSync returns null objects
         t.assert.deepEqual(result, { value: { hello: "42", count: 42 } });
       }
@@ -264,14 +278,16 @@ test("works with field selection set", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           me: {
             id: "1",
             name: "Alice",
             age: 42,
             bestFriend: { id: "2", name: "Bob" },
           },
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             me: {
@@ -285,14 +301,16 @@ test("works with field selection set", async (t) => {
         });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           me: {
             id: "1",
             name: "Alice",
             age: "Bob",
             bestFriend: { id: "2", name: "Bob" },
           },
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -317,14 +335,16 @@ test("works with field selection set", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           me: {
             id: "1",
             name: "Alice",
             age: 42,
             bestFriend: { id: "2", name: "Bob" },
           },
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             me: {
@@ -338,14 +358,16 @@ test("works with field selection set", async (t) => {
         });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           me: {
             id: "1",
             name: "Alice",
             age: "Bob",
             bestFriend: { id: "2", name: "Bob" },
           },
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -370,14 +392,16 @@ test("works with field selection set", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           me: {
             id: "1",
             name: "Alice",
             age: 42,
             bestFriend: { id: "2", name: "Bob" },
           },
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             me: {
@@ -391,14 +415,16 @@ test("works with field selection set", async (t) => {
         });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           me: {
             id: "1",
             name: "Alice",
             age: "Bob",
             bestFriend: { id: "2", name: "Bob" },
           },
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -545,12 +571,14 @@ test("enforces non-null types", async (t) => {
         t.assert.deepEqual(result2, result);
       }
       {
-        const result = validateSync(dataSchema, {
+        const value: Record<string, unknown> = {
           hello: null,
           world: null,
           me: null,
           someoneElse: null,
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -565,14 +593,16 @@ test("enforces non-null types", async (t) => {
         });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value: Record<string, unknown> = {
           hello: "world",
           world: null,
           me: {
             id: "1",
           },
           someoneElse: null,
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -620,12 +650,14 @@ test("enforces non-null types", async (t) => {
         t.assert.deepEqual(result2, result);
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value: Record<string, unknown> = {
           hello: null,
           world: null,
           me: null,
           someoneElse: null,
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -640,14 +672,16 @@ test("enforces non-null types", async (t) => {
         });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value: Record<string, unknown> = {
           hello: "world",
           world: null,
           me: {
             id: "1",
           },
           someoneElse: null,
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -695,12 +729,14 @@ test("enforces non-null types", async (t) => {
         t.assert.deepEqual(result2, result);
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value: Record<string, unknown> = {
           hello: null,
           world: null,
           me: null,
           someoneElse: null,
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -711,14 +747,16 @@ test("enforces non-null types", async (t) => {
         });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value: Record<string, unknown> = {
           hello: "world",
           world: null,
           me: {
             id: "1",
           },
           someoneElse: null,
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -800,15 +838,19 @@ test("handles enums", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           currentlyPlaying: "MOVIE",
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, { value: { currentlyPlaying: "MOVIE" } });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           currentlyPlaying: "OPERA",
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -836,15 +878,19 @@ test("handles enums", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           currentlyPlaying: "MOVIE",
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, { value: { currentlyPlaying: "MOVIE" } });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           currentlyPlaying: "OPERA",
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -872,15 +918,19 @@ test("handles enums", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           currentlyPlaying: "MOVIE",
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, { value: { currentlyPlaying: "MOVIE" } });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           currentlyPlaying: "OPERA",
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -959,21 +1009,27 @@ test("handles custom scalars", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           now: "2023-10-05",
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           now: "Oct 5 2023 23:00",
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           now: "not-a-date",
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1001,15 +1057,19 @@ test("handles custom scalars", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           now: "2023-10-05",
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, { value: { now: new Date("2023-10-05") } });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           now: "not-a-date",
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1038,15 +1098,19 @@ test("handles custom scalars", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           now: new Date("2023-10-05"),
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           now: "not-a-date",
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1181,26 +1245,32 @@ test("handles arrays", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           greetings: ["hello", "hi"],
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           value: { greetings: ["hello", "hi"], nullableGreetings: null },
         });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value: Record<string, unknown> = {
           greetings: [],
           nullableGreetings: ["hello", null, "hi"],
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           value: { greetings: [], nullableGreetings: ["hello", null, "hi"] },
         });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           greetings: ["hello", "hi", null],
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1231,26 +1301,32 @@ test("handles arrays", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(deserializeSchema, {
+        const value: Record<string, unknown> = {
           greetings: ["hello", "hi"],
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: { greetings: ["hello", "hi"], nullableGreetings: null },
         });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value: Record<string, unknown> = {
           greetings: [],
           nullableGreetings: ["hello", null, "hi"],
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: { greetings: [], nullableGreetings: ["hello", null, "hi"] },
         });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           greetings: ["hello", "hi", null],
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1281,26 +1357,32 @@ test("handles arrays", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           greetings: ["hello", "hi"],
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: { greetings: ["hello", "hi"], nullableGreetings: null },
         });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value: Record<string, unknown> = {
           greetings: [],
           nullableGreetings: ["hello", null, "hi"],
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: { greetings: [], nullableGreetings: ["hello", null, "hi"] },
         });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           greetings: ["hello", "hi", null],
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1430,14 +1512,16 @@ test("handles interfaces", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           favourite: {
             __typename: "Book",
             id: "978-0345391803",
             name: "The Hitchhiker's Guide to the Galaxy",
             author: "Douglas Adams",
           },
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1450,13 +1534,15 @@ test("handles interfaces", async (t) => {
         });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           favourite: {
             __typename: "Color",
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1468,12 +1554,14 @@ test("handles interfaces", async (t) => {
         });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           favourite: {
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1506,14 +1594,16 @@ test("handles interfaces", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           favourite: {
             __typename: "Book",
             id: "978-0345391803",
             name: "The Hitchhiker's Guide to the Galaxy",
             author: "Douglas Adams",
           },
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1526,13 +1616,15 @@ test("handles interfaces", async (t) => {
         });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           favourite: {
             __typename: "Color",
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1544,12 +1636,14 @@ test("handles interfaces", async (t) => {
         });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           favourite: {
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1582,14 +1676,16 @@ test("handles interfaces", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           favourite: {
             __typename: "Book",
             id: "978-0345391803",
             name: "The Hitchhiker's Guide to the Galaxy",
             author: "Douglas Adams",
           },
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1602,13 +1698,15 @@ test("handles interfaces", async (t) => {
         });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           favourite: {
             __typename: "Color",
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1620,12 +1718,14 @@ test("handles interfaces", async (t) => {
         });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           favourite: {
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1842,14 +1942,16 @@ test("handles unions", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           favourite: {
             __typename: "Book",
             id: "978-0345391803",
             name: "The Hitchhiker's Guide to the Galaxy",
             author: "Douglas Adams",
           },
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1862,13 +1964,15 @@ test("handles unions", async (t) => {
         });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           favourite: {
             __typename: "Color",
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1880,12 +1984,14 @@ test("handles unions", async (t) => {
         });
       }
       {
-        const result = validateSync(dataSchema, {
+        const value = {
           favourite: {
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1918,14 +2024,16 @@ test("handles unions", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           favourite: {
             __typename: "Book",
             id: "978-0345391803",
             name: "The Hitchhiker's Guide to the Galaxy",
             author: "Douglas Adams",
           },
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1938,13 +2046,15 @@ test("handles unions", async (t) => {
         });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           favourite: {
             __typename: "Color",
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -1956,12 +2066,14 @@ test("handles unions", async (t) => {
         });
       }
       {
-        const result = validateSync(deserializeSchema, {
+        const value = {
           favourite: {
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
@@ -1994,14 +2106,16 @@ test("handles unions", async (t) => {
     });
     await t.test("validateSync", () => {
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           favourite: {
             __typename: "Book",
             id: "978-0345391803",
             name: "The Hitchhiker's Guide to the Galaxy",
             author: "Douglas Adams",
           },
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -2014,13 +2128,15 @@ test("handles unions", async (t) => {
         });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           favourite: {
             __typename: "Color",
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           value: {
             favourite: {
@@ -2032,12 +2148,14 @@ test("handles unions", async (t) => {
         });
       }
       {
-        const result = validateSync(serializeSchema, {
+        const value = {
           favourite: {
             name: "red",
             hex: "FF0000",
           },
-        });
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
         t.assert.deepEqual(result, {
           issues: [
             {
