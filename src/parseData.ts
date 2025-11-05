@@ -222,11 +222,11 @@ export function parseSelectionSet<
             accumulatedData[key] = parseScalar(fieldData, childType);
             continue;
           }
+          accumulatedSelections[key] ??= {
+            schemaType: childType,
+            selections: [],
+          };
           if (selection.selectionSet) {
-            accumulatedSelections[key] ??= {
-              schemaType: childType,
-              selections: [],
-            };
             accumulatedSelections[key].selections.push(
               ...selection.selectionSet?.selections
             );

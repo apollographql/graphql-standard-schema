@@ -1125,72 +1125,177 @@ test("handles arrays", async (t) => {
             nullableGreetings
           }
         `)
-  ).serialize;
+  );
 
-  await t.test("types", () => {
-    expectTypeOf<
-      StandardSchemaV1.InferInput<typeof dataSchema>
-    >().toEqualTypeOf<{
-      greetings: string[];
-      nullableGreetings?: null | Array<string | null>;
-    }>();
-    expectTypeOf<
-      StandardSchemaV1.InferOutput<typeof dataSchema>
-    >().toEqualTypeOf<{
-      greetings: string[];
-      nullableGreetings?: null | Array<string | null>;
-    }>();
+  await t.test("parse", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.parse);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<{
+        greetings: string[];
+        nullableGreetings?: null | Array<string | null>;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<{
+        greetings: string[];
+        nullableGreetings?: null | Array<string | null>;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(dataSchema, {
+          greetings: ["hello", "hi"],
+        });
+        t.assert.deepEqual(result, {
+          value: { greetings: ["hello", "hi"], nullableGreetings: null },
+        });
+      }
+      {
+        const result = validateSync(dataSchema, {
+          greetings: [],
+          nullableGreetings: ["hello", null, "hi"],
+        });
+        t.assert.deepEqual(result, {
+          value: { greetings: [], nullableGreetings: ["hello", null, "hi"] },
+        });
+      }
+      {
+        const result = validateSync(dataSchema, {
+          greetings: ["hello", "hi", null],
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: 'Expected non-nullable type "String" not to be null.',
+              path: ["greetings", 2],
+            },
+          ],
+        });
+      }
+    });
   });
-  await t.test("validateSync", () => {
-    {
-      const result = validateSync(dataSchema, {
-        greetings: ["hello", "hi"],
-      });
-      t.assert.deepEqual(result, {
-        value: { greetings: ["hello", "hi"], nullableGreetings: null },
-      });
-    }
-    {
-      const result = validateSync(dataSchema, {
-        greetings: [],
-        nullableGreetings: ["hello", null, "hi"],
-      });
-      t.assert.deepEqual(result, {
-        value: { greetings: [], nullableGreetings: ["hello", null, "hi"] },
-      });
-    }
-    {
-      const result = validateSync(dataSchema, {
-        greetings: ["hello", "hi", null],
-      });
-      t.assert.deepEqual(result, {
-        issues: [
-          {
-            message:
-              "Cannot return null for non-nullable field Query.greetings.",
-            path: ["greetings", 2],
-          },
-        ],
-      });
-    }
+
+  await t.test("deserialize", async (t) => {
+    const deserializeSchema = dataSchema.deserialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof deserializeSchema>
+      >().toEqualTypeOf<{
+        greetings: string[];
+        nullableGreetings?: null | Array<string | null>;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof deserializeSchema>
+      >().toEqualTypeOf<{
+        greetings: string[];
+        nullableGreetings?: null | Array<string | null>;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(deserializeSchema, {
+          greetings: ["hello", "hi"],
+        });
+        t.assert.deepEqual(result, {
+          value: { greetings: ["hello", "hi"], nullableGreetings: null },
+        });
+      }
+      {
+        const result = validateSync(deserializeSchema, {
+          greetings: [],
+          nullableGreetings: ["hello", null, "hi"],
+        });
+        t.assert.deepEqual(result, {
+          value: { greetings: [], nullableGreetings: ["hello", null, "hi"] },
+        });
+      }
+      {
+        const result = validateSync(deserializeSchema, {
+          greetings: ["hello", "hi", null],
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: 'Expected non-nullable type "String" not to be null.',
+              path: ["greetings", 2],
+            },
+          ],
+        });
+      }
+    });
+  });
+
+  await t.test("serialize", async (t) => {
+    const serializeSchema = dataSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        greetings: string[];
+        nullableGreetings?: null | Array<string | null>;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        greetings: string[];
+        nullableGreetings?: null | Array<string | null>;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          greetings: ["hello", "hi"],
+        });
+        t.assert.deepEqual(result, {
+          value: { greetings: ["hello", "hi"], nullableGreetings: null },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          greetings: [],
+          nullableGreetings: ["hello", null, "hi"],
+        });
+        t.assert.deepEqual(result, {
+          value: { greetings: [], nullableGreetings: ["hello", null, "hi"] },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          greetings: ["hello", "hi", null],
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message:
+                "Cannot return null for non-nullable field Query.greetings.",
+              path: ["greetings", 2],
+            },
+          ],
+        });
+      }
+    });
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(dataSchema);
+    const { serializedJsonSchema, deserializedJsonSchema } =
+      getJsonSchemas(dataSchema);
+    t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         greetings: ["hallo", "hey"],
         nullableGreetings: ["hello", null, "hi"],
       });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         greetings: ["hallo", null, "hey"],
         nullableGreetings: ["hello", null, "hi"],
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(serializedJsonSchema);
   });
 });
 
