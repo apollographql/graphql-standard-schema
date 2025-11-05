@@ -1,5 +1,5 @@
-import type { StandardJSONSchemaV1 } from "./standard-schema-spec.ts";
-import type { CombinedSpec } from "./types.ts";
+import type { StandardJSONSchemaV1 } from "../standard-schema-spec.ts";
+import type { CombinedSpec } from "../types.ts";
 import z from "zod";
 
 /**

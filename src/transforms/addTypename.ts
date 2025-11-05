@@ -4,7 +4,7 @@ import {
   type FieldNode,
   type OperationDefinitionNode,
 } from "graphql";
-import { GraphQLStandardSchemaGenerator } from "../index.ts";
+import { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
 
 const TYPENAME_FIELD: FieldNode = {
   kind: Kind.FIELD,

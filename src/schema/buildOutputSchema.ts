@@ -23,10 +23,10 @@ import {
   Kind,
   type SelectionSetNode,
 } from "graphql";
-import type { OpenAiSupportedJsonSchema } from "../openAiSupportedJsonSchema.ts";
+import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSchema.ts";
 import { equal } from "@wry/equality";
-import { assert } from "../assert.ts";
-import type { GraphQLStandardSchemaGenerator } from "../index.ts";
+import { assert } from "../utils/assert.ts";
+import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
 
 export function buildOutputSchema(
   schema: GraphQLSchema,

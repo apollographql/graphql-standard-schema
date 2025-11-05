@@ -1,6 +1,5 @@
 import type { GraphQLScalarType } from "graphql";
-import type { GraphQLStandardSchemaGenerator } from "./index.ts";
-import type { OpenAiSupportedJsonSchema } from "./openAiSupportedJsonSchema.ts";
+import type { GraphQLStandardSchemaGenerator } from "./GraphQLStandardSchemaGenerator.ts";
 import type {
   StandardSchemaV1,
   StandardJSONSchemaV1,

@@ -12,7 +12,7 @@ import {
   isEnumType,
 } from "graphql";
 import { assert } from "./assert.ts";
-import type { GraphQLStandardSchemaGenerator } from "./index.ts";
+import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
 
 export function fakeVariables(
   definitions: ReadonlyArray<VariableDefinitionNode>,

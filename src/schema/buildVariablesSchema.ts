@@ -4,8 +4,8 @@ import type {
   OperationDefinitionNode,
 } from "graphql";
 import { buildInputSchema } from "./buildInputSchema.ts";
-import type { GraphQLStandardSchemaGenerator } from "../index.ts";
-import type { OpenAiSupportedJsonSchema } from "../openAiSupportedJsonSchema.ts";
+import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
+import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSchema.ts";
 
 export function buildVariablesSchema(
   schema: GraphQLSchema,

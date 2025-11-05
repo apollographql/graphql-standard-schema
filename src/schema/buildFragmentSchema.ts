@@ -6,8 +6,8 @@ import {
   isAbstractType,
 } from "graphql";
 import { buildOutputSchema } from "./buildOutputSchema.ts";
-import type { GraphQLStandardSchemaGenerator } from "../index.ts";
-import type { OpenAiSupportedJsonSchema } from "../openAiSupportedJsonSchema.ts";
+import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
+import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSchema.ts";
 
 export function buildFragmentSchema(
   schema: GraphQLSchema,

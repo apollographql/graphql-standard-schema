@@ -1,9 +1,9 @@
 import z from "zod";
-import { zodToStandardJSONSchemaV1 } from "../src/zodToStandardJSONSchemaV1.ts";
-import { GraphQLStandardSchemaGenerator } from "../src/index.ts";
+import { zodToStandardJSONSchemaV1 } from "../src/index.ts";
+import { GraphQLStandardSchemaGenerator } from "../src/GraphQLStandardSchemaGenerator.ts";
 import { toJSONSchema } from "./utils/toJsonSchema.ts";
 import { SearchCharacter, swSchema } from "./utils/swSchema.ts";
-import { composeStandardSchemas } from "../src/composeStandardSchemas.ts";
+import { composeStandardSchemas } from "../src/index.ts";
 import test from "node:test";
 import assert from "node:assert";
 import { validateSync } from "./utils/test-helpers.ts";

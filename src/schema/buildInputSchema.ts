@@ -16,8 +16,8 @@ import {
   isEnumType,
   GraphQLInputObjectType,
 } from "graphql";
-import type { OpenAiSupportedJsonSchema } from "../openAiSupportedJsonSchema.ts";
-import type { GraphQLStandardSchemaGenerator } from "../index.ts";
+import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSchema.ts";
+import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
 
 export function buildInputSchema(
   schema: GraphQLSchema,

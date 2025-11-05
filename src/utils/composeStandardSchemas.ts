@@ -1,8 +1,8 @@
-import type { CombinedSpec } from "./types.ts";
+import type { CombinedSpec } from "../types.ts";
 import type {
   StandardJSONSchemaV1,
   StandardSchemaV1,
-} from "./standard-schema-spec.ts";
+} from "../standard-schema-spec.ts";
 import { assert } from "./assert.ts";
 
 type Id<T> = { [K in keyof T]: T[K] } & {};

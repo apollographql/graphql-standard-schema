@@ -1,5 +1,5 @@
 import test from "node:test";
-import { GraphQLStandardSchemaGenerator } from "../src/index.ts";
+import { GraphQLStandardSchemaGenerator } from "../src/GraphQLStandardSchemaGenerator.ts";
 import { buildSchema } from "graphql";
 import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
 import { expectTypeOf } from "expect-type";

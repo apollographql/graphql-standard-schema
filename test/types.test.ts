@@ -1,6 +1,6 @@
 import type { GraphQLScalarType } from "graphql";
-import type { OpenAiSupportedJsonSchema } from "../src/openAiSupportedJsonSchema.ts";
-import type { GraphQLStandardSchemaGenerator } from "../src/index.ts";
+import type { OpenAiSupportedJsonSchema } from "../src/utils/openAiSupportedJsonSchema.ts";
+import type { GraphQLStandardSchemaGenerator } from "../src/GraphQLStandardSchemaGenerator.ts";
 import { expectTypeOf } from "expect-type";
 
 if (false) {

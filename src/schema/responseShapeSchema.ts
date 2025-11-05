@@ -2,9 +2,9 @@ import type {
   OperationDefinitionNode,
   FormattedExecutionResult,
 } from "graphql";
-import { standardSchema } from "../index.ts";
+import { standardSchema } from "../utils/standardSchema.ts";
 import { schemaBase } from "./schemaBase.ts";
-import type { OpenAiSupportedJsonSchema } from "../openAiSupportedJsonSchema.ts";
+import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSchema.ts";
 import type {
   StandardJSONSchemaV1,
   StandardSchemaV1,
