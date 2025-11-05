@@ -185,11 +185,22 @@ export function parseSelectionSet<
             fragment.typeCondition.name.value
           );
           assert(
-            isAbstractType(abstractType),
-            `Abstract Type "${fragment.typeCondition.name.value}" not found in schema`
+            abstractType,
+            `Type "${fragment.typeCondition.name.value}" not found in schema`
           );
-          if (!schema.isSubType(abstractType, parentType)) {
-            continue;
+          if (isObjectType(abstractType)) {
+            if (abstractType.name !== parentType.name) {
+              continue;
+            }
+          } else if (isAbstractType(abstractType)) {
+            if (!schema.isSubType(abstractType, parentType)) {
+              continue;
+            }
+          } else {
+            assert(
+              false,
+              `Type "${abstractType.name}" is not an object or abstract type`
+            );
           }
         }
         fragment.selectionSet.selections.forEach((fragmentSelection) =>
@@ -275,6 +286,27 @@ export function parseSelectionSet<
             }
           });
           continue;
+        }
+        if (isAbstractType(childType)) {
+          const typename =
+            typeof fieldData === "object" &&
+            fieldData &&
+            "__typename" in fieldData &&
+            fieldData["__typename"];
+          assert(
+            typename,
+            `Expected object with __typename for abstract type "${childType.name}"`
+          );
+          assert(
+            typeof typename === "string",
+            `Expected __typename to be a string, but got ${typeof typename}`
+          );
+          const specificType = schema.getType(typename);
+          assert(
+            specificType && isObjectType(specificType),
+            `Could not resolve concrete type for abstract type "${childType.name}" - "${typename}" is not an object type.`
+          );
+          childType = specificType;
         }
         assert(
           isObjectType(childType),

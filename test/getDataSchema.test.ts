@@ -1363,85 +1363,241 @@ test("handles interfaces", async (t) => {
             }
           }
         `)
-  ).serialize;
-
-  await t.test("types", () => {
-    expectTypeOf<
-      StandardSchemaV1.InferInput<typeof dataSchema>
-    >().toEqualTypeOf<{
-      favourite:
-        | { __typename: "Color"; name: string; hex: string }
-        | { __typename: "Book"; id: string; name: string; author: string };
-    }>();
-    expectTypeOf<
-      StandardSchemaV1.InferOutput<typeof dataSchema>
-    >().toEqualTypeOf<{
-      favourite:
-        | { __typename: "Color"; name: string; hex: string }
-        | { __typename: "Book"; id: string; name: string; author: string };
-    }>();
-  });
-  await t.test("validateSync", () => {
-    {
-      const result = validateSync(dataSchema, {
-        favourite: {
-          __typename: "Book",
-          id: "978-0345391803",
-          name: "The Hitchhiker's Guide to the Galaxy",
-          author: "Douglas Adams",
-        },
-      });
-      t.assert.deepEqual(result, {
-        value: {
+  );
+  await t.test("parse", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.parse);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<{
+        favourite:
+          | { __typename: "Color"; name: string; hex: string }
+          | { __typename: "Book"; id: string; name: string; author: string };
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<{
+        favourite:
+          | { __typename: "Color"; name: string; hex: string }
+          | { __typename: "Book"; id: string; name: string; author: string };
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(dataSchema, {
           favourite: {
             __typename: "Book",
             id: "978-0345391803",
             name: "The Hitchhiker's Guide to the Galaxy",
             author: "Douglas Adams",
           },
-        },
-      });
-    }
-    {
-      const result = validateSync(dataSchema, {
-        favourite: {
-          __typename: "Color",
-          name: "red",
-          hex: "FF0000",
-        },
-      });
-      t.assert.deepEqual(result, {
-        value: {
+        });
+        t.assert.deepEqual(result, {
+          value: {
+            favourite: {
+              __typename: "Book",
+              id: "978-0345391803",
+              name: "The Hitchhiker's Guide to the Galaxy",
+              author: "Douglas Adams",
+            },
+          },
+        });
+      }
+      {
+        const result = validateSync(dataSchema, {
           favourite: {
             __typename: "Color",
             name: "red",
             hex: "FF0000",
           },
-        },
-      });
-    }
-    {
-      const result = validateSync(dataSchema, {
-        favourite: {
-          name: "red",
-          hex: "FF0000",
-        },
-      });
-      t.assert.deepEqual(result, {
-        issues: [
-          {
-            message:
-              'Abstract type "Favourite" must resolve to an Object type at runtime for field "Query.favourite". Either the "Favourite" type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.',
-            path: ["favourite"],
+        });
+        t.assert.deepEqual(result, {
+          value: {
+            favourite: {
+              __typename: "Color",
+              name: "red",
+              hex: "FF0000",
+            },
           },
-        ],
-      });
-    }
+        });
+      }
+      {
+        const result = validateSync(dataSchema, {
+          favourite: {
+            name: "red",
+            hex: "FF0000",
+          },
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message:
+                'Expected object with __typename for abstract type "Favourite"',
+              path: ["favourite"],
+            },
+          ],
+        });
+      }
+    });
+  });
+  await t.test("deserialize", async (t) => {
+    const deserializeSchema = dataSchema.deserialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof deserializeSchema>
+      >().toEqualTypeOf<{
+        favourite:
+          | { __typename: "Color"; name: string; hex: string }
+          | { __typename: "Book"; id: string; name: string; author: string };
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof deserializeSchema>
+      >().toEqualTypeOf<{
+        favourite:
+          | { __typename: "Color"; name: string; hex: string }
+          | { __typename: "Book"; id: string; name: string; author: string };
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(deserializeSchema, {
+          favourite: {
+            __typename: "Book",
+            id: "978-0345391803",
+            name: "The Hitchhiker's Guide to the Galaxy",
+            author: "Douglas Adams",
+          },
+        });
+        t.assert.deepEqual(result, {
+          value: {
+            favourite: {
+              __typename: "Book",
+              id: "978-0345391803",
+              name: "The Hitchhiker's Guide to the Galaxy",
+              author: "Douglas Adams",
+            },
+          },
+        });
+      }
+      {
+        const result = validateSync(deserializeSchema, {
+          favourite: {
+            __typename: "Color",
+            name: "red",
+            hex: "FF0000",
+          },
+        });
+        t.assert.deepEqual(result, {
+          value: {
+            favourite: {
+              __typename: "Color",
+              name: "red",
+              hex: "FF0000",
+            },
+          },
+        });
+      }
+      {
+        const result = validateSync(deserializeSchema, {
+          favourite: {
+            name: "red",
+            hex: "FF0000",
+          },
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message:
+                'Expected object with __typename for abstract type "Favourite"',
+              path: ["favourite"],
+            },
+          ],
+        });
+      }
+    });
+  });
+  await t.test("serialize", async (t) => {
+    const serializeSchema = dataSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        favourite:
+          | { __typename: "Color"; name: string; hex: string }
+          | { __typename: "Book"; id: string; name: string; author: string };
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        favourite:
+          | { __typename: "Color"; name: string; hex: string }
+          | { __typename: "Book"; id: string; name: string; author: string };
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          favourite: {
+            __typename: "Book",
+            id: "978-0345391803",
+            name: "The Hitchhiker's Guide to the Galaxy",
+            author: "Douglas Adams",
+          },
+        });
+        t.assert.deepEqual(result, {
+          value: {
+            favourite: {
+              __typename: "Book",
+              id: "978-0345391803",
+              name: "The Hitchhiker's Guide to the Galaxy",
+              author: "Douglas Adams",
+            },
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          favourite: {
+            __typename: "Color",
+            name: "red",
+            hex: "FF0000",
+          },
+        });
+        t.assert.deepEqual(result, {
+          value: {
+            favourite: {
+              __typename: "Color",
+              name: "red",
+              hex: "FF0000",
+            },
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          favourite: {
+            name: "red",
+            hex: "FF0000",
+          },
+        });
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message:
+                'Abstract type "Favourite" must resolve to an Object type at runtime for field "Query.favourite". Either the "Favourite" type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.',
+              path: ["favourite"],
+            },
+          ],
+        });
+      }
+    });
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(dataSchema);
+    const { deserializedJsonSchema, serializedJsonSchema } =
+      getJsonSchemas(dataSchema);
+    t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(deserializedJsonSchema, {
         favourite: {
           __typename: "Book",
           id: "978-0345391803",
@@ -1452,7 +1608,7 @@ test("handles interfaces", async (t) => {
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(deserializedJsonSchema, {
         favourite: {
           __typename: "Color",
           name: "red",
@@ -1462,13 +1618,13 @@ test("handles interfaces", async (t) => {
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(deserializedJsonSchema, {
         name: "red",
         hex: "FF0000",
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.deepEqual(jsonSchema, {
+    t.assert.deepEqual(deserializedJsonSchema, {
       $schema: "https://json-schema.org/draft/2020-12/schema",
       type: "object",
       title: "query SimpleQuery",
