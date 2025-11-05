@@ -51,20 +51,20 @@ test("generates schema for simple query", async (t) => {
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<{ hello: string; count: number }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<{ hello: string; count: number }>();
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema.normalize>
       >();
-      expectTypeOf<
-        StandardSchemaV1.InferInput<typeof dataSchema>
-      >().toEqualTypeOf<{ hello: string; count: number }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
       >().toEqualTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema.normalize>
       >();
-      expectTypeOf<
-        StandardSchemaV1.InferOutput<typeof dataSchema>
-      >().toEqualTypeOf<{ hello: string; count: number }>();
     });
 
     await t.test("validateSync", () => {
@@ -249,13 +249,13 @@ test("works with field selection set", async (t) => {
         StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
       expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
+      expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema.normalize>
       >();
-      expectTypeOf<
-        StandardSchemaV1.InferOutput<typeof dataSchema>
-      >().toEqualTypeOf<{ me: { id: string; name: string; age: number } }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
       >().toEqualTypeOf<
@@ -506,13 +506,13 @@ test("enforces non-null types", async (t) => {
         StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<Data>();
       expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<Data>();
+      expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema.normalize>
       >();
-      expectTypeOf<
-        StandardSchemaV1.InferOutput<typeof dataSchema>
-      >().toEqualTypeOf<Data>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
       >().toEqualTypeOf<
@@ -787,6 +787,16 @@ test("handles enums", async (t) => {
       >().toEqualTypeOf<{
         currentlyPlaying: "MOVIE" | "SERIES";
       }>();
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema.normalize>
+      >();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema.normalize>
+      >();
     });
     await t.test("validateSync", () => {
       {
@@ -936,6 +946,16 @@ test("handles custom scalars", async (t) => {
       >().toEqualTypeOf<{
         now: string;
       }>();
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema.normalize>
+      >();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema.normalize>
+      >();
     });
     await t.test("validateSync", () => {
       {
@@ -1148,6 +1168,16 @@ test("handles arrays", async (t) => {
         greetings: string[];
         nullableGreetings?: null | Array<string | null>;
       }>();
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema.normalize>
+      >();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema.normalize>
+      >();
     });
     await t.test("validateSync", () => {
       {
@@ -1387,6 +1417,16 @@ test("handles interfaces", async (t) => {
           | { __typename: "Color"; name: string; hex: string }
           | { __typename: "Book"; id: string; name: string; author: string };
       }>();
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema.normalize>
+      >();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema.normalize>
+      >();
     });
     await t.test("validateSync", () => {
       {
@@ -1789,6 +1829,16 @@ test("handles unions", async (t) => {
           | { __typename: "Color"; name: string; hex: string }
           | { __typename: "Book"; id: string; name: string; author: string };
       }>();
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferInput<typeof dataSchema.normalize>
+      >();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema>
+      >().toEqualTypeOf<
+        StandardSchemaV1.InferOutput<typeof dataSchema.normalize>
+      >();
     });
     await t.test("validateSync", () => {
       {
