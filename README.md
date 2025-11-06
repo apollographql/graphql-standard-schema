@@ -1,4 +1,4 @@
-This package allows you to create [https://github.com/standard-schema/standard-schema](Standard Schema) compliant Schemas for GraphQL operation responses, data, fragments or input variables.
+This package allows you to create [Standard Schema](https://github.com/standard-schema/standard-schema) compliant Schemas for GraphQL operation responses, data, fragments or input variables.
 
 ## Creating a Schema Generator
 
@@ -70,7 +70,8 @@ const generator = new GraphQLStandardSchemaGenerator({
 });
 ```
 
-> [!TIP] You can use the `GraphQLStandardSchemaGenerator.ScalarDefinition<Serialized, Deserialized>` TypeScript type to help type your custom scalar definitions.
+> [!TIP]
+> You can use the `GraphQLStandardSchemaGenerator.ScalarDefinition<Serialized, Deserialized>` TypeScript type to help type your custom scalar definitions.
 
 ### All options:
 
@@ -109,7 +110,8 @@ namespace GraphQLStandardSchemaGenerator {
 }
 ```
 
-> [!NOTE] for more information on `defaultJSONSchemaOptions`, see [Standard JSON Schema and JSON Schema generation](#standard-json-schema-and-json-schema-generation).
+> [!NOTE]
+> For more information on `defaultJSONSchemaOptions`, see [Standard JSON Schema and JSON Schema generation](#standard-json-schema-and-json-schema-generation).
 
 ## Schemas
 
@@ -164,7 +166,8 @@ const result = responseSchema({
 */
 ```
 
-> [!NOTE] `getResponseSchema` returns a multidirectional schema - see [directional schemas](#directional-schemas) for more details.
+> [!NOTE]
+> `getResponseSchema` returns a multidirectional schema - see [directional schemas](#directional-schemas) for more details.
 
 ### Validating GraphQL data
 
@@ -199,7 +202,8 @@ const result = dataSchema({
 */
 ```
 
-> [!NOTE] `getDataSchema` returns a multidirectional schema - see [directional schemas](#directional-schemas) for more details.
+> [!NOTE]
+> `getDataSchema` returns a multidirectional schema - see [directional schemas](#directional-schemas) for more details.
 
 ### Validating GraphQL fragments
 
@@ -290,7 +294,8 @@ const result = multiFragmentSchema({
 */
 ```
 
-> [!NOTE] `getFragmentSchema` returns a multidirectional schema - see [directional schemas](#directional-schemas) for more details.
+> [!NOTE]
+> `getFragmentSchema` returns a multidirectional schema - see [directional schemas](#directional-schemas) for more details.
 
 ### Validating GraphQL variables
 
@@ -354,7 +359,8 @@ const result = dataSchema.normalize({
 // result is `{ value: { now: '2025-12-31', holidayName: "New Year's Eve" } }`
 ```
 
-> [!NOTE] `normalize` is the default behavior for multidirectional schemas, so calling `dataSchema(data)` is equivalent to calling `dataSchema.normalize(data)`.
+> [!NOTE]
+> `normalize` is the default behavior for multidirectional schemas, so calling `dataSchema(data)` is equivalent to calling `dataSchema.normalize(data)`.
 
 `normalize` will also try to fix data that is in the wrong format to bring it into the correct serialized format:
 
@@ -446,9 +452,11 @@ const inputSchema = toJSONSchema.input(responseSchema.normalize);
 const outputSchema = toJSONSchema.output(responseSchema.normalize);
 ```
 
-> [!TIP] `input` and `output` schemas are usually identical, but in some cases you might get different schemas for Scalar types that have different "serialized" and "runtime" presentations.
+> [!TIP]
+> `input` and `output` schemas are usually identical, but in some cases you might get different schemas for Scalar types that have different "serialized" and "runtime" presentations.
 
-> [!NOTE] Once `StandardJSONSchema` is released, we will implement it in the next release of this package, and long-term you will be able to use those generated schemas directly as input to supporting libraries. We predict that the `ai` package will be one of the first to support `StandardJSONSchema`.
+> [!NOTE]
+> Once `StandardJSONSchema` is released, we will implement it in the next release of this package, and long-term you will be able to use those generated schemas directly as input to supporting libraries. We predict that the `ai` package will be one of the first to support `StandardJSONSchema`.
 
 ### Options for JSON Schema generation
 
