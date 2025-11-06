@@ -1,14 +1,12 @@
 import { test } from "node:test";
 
-import { GraphQLStandardSchemaGenerator } from "../src/GraphQLStandardSchemaGenerator.ts";
-import { toJSONSchema } from "./utils/toJsonSchema.ts";
+import { GraphQLStandardSchemaGenerator, toJSONSchema } from "../src/index.ts";
 import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
 import { buildSchema } from "graphql";
 import assert from "node:assert";
 import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
 import { expectTypeOf } from "expect-type";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
-import type { required } from "zod/mini";
 
 test("handles nullable and non-nullable arguments", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -83,7 +81,7 @@ test("handles nullable and non-nullable arguments", async (t) => {
     }
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(variablesSchema);
+    const jsonSchema = toJSONSchema.input(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
         text: "Han",
@@ -188,7 +186,7 @@ test("handles basic scalar types", async (t) => {
     }
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(variablesSchema);
+    const jsonSchema = toJSONSchema.input(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
         int: 5,
@@ -284,7 +282,7 @@ test("handles variable-level list types", async (t) => {
     }
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(variablesSchema);
+    const jsonSchema = toJSONSchema.input(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
         required: ["a", "b"],
@@ -364,7 +362,7 @@ test("handles enums", async (t) => {
     }
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(variablesSchema);
+    const jsonSchema = toJSONSchema.input(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
         text: "Han",
@@ -449,7 +447,7 @@ test("handles custom scalars", async (t) => {
     }
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(variablesSchema);
+    const jsonSchema = toJSONSchema.input(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
         after: "2023-01-01",
@@ -546,7 +544,7 @@ test("handles input types", async (t) => {
     }
   });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema(variablesSchema);
+    const jsonSchema = toJSONSchema.input(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
         input: {
@@ -752,8 +750,8 @@ test("handles recursive input types", async (t) => {
     }
   });
   await t.test("JSON schema", (t) => {
-    const openAIJsonSchema = toJSONSchema(openAISchema);
-    const jsonSchema = toJSONSchema(variablesSchema);
+    const openAIJsonSchema = toJSONSchema.input(openAISchema);
+    const jsonSchema = toJSONSchema.input(variablesSchema);
     {
       const result = validateWithAjv(jsonSchema, {
         input: fullFilterInput,

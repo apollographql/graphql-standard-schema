@@ -1,20 +1,22 @@
 import z from "zod";
-import { zodToStandardJSONSchemaV1 } from "../src/index.ts";
-import { GraphQLStandardSchemaGenerator } from "../src/GraphQLStandardSchemaGenerator.ts";
-import { toJSONSchema } from "./utils/toJsonSchema.ts";
+import {
+  zodToStandardJSONSchemaV1,
+  GraphQLStandardSchemaGenerator,
+  toJSONSchema,
+} from "../src/index.ts";
 import { SearchCharacter, swSchema } from "./utils/swSchema.ts";
 import { composeStandardSchemas } from "../src/index.ts";
 import test from "node:test";
 import assert from "node:assert";
 import { validateSync } from "./utils/test-helpers.ts";
-import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
+import { StandardSchemaV1 } from "@standard-schema/spec";
 
 const generator = new GraphQLStandardSchemaGenerator({
   schema: swSchema,
 });
 
 const schema = generator.getDataSchema(SearchCharacter);
-const basicSchemaJSON = toJSONSchema(schema);
+const basicSchemaJSON = toJSONSchema.input(schema);
 
 const adjustedSchemaJSON = JSON.parse(JSON.stringify(basicSchemaJSON));
 adjustedSchemaJSON.$ref = "#/$defs/" + "props.data/" + "type/Query";
@@ -63,7 +65,7 @@ test("composes with zod", async (t) => {
     }),
   });
   const zodStandard = zodToStandardJSONSchemaV1(zodSchema);
-  const zodJson = toJSONSchema(zodStandard);
+  const zodJson = toJSONSchema.input(zodStandard);
 
   test("basic assumption about zod schema", (t) => {
     assert.deepEqual(

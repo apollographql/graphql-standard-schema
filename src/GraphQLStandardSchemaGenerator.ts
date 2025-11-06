@@ -53,8 +53,8 @@ export declare namespace GraphQLStandardSchemaGenerator {
     >;
   }
 
-  export interface ScalarDefinition<Input, Output> {
-    type: GraphQLScalarType<Output, Input>;
+  export interface ScalarDefinition<Serialized, Deserialized> {
+    type: GraphQLScalarType<Deserialized, Serialized>;
     jsonSchema: {
       deserialized: OpenAiSupportedJsonSchema.Anything;
       serialized: OpenAiSupportedJsonSchema.Anything;
@@ -78,6 +78,14 @@ export declare namespace GraphQLStandardSchemaGenerator {
     schema: GraphQLSchema | DocumentNode;
     scalarTypes?: Scalars;
     defaultJSONSchemaOptions?: JSONSchemaOptions | "OpenAI";
+    /**
+     * An array of document transforms to apply to each document before generating schemas.
+     *
+     * This can be used to apply custom transformations to the GraphQL documents,
+     * such as adding default fields, removing deprecated fields, etc.
+     *
+     * Defaults to `[addTypename]` if not provided.
+     */
     documentTransfoms?: GraphQLStandardSchemaGenerator.DocumentTransform[];
   }
 

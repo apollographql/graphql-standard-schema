@@ -1,6 +1,8 @@
 import assert from "node:assert";
-import type { GraphQLStandardSchemaGenerator } from "../../src/GraphQLStandardSchemaGenerator.ts";
-import { toJSONSchema } from "./toJsonSchema.ts";
+import {
+  toJSONSchema,
+  type GraphQLStandardSchemaGenerator,
+} from "../../src/index.ts";
 
 export function getBidirectionalJsonSchemas(
   base: GraphQLStandardSchemaGenerator.BidirectionalValidationSchema<any, any>

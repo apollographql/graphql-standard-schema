@@ -1,10 +1,9 @@
 import { test } from "node:test";
 import { expectTypeOf } from "expect-type";
-import { GraphQLStandardSchemaGenerator } from "../src/GraphQLStandardSchemaGenerator.ts";
-import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
+import { GraphQLStandardSchemaGenerator, toJSONSchema } from "../src/index.ts";
+import { gql, validateSync } from "./utils/test-helpers.ts";
 import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
-import { toJSONSchema } from "./utils/toJsonSchema.ts";
 import { buildSchema, type GraphQLFormattedError } from "graphql";
 import { getBidirectionalJsonSchemas } from "./utils/getBidirectionalJsonSchemas.ts";
 import jsonPatch from "fast-json-patch";

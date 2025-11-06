@@ -1,11 +1,10 @@
 import { test } from "node:test";
 import { expectTypeOf } from "expect-type";
-import { GraphQLStandardSchemaGenerator } from "../src/GraphQLStandardSchemaGenerator.ts";
+import { GraphQLStandardSchemaGenerator, toJSONSchema } from "../src/index.ts";
 import { swSchema } from "./utils/swSchema.ts";
 import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
-import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
-import { toJSONSchema } from "./utils/toJsonSchema.ts";
 
 await test("single fragment, picks only fragment", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
