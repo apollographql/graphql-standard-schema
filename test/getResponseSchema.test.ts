@@ -28,7 +28,7 @@ await test("simple query response", async (t) => {
              }
 
               type Query {
-                currentlyPlaying: Media
+                currentlyPlaying: Media!
               }
             `),
     scalarTypes: {
@@ -90,6 +90,84 @@ await test("simple query response", async (t) => {
       >().toEqualTypeOf<
         StandardSchemaV1.InferOutput<typeof responseSchema.normalize>
       >();
+    });
+    await t.test("validation", async (t) => {
+      function validateValidValue(value: unknown) {
+        t.assert.deepEqual(responseSchema(value), { value });
+        t.assert.deepEqual(
+          responseSchema(value),
+          validateSync(responseSchema, value)
+        );
+      }
+      function expectInvalidIssues(
+        value: unknown,
+        expectedIssues: StandardSchemaV1.Issue[]
+      ) {
+        t.assert.deepEqual(responseSchema(value), {
+          issues: expectedIssues,
+        });
+        t.assert.deepEqual(
+          responseSchema(value),
+          validateSync(responseSchema, value)
+        );
+      }
+      const validData = {
+        currentlyPlaying: {
+          __typename: "Media",
+          title: "Inception",
+          kind: "MOVIE",
+          startedAt: "2023-10-01",
+        },
+      };
+
+      validateValidValue({ data: validData });
+      validateValidValue({ errors: [{ message: "Error message" }] });
+      validateValidValue({
+        data: null,
+        errors: [{ message: "Error message" }],
+      });
+      expectInvalidIssues(null, [
+        {
+          message: "value cannot be null",
+        },
+      ]);
+      expectInvalidIssues({ data: {} }, [
+        {
+          message: 'Expected type "Media" to be an object.',
+          path: ["data", "currentlyPlaying"],
+        },
+      ]);
+      expectInvalidIssues({ data: null }, [
+        {
+          message: "'errors' must be non-null if 'data' is null",
+        },
+      ]);
+      expectInvalidIssues({ errors: [] }, [
+        {
+          message: "Expected 'errors' to be a non-empty array, got object",
+        },
+      ]);
+      expectInvalidIssues({ data: validData, extensions: [] }, [
+        {
+          message: "'extensions' must be an object if present",
+        },
+      ]);
+      expectInvalidIssues({ data: validData, extensions: undefined }, [
+        {
+          message: "'extensions' must be an object if present",
+        },
+      ]);
+      expectInvalidIssues(
+        {
+          extensions: {},
+        },
+        [
+          {
+            message:
+              "Value needs to have at least one of 'data' or 'errors' properties",
+          },
+        ]
+      );
     });
   });
   await t.test("deserialize", async (t) => {
@@ -180,7 +258,7 @@ await test("simple query response", async (t) => {
                 properties: {
                   currentlyPlaying: {
                     title: "Media",
-                    type: ["object", "null"],
+                    type: "object",
                     properties: {
                       __typename: {
                         const: "Media",
@@ -201,7 +279,7 @@ await test("simple query response", async (t) => {
                     required: ["__typename", "title", "kind", "startedAt"],
                   },
                 },
-                required: [],
+                required: ["currentlyPlaying"],
               },
             ],
           },

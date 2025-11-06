@@ -83,10 +83,7 @@ exports[`simple query response > JSON Schema > deserialized JSON schema snapshot
           "properties": {
             "currentlyPlaying": {
               "title": "Media",
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
                 "__typename": {
                   "const": "Media"
@@ -112,7 +109,9 @@ exports[`simple query response > JSON Schema > deserialized JSON schema snapshot
               ]
             }
           },
-          "required": []
+          "required": [
+            "currentlyPlaying"
+          ]
         }
       ]
     }
@@ -230,10 +229,7 @@ exports[`simple query response > JSON Schema > serialized JSON schema snapshot 1
           "properties": {
             "currentlyPlaying": {
               "title": "Media",
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
                 "__typename": {
                   "const": "Media"
@@ -259,7 +255,9 @@ exports[`simple query response > JSON Schema > serialized JSON schema snapshot 1
               ]
             }
           },
-          "required": []
+          "required": [
+            "currentlyPlaying"
+          ]
         }
       ]
     }

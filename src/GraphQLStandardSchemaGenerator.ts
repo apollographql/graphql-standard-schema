@@ -286,18 +286,21 @@ export class GraphQLStandardSchemaGenerator<
       rootSchema,
       ["data"] as const,
       nullable(dataSchema.normalize),
+      false,
       false
     );
     const composedDeserialize = composeStandardSchemas(
       rootSchema,
       ["data"] as const,
       nullable(dataSchema.deserialize),
+      false,
       false
     );
     const composedSerialize = composeStandardSchemas(
       rootSchema,
       ["data"] as const,
       nullable(dataSchema.serialize),
+      false,
       false
     );
 

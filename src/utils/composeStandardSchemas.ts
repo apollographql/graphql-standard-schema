@@ -37,7 +37,8 @@ export function composeStandardSchemas<
   rootSchema: Root,
   path: P,
   extension: Extension,
-  required: Required = true as Required
+  required: Required = true as Required,
+  hideAddedFieldFromRootSchema = true
 ): CombinedSpec<
   InsertAt<
     StandardSchemaV1.InferInput<Root>,
@@ -156,7 +157,7 @@ export function composeStandardSchemas<
           };
         }
         const rootResult = rootSchema["~standard"].validate(
-          new Proxy(value, handler(path))
+          hideAddedFieldFromRootSchema ? new Proxy(value, handler(path)) : value
         );
         const extensionValue = path.reduce(
           (obj: Record<string, any>, key) => obj[key],
@@ -172,7 +173,18 @@ export function composeStandardSchemas<
         ): StandardSchemaV1.Result<CombinedResult> {
           if (result1.issues || result2.issues) {
             return {
-              issues: [...(result1.issues || []), ...(result2.issues || [])],
+              issues: [
+                ...(result1.issues || []),
+                ...(result2.issues || []).map((issue) => {
+                  if (issue.path) {
+                    return {
+                      ...issue,
+                      path: [...path, ...issue.path],
+                    };
+                  }
+                  return issue;
+                }),
+              ],
             };
           }
           return { value: value as CombinedResult };
