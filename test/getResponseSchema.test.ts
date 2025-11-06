@@ -129,6 +129,7 @@ await test("simple query response", async (t) => {
       expectInvalidIssues(null, [
         {
           message: "value cannot be null",
+          path: [],
         },
       ]);
       expectInvalidIssues({ data: {} }, [
@@ -140,21 +141,25 @@ await test("simple query response", async (t) => {
       expectInvalidIssues({ data: null }, [
         {
           message: "'errors' must be non-null if 'data' is null",
+          path: [],
         },
       ]);
       expectInvalidIssues({ errors: [] }, [
         {
           message: "Expected 'errors' to be a non-empty array, got object",
+          path: [],
         },
       ]);
       expectInvalidIssues({ data: validData, extensions: [] }, [
         {
           message: "'extensions' must be an object if present",
+          path: [],
         },
       ]);
       expectInvalidIssues({ data: validData, extensions: undefined }, [
         {
           message: "'extensions' must be an object if present",
+          path: [],
         },
       ]);
       expectInvalidIssues(
@@ -165,6 +170,7 @@ await test("simple query response", async (t) => {
           {
             message:
               "Value needs to have at least one of 'data' or 'errors' properties",
+            path: [],
           },
         ]
       );
@@ -200,6 +206,81 @@ await test("simple query response", async (t) => {
         } | null;
       }>();
     });
+    await t.test("validation", async (t) => {
+      {
+        const value = {
+          data: {
+            currentlyPlaying: {
+              __typename: "Media",
+              title: "Inception",
+              kind: "MOVIE",
+              startedAt: "2023-10-01",
+            },
+          },
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
+        t.assert.deepEqual(result, {
+          value: {
+            data: {
+              currentlyPlaying: {
+                __typename: "Media",
+                title: "Inception",
+                kind: "MOVIE",
+                startedAt: new Date("2023-10-01"),
+              },
+            },
+          },
+        });
+      }
+      {
+        const value = {
+          data: {
+            currentlyPlaying: {
+              __typename: "Media",
+              kind: "MOVIE",
+              startedAt: "2023-10-01",
+            },
+          },
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: "String cannot represent a non string value: undefined",
+              path: ["data", "currentlyPlaying", "title"],
+            },
+          ],
+        });
+      }
+      {
+        const value = {
+          data: {
+            currentlyPlaying: {
+              __typename: "Media",
+              kind: "MOVIE",
+              startedAt: "2023-10-01",
+            },
+          },
+          errors: null as any,
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: "Expected 'errors' to be a non-empty array, got object",
+              path: [],
+            },
+            {
+              message: "String cannot represent a non string value: undefined",
+              path: ["data", "currentlyPlaying", "title"],
+            },
+          ],
+        });
+      }
+    });
   });
   await t.test("serialize", async (t) => {
     const serializeSchema = responseSchema.serialize;
@@ -230,6 +311,82 @@ await test("simple query response", async (t) => {
           };
         } | null;
       }>();
+    });
+    await t.test("validation", async (t) => {
+      {
+        const value = {
+          data: {
+            currentlyPlaying: {
+              __typename: "Media",
+              title: "Inception",
+              kind: "MOVIE",
+              startedAt: new Date("2023-10-01"),
+            },
+          },
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
+        t.assert.deepEqual(result, {
+          value: {
+            data: {
+              currentlyPlaying: {
+                __typename: "Media",
+                title: "Inception",
+                kind: "MOVIE",
+                startedAt: "2023-10-01",
+              },
+            },
+          },
+        });
+      }
+      {
+        const value = {
+          data: {
+            currentlyPlaying: {
+              __typename: "Media",
+              kind: "MOVIE",
+              startedAt: "2023-10-01",
+            },
+          },
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: "Cannot return null for non-nullable field Media.title.",
+              path: ["data", "currentlyPlaying", "title"],
+            },
+          ],
+        });
+      }
+      {
+        const value = {
+          data: {
+            currentlyPlaying: {
+              __typename: "Media",
+              title: "Inception",
+              kind: "MOVIE",
+              startedAt: false,
+            },
+          },
+          errors: null as any,
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: "Expected 'errors' to be a non-empty array, got object",
+              path: [],
+            },
+            {
+              message: "Value is not a valid Date object: false",
+              path: ["data", "currentlyPlaying", "startedAt"],
+            },
+          ],
+        });
+      }
     });
   });
   await t.test("JSON Schema", async (t) => {

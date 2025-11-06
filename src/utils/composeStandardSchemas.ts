@@ -187,7 +187,13 @@ export function composeStandardSchemas<
               ],
             };
           }
-          return { value: value as CombinedResult };
+
+          return {
+            value:
+              result2.value === undefined && !required
+                ? (result1.value as CombinedResult)
+                : (setIn(result1.value, path, result2.value) as CombinedResult),
+          };
         }
         if ("then" in rootResult || "then" in extensionResult) {
           return Promise.all([rootResult, extensionResult]).then(([r1, r2]) =>
@@ -236,5 +242,17 @@ export function nullable<Input, Output>(
         },
       },
     },
+  };
+}
+
+function setIn(obj: Record<string, any>, path: string[], value: any): any {
+  if (path.length === 0) {
+    return value;
+  }
+  const [head, ...tail] = path;
+  const child = setIn(obj?.[head!] || {}, tail, value);
+  return {
+    ...obj,
+    [head!]: child,
   };
 }

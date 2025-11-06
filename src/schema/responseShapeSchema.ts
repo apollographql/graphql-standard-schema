@@ -96,7 +96,7 @@ export function responseShapeSchema(definition: OperationDefinitionNode) {
 
       return { value };
     } catch (e) {
-      return { issues: [{ message: (e as Error).message }] };
+      return { issues: [{ message: (e as Error).message, path: [] }] };
     }
   }
 
