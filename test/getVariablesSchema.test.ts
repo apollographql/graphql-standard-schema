@@ -8,6 +8,7 @@ import assert from "node:assert";
 import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
 import { expectTypeOf } from "expect-type";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
+import type { required } from "zod/mini";
 
 test("handles nullable and non-nullable arguments", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -98,6 +99,204 @@ test("handles nullable and non-nullable arguments", async (t) => {
       const result = validateWithAjv(jsonSchema, {
         text: null,
         maxCount: null,
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.snapshot(jsonSchema);
+  });
+});
+
+test("handles basic scalar types", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(/**GraphQL*/ `
+      type Query {
+        mixed(int: Int, num: Float, str: String, bool: Boolean, id: ID): String
+      }
+    `),
+  });
+  const variablesSchema = generator.getVariablesSchema(
+    gql<
+      { mixed: string },
+      {
+        int: number;
+        num: number;
+        str: string;
+        bool: boolean;
+        id: string | number;
+      }
+    >(/** GraphQL */ `
+      query Search($int: Int, $num: Float, $str: String, $bool: Boolean, $id: ID) {
+        mixed(int: $int, num: $num, str: $str, bool: $bool, id: $id)
+      }
+    `)
+  );
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      int: number;
+      num: number;
+      str: string;
+      bool: boolean;
+      id: string | number;
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      int: number;
+      num: number;
+      str: string;
+      bool: boolean;
+      id: string | number;
+    }>();
+  });
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(variablesSchema, {
+        int: 5,
+        num: 3.14,
+        str: "Hello",
+        bool: true,
+        id: 123,
+      });
+      assert.deepStrictEqual(result, {
+        value: {
+          int: 5,
+          num: 3.14,
+          str: "Hello",
+          bool: true,
+          id: "123",
+        },
+      });
+    }
+    {
+      const result = validateSync(variablesSchema, {
+        int: 5.12,
+        num: 3.14,
+        str: "Hello",
+        bool: true,
+        id: "foo",
+      });
+      assert.deepStrictEqual(result, {
+        issues: [
+          {
+            message:
+              'Variable "$int" got invalid value 5.12; Int cannot represent non-integer value: 5.12',
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", (t) => {
+    const jsonSchema = toJSONSchema(variablesSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        int: 5,
+        num: 3.14,
+        str: "Hello",
+        bool: true,
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        int: 5.12,
+        num: 3.14,
+        str: "Hello",
+        bool: true,
+      });
+      t.assert.equal(result.valid, false);
+    }
+    t.assert.snapshot(jsonSchema);
+  });
+});
+
+test("handles variable-level list types", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(/**GraphQL*/ `
+      type Query {
+        mixed(required: [String!]!, mixed: [String]!, optional: [String]): String
+      }
+    `),
+  });
+  const variablesSchema = generator.getVariablesSchema(
+    gql<
+      { mixed: string },
+      {
+        required: string[];
+        mixed: (string | null)[];
+        optional?: (string | null)[];
+      }
+    >(/** GraphQL */ `
+      query Search($required: [String!]!, $mixed: [String]!, $optional: [String]) {
+        mixed(required: $required, mixed: $mixed, optional: $optional)
+      }
+    `)
+  );
+  await t.test("types", () => {
+    expectTypeOf<
+      StandardSchemaV1.InferInput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      required: string[];
+      mixed: (string | null)[];
+      optional?: (string | null)[];
+    }>();
+    expectTypeOf<
+      StandardSchemaV1.InferOutput<typeof variablesSchema>
+    >().toEqualTypeOf<{
+      required: string[];
+      mixed: (string | null)[];
+      optional?: (string | null)[];
+    }>();
+  });
+  await t.test("validateSync", () => {
+    {
+      const result = validateSync(variablesSchema, {
+        required: ["a", "b"],
+        mixed: ["c", null, "d"],
+        optional: null,
+      });
+      assert.deepStrictEqual(result, {
+        value: {
+          required: ["a", "b"],
+          mixed: ["c", null, "d"],
+          optional: null,
+        },
+      });
+    }
+    {
+      const result = validateSync(variablesSchema, {
+        required: ["a", null],
+        optional: ["e", "f"],
+      });
+      assert.deepStrictEqual(result, {
+        issues: [
+          {
+            message:
+              'Variable "$required" got invalid value null at "required[1]"; Expected non-nullable type "String!" not to be null.',
+          },
+          {
+            message:
+              'Variable "$mixed" of required type "[String]!" was not provided.',
+          },
+        ],
+      });
+    }
+  });
+  await t.test("JSON schema", (t) => {
+    const jsonSchema = toJSONSchema(variablesSchema);
+    {
+      const result = validateWithAjv(jsonSchema, {
+        required: ["a", "b"],
+        mixed: ["c", null, "d"],
+        optional: null,
+      });
+      t.assert.equal(result.valid, true);
+    }
+    {
+      const result = validateWithAjv(jsonSchema, {
+        required: ["a", null],
+        optional: ["e", "f"],
       });
       t.assert.equal(result.valid, false);
     }

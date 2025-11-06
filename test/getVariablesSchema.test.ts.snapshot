@@ -1,3 +1,45 @@
+exports[`handles basic scalar types > JSON schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "int": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "num": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "str": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "bool": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [],
+  "$defs": {},
+  "title": "Variables for query Search"
+}
+`;
+
 exports[`handles custom scalars > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -317,6 +359,47 @@ exports[`handles recursive input types > JSON schema 2`] = `
       }
     }
   },
+  "title": "Variables for query Search"
+}
+`;
+
+exports[`handles variable-level list types > JSON schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "required": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mixed": {
+      "type": "array",
+      "items": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
+    "optional": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    }
+  },
+  "required": [
+    "required"
+  ],
+  "$defs": {},
   "title": "Variables for query Search"
 }
 `;

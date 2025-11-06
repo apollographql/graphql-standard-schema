@@ -83,6 +83,7 @@ export function buildInputSchema(
   ): OpenAiSupportedJsonSchema.Anything {
     if (isNonNullType(parentType)) {
       const itemType = parentType.ofType;
+      /* node:coverage ignore next 4 */
       if (isNonNullType(itemType)) {
         // nested non-null should be impossible, but this makes TypeScript happy and is safer on top
         return handleMaybe(itemType);
@@ -102,6 +103,7 @@ export function buildInputSchema(
       if (!nullable) return schema;
       if ("type" in schema) {
         if (Array.isArray(schema.type)) {
+          /* node:coverage ignore next 6 */ // cannot be reached in current code
           if (!schema.type.includes("null")) {
             return {
               ...schema,
@@ -113,13 +115,13 @@ export function buildInputSchema(
             ...schema,
             type: [schema.type, "null"],
           };
-        }
+        } /* node:coverage ignore next 1 */
         return schema;
       } else if ("$ref" in schema) {
         return {
           anyOf: [schema, { type: "null" }],
         };
-      } else {
+      } /* node:coverage ignore next 2 */ else {
         throw new Error("unhandled maybe case in " + JSON.stringify(schema));
       }
     }
@@ -146,6 +148,7 @@ export function buildInputSchema(
     }
     if (isScalarType(parentType)) {
       const scalarType = scalarTypes?.[parentType.name];
+      /* node:coverage ignore next 5 */
       if (!scalarType) {
         throw new Error(
           `Scalar type ${parentType.name} not found in \`scalarTypes\`, but \`scalarTypes\` option was provided.`
