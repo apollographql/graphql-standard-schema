@@ -121,6 +121,8 @@ export declare namespace GraphQLStandardSchemaGenerator {
     /**
      * If set to either `true` or `false`, this setting will be added to all object types.
      * @defaultValue undefined
+     *
+     * When `defaultJSONSchemaOptions` is set to "OpenAI", this will be false.
      */
     additionalProperties?: boolean;
   }
