@@ -14,15 +14,19 @@ test("generates schema for simple query", async (t) => {
           type Query {
             hello: String!
             count: Int!
+            price: Float!
+            available: Boolean!
           }
         `),
   });
 
   const dataSchema = generator.getDataSchema(
-    gql<{ hello: string; count: number }>(`
+    gql<{ hello: string; count: number; price: number; available: boolean }>(`
           query SimpleQuery {
             hello
             count
+            price
+            available
           }
         `)
   );
@@ -32,10 +36,20 @@ test("generates schema for simple query", async (t) => {
     await t.test("types", () => {
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
-      >().toEqualTypeOf<{ hello: string; count: number }>();
+      >().toEqualTypeOf<{
+        hello: string;
+        count: number;
+        price: number;
+        available: boolean;
+      }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
-      >().toEqualTypeOf<{ hello: string; count: number }>();
+      >().toEqualTypeOf<{
+        hello: string;
+        count: number;
+        price: number;
+        available: boolean;
+      }>();
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<
@@ -53,17 +67,21 @@ test("generates schema for simple query", async (t) => {
         const value = {
           hello: "world",
           count: 42,
+          price: 19.99,
+          available: true,
         };
         const result = validateSync(dataSchema, value);
         t.assert.deepEqual(dataSchema(value), result);
         t.assert.deepEqual(result, {
-          value: { hello: "world", count: 42 },
+          value: { hello: "world", count: 42, price: 19.99, available: true },
         });
       }
       {
         const value = {
           hello: "world",
           count: "five",
+          price: 19.99,
+          available: true,
         };
         const result = validateSync(dataSchema, value);
         t.assert.deepEqual(dataSchema(value), result);
@@ -72,6 +90,43 @@ test("generates schema for simple query", async (t) => {
             {
               message: 'Int cannot represent non-integer value: "five"',
               path: ["count"],
+            },
+          ],
+        });
+      }
+      {
+        const value = {
+          hello: "world",
+          count: 42,
+          price: "not-a-number",
+          available: true,
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message:
+                'Float cannot represent non numeric value: "not-a-number"',
+              path: ["price"],
+            },
+          ],
+        });
+      }
+      {
+        const value = {
+          hello: "world",
+          count: 42,
+          price: 19.99,
+          available: "yes",
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
+        t.assert.deepEqual(result, {
+          issues: [
+            {
+              message: 'Boolean cannot represent a non boolean value: "yes"',
+              path: ["available"],
             },
           ],
         });
@@ -86,12 +141,16 @@ test("generates schema for simple query", async (t) => {
       >().toEqualTypeOf<{
         hello: string;
         count: number;
+        price: number;
+        available: boolean;
       }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof deserializeSchema>
       >().toEqualTypeOf<{
         hello: string;
         count: number;
+        price: number;
+        available: boolean;
       }>();
     });
     await t.test("validateSync", () => {
@@ -99,17 +158,21 @@ test("generates schema for simple query", async (t) => {
         const value = {
           hello: "world",
           count: 42,
+          price: 19.99,
+          available: true,
         };
         const result = validateSync(deserializeSchema, value);
         t.assert.deepEqual(deserializeSchema(value), result);
         t.assert.deepEqual(result, {
-          value: { hello: "world", count: 42 },
+          value: { hello: "world", count: 42, price: 19.99, available: true },
         });
       }
       {
         const value = {
           hello: "world",
           count: "five",
+          price: 19.99,
+          available: true,
         };
         const result = validateSync(deserializeSchema, value);
         t.assert.deepEqual(deserializeSchema(value), result);
@@ -134,12 +197,16 @@ test("generates schema for simple query", async (t) => {
       >().toEqualTypeOf<{
         hello: string;
         count: number;
+        price: number;
+        available: boolean;
       }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof serializeSchema>
       >().toEqualTypeOf<{
         hello: string;
         count: number;
+        price: number;
+        available: boolean;
       }>();
     });
     await t.test("validateSync", () => {
@@ -147,15 +214,21 @@ test("generates schema for simple query", async (t) => {
         const value = {
           hello: "world",
           count: 42,
+          price: 19.99,
+          available: true,
         };
         const result = validateSync(serializeSchema, value);
         t.assert.deepEqual(serializeSchema(value), result);
-        t.assert.deepEqual(result, { value: { hello: "world", count: 42 } });
+        t.assert.deepEqual(result, {
+          value: { hello: "world", count: 42, price: 19.99, available: true },
+        });
       }
       {
         const value = {
           hello: "world",
           count: "five",
+          price: 19.99,
+          available: true,
         };
         const result = validateSync(serializeSchema, value);
         t.assert.deepEqual(serializeSchema(value), result);
@@ -174,11 +247,15 @@ test("generates schema for simple query", async (t) => {
         const value = {
           hello: 42,
           count: "42",
+          price: "19.99",
+          available: 1,
         };
         const result = validateSync(serializeSchema, value);
         t.assert.deepEqual(serializeSchema(value), result);
         // deepEqual because validateSync returns null objects
-        t.assert.deepEqual(result, { value: { hello: "42", count: 42 } });
+        t.assert.deepEqual(result, {
+          value: { hello: "42", count: 42, price: 19.99, available: true },
+        });
       }
     });
   });
@@ -191,6 +268,8 @@ test("generates schema for simple query", async (t) => {
       const result = validateWithAjv(serializedJsonSchema, {
         hello: "world",
         count: 5,
+        price: 19.99,
+        available: true,
       });
       t.assert.equal(result.valid, true);
     }
@@ -198,6 +277,8 @@ test("generates schema for simple query", async (t) => {
       const result = validateWithAjv(serializedJsonSchema, {
         hello: "world",
         count: "five",
+        price: 19.99,
+        available: true,
       });
       t.assert.equal(result.valid, false);
     }
@@ -950,6 +1031,7 @@ test("handles custom scalars", async (t) => {
 
           type Query {
             now: Date!
+            laterDate: Date
           }
         `),
     scalarTypes: {
@@ -958,9 +1040,10 @@ test("handles custom scalars", async (t) => {
   });
 
   const dataSchema = generator.getDataSchema(
-    gql<{ now: Date }>(`
+    gql<{ now: Date; laterDate?: Date | null }>(`
           query {
             now
+            laterDate
           }
         `)
   );
@@ -971,11 +1054,13 @@ test("handles custom scalars", async (t) => {
         StandardSchemaV1.InferInput<typeof dataSchema>
       >().toEqualTypeOf<{
         now: string;
+        laterDate?: string | null;
       }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof dataSchema>
       >().toEqualTypeOf<{
         now: string;
+        laterDate?: string | null;
       }>();
       expectTypeOf<
         StandardSchemaV1.InferInput<typeof dataSchema>
@@ -995,7 +1080,9 @@ test("handles custom scalars", async (t) => {
         };
         const result = validateSync(dataSchema, value);
         t.assert.deepEqual(dataSchema(value), result);
-        t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
+        t.assert.deepEqual(result, {
+          value: { now: "2023-10-05", laterDate: null },
+        });
       }
       {
         const value = {
@@ -1003,7 +1090,9 @@ test("handles custom scalars", async (t) => {
         };
         const result = validateSync(dataSchema, value);
         t.assert.deepEqual(dataSchema(value), result);
-        t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
+        t.assert.deepEqual(result, {
+          value: { now: "2023-10-05", laterDate: null },
+        });
       }
       {
         const value = {
@@ -1029,11 +1118,13 @@ test("handles custom scalars", async (t) => {
         StandardSchemaV1.InferInput<typeof deserializeSchema>
       >().toEqualTypeOf<{
         now: string;
+        laterDate?: string | null;
       }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof deserializeSchema>
       >().toEqualTypeOf<{
         now: Date;
+        laterDate?: Date | null;
       }>();
     });
     await t.test("validateSync", () => {
@@ -1043,7 +1134,9 @@ test("handles custom scalars", async (t) => {
         };
         const result = validateSync(deserializeSchema, value);
         t.assert.deepEqual(deserializeSchema(value), result);
-        t.assert.deepEqual(result, { value: { now: new Date("2023-10-05") } });
+        t.assert.deepEqual(result, {
+          value: { now: new Date("2023-10-05"), laterDate: null },
+        });
       }
       {
         const value = {
@@ -1070,11 +1163,13 @@ test("handles custom scalars", async (t) => {
         StandardSchemaV1.InferInput<typeof serializeSchema>
       >().toEqualTypeOf<{
         now: Date;
+        laterDate?: Date | null;
       }>();
       expectTypeOf<
         StandardSchemaV1.InferOutput<typeof serializeSchema>
       >().toEqualTypeOf<{
         now: string;
+        laterDate?: string | null;
       }>();
     });
     await t.test("validateSync", () => {
@@ -1084,7 +1179,9 @@ test("handles custom scalars", async (t) => {
         };
         const result = validateSync(serializeSchema, value);
         t.assert.deepEqual(serializeSchema(value), result);
-        t.assert.deepEqual(result, { value: { now: "2023-10-05" } });
+        t.assert.deepEqual(result, {
+          value: { now: "2023-10-05", laterDate: null },
+        });
       }
       {
         const value = {
@@ -1135,6 +1232,10 @@ test("handles custom scalars", async (t) => {
           $ref: "#/$defs/scalar/Date",
           title: "Query.now: Date!",
         },
+        laterDate: {
+          title: "Query.laterDate: Date",
+          anyOf: [{ $ref: "#/$defs/scalar/Date" }, { type: "null" }],
+        },
       },
       required: ["now"],
       title: "query Anonymous",
@@ -1167,6 +1268,10 @@ test("handles custom scalars", async (t) => {
         now: {
           $ref: "#/$defs/scalar/Date",
           title: "Query.now: Date!",
+        },
+        laterDate: {
+          title: "Query.laterDate: Date",
+          anyOf: [{ $ref: "#/$defs/scalar/Date" }, { type: "null" }],
         },
       },
       required: ["now"],
@@ -2261,5 +2366,142 @@ test("handles unions", async (t) => {
         },
       },
     });
+  });
+});
+
+test("merges selection sets from fragments", async (t) => {
+  const generator = new GraphQLStandardSchemaGenerator({
+    schema: buildSchema(/**GraphQL*/ `
+          type Person {
+            id: ID!
+            name: String!
+            age: Int!
+            email: String!
+          }
+
+          type Query {
+            person: Person!
+          }
+        `),
+  });
+
+  const dataSchema = generator.getDataSchema(
+    gql<{
+      person: { id: string; name: string; age: number; email: string };
+    }>(`
+          fragment PersonBasic on Query {
+            person {
+              id
+              name
+            }
+          }
+
+          fragment PersonContact on Query {
+            person {
+              age
+              email
+            }
+          }
+
+          query {
+            ...PersonBasic
+            ...PersonContact
+          }
+        `)
+  );
+
+  await t.test("normalize", async (t) => {
+    t.assert.equal(dataSchema, dataSchema.normalize);
+    await t.test("validateSync", () => {
+      {
+        const value = {
+          person: {
+            id: "1",
+            name: "Alice",
+            age: 30,
+            email: "alice@example.com",
+          },
+        };
+        const result = validateSync(dataSchema, value);
+        t.assert.deepEqual(dataSchema(value), result);
+        t.assert.deepEqual(result, {
+          value: {
+            __typename: "Query",
+            person: {
+              __typename: "Person",
+              id: "1",
+              name: "Alice",
+              age: 30,
+              email: "alice@example.com",
+            },
+          },
+        });
+      }
+    });
+  });
+  await t.test("deserialize", async (t) => {
+    const deserializeSchema = dataSchema.deserialize;
+    await t.test("validateSync", () => {
+      {
+        const value = {
+          person: {
+            id: "1",
+            name: "Alice",
+            age: 30,
+            email: "alice@example.com",
+          },
+        };
+        const result = validateSync(deserializeSchema, value);
+        t.assert.deepEqual(deserializeSchema(value), result);
+        t.assert.deepEqual(result, {
+          value: {
+            __typename: "Query",
+            person: {
+              __typename: "Person",
+              id: "1",
+              name: "Alice",
+              age: 30,
+              email: "alice@example.com",
+            },
+          },
+        });
+      }
+    });
+  });
+  await t.test("serialize", async (t) => {
+    const serializeSchema = dataSchema.serialize;
+    await t.test("validateSync", () => {
+      {
+        const value = {
+          person: {
+            id: "1",
+            name: "Alice",
+            age: 30,
+            email: "alice@example.com",
+          },
+        };
+        const result = validateSync(serializeSchema, value);
+        t.assert.deepEqual(serializeSchema(value), result);
+        t.assert.deepEqual(result, {
+          value: {
+            __typename: "Query",
+            person: {
+              __typename: "Person",
+              id: "1",
+              name: "Alice",
+              age: 30,
+              email: "alice@example.com",
+            },
+          },
+        });
+      }
+    });
+  });
+
+  await t.test("JSON schema", (t) => {
+    const { deserializedJsonSchema, serializedJsonSchema } =
+      getBidirectionalJsonSchemas(dataSchema);
+    t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
+    t.assert.snapshot(deserializedJsonSchema);
   });
 });

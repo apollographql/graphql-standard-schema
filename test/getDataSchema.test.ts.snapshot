@@ -134,11 +134,21 @@ exports[`generates schema for simple query > JSON schema 1`] = `
     "count": {
       "title": "Query.count: Int!",
       "type": "integer"
+    },
+    "price": {
+      "title": "Query.price: Float!",
+      "type": "number"
+    },
+    "available": {
+      "title": "Query.available: Boolean!",
+      "type": "boolean"
     }
   },
   "required": [
     "hello",
-    "count"
+    "count",
+    "price",
+    "available"
   ],
   "$defs": {}
 }
@@ -203,6 +213,56 @@ exports[`handles enums > JSON schema 1`] = `
       }
     }
   }
+}
+`;
+
+exports[`merges selection sets from fragments > JSON schema 1`] = `
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "query Anonymous",
+  "properties": {
+    "__typename": {
+      "const": "Query"
+    },
+    "person": {
+      "title": "Person",
+      "type": "object",
+      "properties": {
+        "__typename": {
+          "const": "Person"
+        },
+        "id": {
+          "title": "Person.id: ID!",
+          "type": "string"
+        },
+        "name": {
+          "title": "Person.name: String!",
+          "type": "string"
+        },
+        "age": {
+          "title": "Person.age: Int!",
+          "type": "integer"
+        },
+        "email": {
+          "title": "Person.email: String!",
+          "type": "string"
+        }
+      },
+      "required": [
+        "__typename",
+        "id",
+        "name",
+        "age",
+        "email"
+      ]
+    }
+  },
+  "required": [
+    "__typename",
+    "person"
+  ],
+  "$defs": {}
 }
 `;
 

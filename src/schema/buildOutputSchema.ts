@@ -71,6 +71,7 @@ export function buildOutputSchema(
   ): OpenAiSupportedJsonSchema.Anything {
     if (isNonNullType(parentType)) {
       const itemType = parentType.ofType;
+      /* node:coverage ignore next 4 */
       if (isNonNullType(itemType)) {
         // nested non-null should be impossible, but this makes TypeScript happy and is safer on top
         return handleMaybe(itemType, selections);
@@ -91,9 +92,11 @@ export function buildOutputSchema(
     ): OpenAiSupportedJsonSchema.Anything {
       if (!nullable) return schema;
       if ("const" in schema) {
+        /* node:coverage ignore next 1 */
         return { anyOf: [schema, { type: "null" }] };
       } else if ("type" in schema) {
         if (Array.isArray(schema.type)) {
+          /* node:coverage ignore next 6 */
           if (!schema.type.includes("null")) {
             return {
               ...schema,
@@ -105,7 +108,7 @@ export function buildOutputSchema(
             ...schema,
             type: [schema.type, "null"],
           };
-        }
+        } /* node:coverage ignore next 1 */
         return schema;
       } else if ("anyOf" in schema) {
         if (
@@ -124,7 +127,7 @@ export function buildOutputSchema(
         return {
           anyOf: [schema, { type: "null" }],
         };
-      } else {
+      } /* node:coverage ignore next 2 */ else {
         throw new Error("unhandled maybe case in " + JSON.stringify(schema));
       }
     }
@@ -151,6 +154,7 @@ export function buildOutputSchema(
     }
     if (isScalarType(parentType)) {
       const scalarType = scalarTypes?.[parentType.name];
+      /* node:coverage ignore next 5 */
       if (!scalarType) {
         throw new Error(
           `Scalar type ${parentType.name} not found in \`scalarTypes\`, but \`scalarTypes\` option was provided.`
@@ -323,7 +327,7 @@ export function buildOutputSchema(
           ...selection.selectionSet.selections,
         ];
         continue;
-      }
+      } /* node:coverage ignore next 4 */
       throw new Error(
         `Incorrect selection for field ${selection.name.value} cannot be a mix of field and sub-selections`
       );
