@@ -5,7 +5,7 @@ import { toJSONSchema } from "./toJsonSchema.ts";
 export function getBidirectionalJsonSchemas(
   base: GraphQLStandardSchemaGenerator.BidirectionalValidationSchema<any, any>
 ) {
-  const serializedJsonSchema = toJSONSchema.output(base.serialize);
+  const serializedJsonSchema = toJSONSchema.input(base.deserialize);
   const deserializedJsonSchema = toJSONSchema.output(base.deserialize);
   assert.deepEqual(serializedJsonSchema, toJSONSchema.input(base));
   assert.deepEqual(serializedJsonSchema, toJSONSchema.output(base));

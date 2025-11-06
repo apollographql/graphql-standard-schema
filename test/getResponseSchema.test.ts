@@ -455,8 +455,9 @@ await test("simple query response", async (t) => {
               scalar: {
                 Date: {
                   title: "Date",
-                  description: "Unix timestamp in milliseconds",
-                  type: "number",
+                  description: "A date string in YYYY-MM-DD format",
+                  type: "string",
+                  pattern: "\\d{4}-\\d{1,2}-\\d{1,2}",
                 },
               },
             },
@@ -498,7 +499,7 @@ await test("simple query response", async (t) => {
       "expected differences between deserialize and serialized schemas",
       (t) => {
         t.assert.deepEqual(
-          jsonPatch.compare(serializedJsonSchema, deserializedJsonSchema),
+          jsonPatch.compare(deserializedJsonSchema, serializedJsonSchema),
           [
             {
               op: "replace",
@@ -518,7 +519,7 @@ await test("simple query response", async (t) => {
           ]
         );
         t.assert.deepEqual(
-          jsonPatch.compare(deserializedJsonSchema, serializedJsonSchema),
+          jsonPatch.compare(serializedJsonSchema, deserializedJsonSchema),
           [
             {
               op: "remove",

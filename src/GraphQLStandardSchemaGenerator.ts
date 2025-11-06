@@ -333,7 +333,7 @@ export class GraphQLStandardSchemaGenerator<
       buildSchema: (direction) =>
         direction === "serialized"
           ? composedSerialize["~standard"].jsonSchema.output
-          : composedDeserialize["~standard"].jsonSchema.output,
+          : composedSerialize["~standard"].jsonSchema.input,
     });
   }
 

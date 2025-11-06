@@ -59,66 +59,68 @@ export function composeStandardSchemas<
     StandardSchemaV1.InferOutput<Extension>,
     Required
   >;
-  const jsonSchema: JsonSchemaFn = (params) => {
-    const rootJson: Record<string, unknown> & { $defs?: {} } =
-      rootSchema["~standard"].jsonSchema.input(params);
-    const {
-      $defs,
-      $schema,
-      ...extensionJson
-    }: Record<string, unknown> & { $defs?: {} } =
-      extension["~standard"].jsonSchema.input(params);
-    let step: {
-      type?: string;
-      properties?: Record<string, Record<string, unknown>>;
-      required?: string[];
-      $defs?: Record<string, unknown>;
-    } = rootJson;
+  const jsonSchema: (direction: "input" | "output") => JsonSchemaFn =
+    (direction) => (params) => {
+      const rootJson: Record<string, unknown> & { $defs?: {} } =
+        rootSchema["~standard"].jsonSchema[direction](params);
+      const {
+        $defs,
+        $schema,
+        ...extensionJson
+      }: Record<string, unknown> & { $defs?: {} } =
+        extension["~standard"].jsonSchema[direction](params);
+      let step: {
+        type?: string;
+        properties?: Record<string, Record<string, unknown>>;
+        required?: string[];
+        $defs?: Record<string, unknown>;
+      } = rootJson;
 
-    const refPrefix = path.join(".");
+      const refPrefix = path.join(".");
 
-    for (let i = 0; i < path.length; i++) {
-      const key = path[i]!;
-      assert(step.type === "object");
-      if (!step.properties) {
-        step.properties = {};
-      }
-      if (!step.properties[key]) {
-        step.properties[key] = {
-          type: "object",
-          properties: {},
-          required: [],
-          additionalProperties: false,
-        };
-        if (required) {
-          step.required = [...(step.required || []), key];
+      for (let i = 0; i < path.length; i++) {
+        const key = path[i]!;
+        assert(step.type === "object");
+        /* node:coverage ignore next 3 */
+        if (!step.properties) {
+          step.properties = {};
         }
-      }
-      if (i === path.length - 1) {
-        step.properties[key] = JSON.parse(
-          JSON.stringify(extensionJson),
-          (key, value) => {
-            if (
-              key === "$ref" &&
-              typeof value === "string" &&
-              value.startsWith("#/$defs")
-            ) {
-              return "#/$defs/" + refPrefix + value.slice("#/$defs".length);
-            }
-            return value;
+        if (!step.properties[key]) {
+          step.properties[key] = {
+            type: "object",
+            properties: {},
+            required: [],
+            additionalProperties: false,
+          };
+          if (required) {
+            step.required = [...(step.required || []), key];
           }
-        ) as typeof extensionJson;
+        }
+        if (i === path.length - 1) {
+          step.properties[key] = JSON.parse(
+            JSON.stringify(extensionJson),
+            (key, value) => {
+              if (
+                key === "$ref" &&
+                typeof value === "string" &&
+                value.startsWith("#/$defs")
+              ) {
+                return "#/$defs/" + refPrefix + value.slice("#/$defs".length);
+              }
+              return value;
+            }
+          ) as typeof extensionJson;
+        }
+        step = step.properties[key];
       }
-      step = step.properties[key];
-    }
-    if ($defs) {
-      // note that this might override existing definitions in rootJson.$defs
-      // this is okay while using this internally, but once exposed to users, we might
-      // need to handle conflicts more gracefully
-      rootJson.$defs = { ...rootJson.$defs, [refPrefix]: $defs };
-    }
-    return rootJson;
-  };
+      if ($defs) {
+        // note that this might override existing definitions in rootJson.$defs
+        // this is okay while using this internally, but once exposed to users, we might
+        // need to handle conflicts more gracefully
+        rootJson.$defs = { ...rootJson.$defs, [refPrefix]: $defs };
+      }
+      return rootJson;
+    };
   return {
     "~standard": {
       vendor: `${rootSchema["~standard"].vendor}`,
@@ -181,7 +183,7 @@ export function composeStandardSchemas<
                       ...issue,
                       path: [...path, ...issue.path],
                     };
-                  }
+                  } /* node:coverage ignore next */
                   return issue;
                 }),
               ],
@@ -195,6 +197,7 @@ export function composeStandardSchemas<
                 : (setIn(result1.value, path, result2.value) as CombinedResult),
           };
         }
+        /* node:coverage ignore next 5 */
         if ("then" in rootResult || "then" in extensionResult) {
           return Promise.all([rootResult, extensionResult]).then(([r1, r2]) =>
             combineResults(r1, r2)
@@ -203,8 +206,8 @@ export function composeStandardSchemas<
         return combineResults(rootResult, extensionResult);
       },
       jsonSchema: {
-        input: jsonSchema,
-        output: jsonSchema,
+        input: jsonSchema("input"),
+        output: jsonSchema("output"),
       },
     },
   };
@@ -233,12 +236,8 @@ export function nullable<Input, Output>(
         },
         output(params) {
           const { $defs, $schema, ...orig } =
-            schema["~standard"].jsonSchema.input(params);
-          return {
-            $schema,
-            anyOf: [{ type: "null" }, orig],
-            $defs,
-          };
+            schema["~standard"].jsonSchema.output(params);
+          return { $schema, anyOf: [{ type: "null" }, orig], $defs };
         },
       },
     },

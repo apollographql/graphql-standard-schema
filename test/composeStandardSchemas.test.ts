@@ -56,21 +56,47 @@ test("basic assumption about test schema", (t) => {
 });
 
 test("composes with zod", async (t) => {
-  const zodSchema = z.object({
-    props: z.object({
+  const zodSchema = z.strictObject({
+    props: z.strictObject({
       height: z.number(),
       width: z.number(),
     }),
   });
   const zodStandard = zodToStandardJSONSchemaV1(zodSchema);
-
   const zodJson = toJSONSchema(zodStandard);
+
+  test("basic assumption about zod schema", (t) => {
+    assert.deepEqual(
+      validateSync(zodStandard, { props: { height: 5, width: 10 } }),
+      {
+        value: { props: { height: 5, width: 10 } },
+      }
+    );
+    assert.deepEqual(
+      validateSync(zodStandard, {
+        props: { height: 5, width: 10, data: validData },
+      }),
+      {
+        issues: [
+          {
+            code: "unrecognized_keys",
+            keys: ["data"],
+            message: 'Unrecognized key: "data"',
+            path: ["props"],
+          },
+        ],
+      }
+    );
+  });
+
   assert.deepStrictEqual(zodJson, {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     type: "object",
+    additionalProperties: false,
     properties: {
       props: {
         type: "object",
+        additionalProperties: false,
         properties: { height: { type: "number" }, width: { type: "number" } },
         required: ["height", "width"],
       },
@@ -78,47 +104,93 @@ test("composes with zod", async (t) => {
     required: ["props"],
   });
 
-  assert.deepStrictEqual(
-    validateSync(zodStandard, { props: { height: 100, width: 200 } }),
-    { value: { props: { height: 100, width: 200 } } }
-  );
-  assert.deepStrictEqual(
-    validateSync(zodStandard, { props: { height: 100, width: 200 } }),
-    { value: { props: { height: 100, width: 200 } } }
-  );
-
-  await t.test("required (default)", (t) => {
+  await t.test("required (default)", async (t) => {
     const combinedSchema = composeStandardSchemas(
       zodStandard,
       ["props", "data"],
       schema
     );
 
-    const { $defs, $schema, ...extension } = adjustedSchemaJSON;
-
-    assert.deepStrictEqual(toJSONSchema(combinedSchema), {
-      $schema: "https://json-schema.org/draft/2020-12/schema",
-      type: "object",
-      properties: {
-        props: {
-          type: "object",
-          properties: {
-            height: { type: "number" },
-            width: { type: "number" },
-            // +
-            data: extension,
+    await t.test("validation", async (t) => {
+      assert.deepEqual(
+        validateSync(combinedSchema, { props: { height: 5, width: 10 } }),
+        {
+          issues: [
+            {
+              message: "Cannot read properties of undefined (reading 'search')",
+              path: ["props", "data", "search"],
+            },
+          ],
+        }
+      );
+      assert.deepEqual(
+        validateSync(combinedSchema, {
+          props: { height: 5, width: 10, data: validData },
+        }),
+        {
+          value: {
+            props: { height: 5, width: 10, data: validData },
           },
-          // +
-          required: ["height", "width", "data"],
-        },
-      },
-      required: ["props"],
-      // +
-      $defs: { "props.data": $defs },
+        }
+      );
+      await t.test(
+        "will error when `hideAddedFieldFromRootSchema` is disabled",
+        async (t) => {
+          const schemaWithoutHiding = composeStandardSchemas(
+            zodStandard,
+            ["props", "data"],
+            schema,
+            true,
+            false
+          );
+          assert.deepEqual(
+            validateSync(schemaWithoutHiding, {
+              props: { height: 5, width: 10, data: validData },
+            }),
+            {
+              issues: [
+                {
+                  code: "unrecognized_keys",
+                  keys: ["data"],
+                  message: 'Unrecognized key: "data"',
+                  path: ["props"],
+                },
+              ],
+            }
+          );
+        }
+      );
     });
-    t.assert.snapshot(toJSONSchema(combinedSchema));
+
+    await t.test("JSON schema", (t) => {
+      const { $defs, $schema, ...extension } = adjustedSchemaJSON;
+
+      t.assert.deepEqual(toJSONSchema.input(combinedSchema), {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          props: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              height: { type: "number" },
+              width: { type: "number" },
+              // +
+              data: extension,
+            },
+            // +
+            required: ["height", "width", "data"],
+          },
+        },
+        required: ["props"],
+        // +
+        $defs: { "props.data": $defs },
+      });
+      t.assert.snapshot(toJSONSchema.input(combinedSchema));
+    });
   });
-  await t.test("optional", (t) => {
+  await t.test("optional", async (t) => {
     const combinedSchema = composeStandardSchemas(
       zodStandard,
       ["props", "data"],
@@ -126,30 +198,85 @@ test("composes with zod", async (t) => {
       false
     );
 
-    const { $defs, $schema, ...extension } = adjustedSchemaJSON;
-
-    assert.deepStrictEqual(toJSONSchema(combinedSchema), {
-      $schema: "https://json-schema.org/draft/2020-12/schema",
-      type: "object",
-      properties: {
-        props: {
-          type: "object",
-          properties: {
-            height: { type: "number" },
-            width: { type: "number" },
-            // +
-            data: extension,
+    await t.test("validation", async (t) => {
+      assert.deepEqual(
+        validateSync(combinedSchema, { props: { height: 5, width: 10 } }),
+        {
+          value: {
+            props: {
+              height: 5,
+              width: 10,
+            },
           },
-          // no addition!
-          required: ["height", "width"],
-        },
-      },
-      required: ["props"],
-      // +
-      $defs: {
-        "props.data": $defs,
-      },
+        }
+      );
+      assert.deepEqual(
+        validateSync(combinedSchema, {
+          props: { height: 5, width: 10, data: validData },
+        }),
+        {
+          value: {
+            props: { height: 5, width: 10, data: validData },
+          },
+        }
+      );
+      await t.test(
+        "will error when `hideAddedFieldFromRootSchema` is disabled",
+        async (t) => {
+          const schemaWithoutHiding = composeStandardSchemas(
+            zodStandard,
+            ["props", "data"],
+            schema,
+            false,
+            false
+          );
+          assert.deepEqual(
+            validateSync(schemaWithoutHiding, {
+              props: { height: 5, width: 10, data: validData },
+            }),
+            {
+              issues: [
+                {
+                  code: "unrecognized_keys",
+                  keys: ["data"],
+                  message: 'Unrecognized key: "data"',
+                  path: ["props"],
+                },
+              ],
+            }
+          );
+        }
+      );
     });
-    t.assert.snapshot(toJSONSchema(combinedSchema));
+
+    await t.test("JSON schema", (t) => {
+      const { $defs, $schema, ...extension } = adjustedSchemaJSON;
+
+      t.assert.deepEqual(toJSONSchema.input(combinedSchema), {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          props: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              height: { type: "number" },
+              width: { type: "number" },
+              // +
+              data: extension,
+            },
+            // no addition!
+            required: ["height", "width"],
+          },
+        },
+        required: ["props"],
+        // +
+        $defs: {
+          "props.data": $defs,
+        },
+      });
+      t.assert.snapshot(toJSONSchema.input(combinedSchema));
+    });
   });
 });

@@ -251,7 +251,7 @@ exports[`basic assumption about test schema 1`] = `
 }
 `;
 
-exports[`composes with zod > optional 1`] = `
+exports[`composes with zod > optional > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
@@ -508,12 +508,14 @@ exports[`composes with zod > optional 1`] = `
       "required": [
         "height",
         "width"
-      ]
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
     "props"
   ],
+  "additionalProperties": false,
   "$defs": {
     "props.data": {
       "type": {
@@ -529,7 +531,7 @@ exports[`composes with zod > optional 1`] = `
 }
 `;
 
-exports[`composes with zod > required (default) 1`] = `
+exports[`composes with zod > required (default) > JSON schema 1`] = `
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
@@ -787,12 +789,14 @@ exports[`composes with zod > required (default) 1`] = `
         "height",
         "width",
         "data"
-      ]
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
     "props"
   ],
+  "additionalProperties": false,
   "$defs": {
     "props.data": {
       "type": {
