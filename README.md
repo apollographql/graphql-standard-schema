@@ -500,3 +500,14 @@ namespace GraphQLStandardSchemaGenerator {
 
 While OpenAI object generation works with JSON Schema, it doesn't follow a specific version of the standard and has some specific requirements around how schemas should be structured.
 To get JSON Schemas that are optimized for OpenAI object generation, you can set the `defaultJSONSchemaOptions` to `"OpenAI"` when creating the `GraphQLStandardSchemaGenerator`.
+
+```ts
+const generator = new GraphQLStandardSchemaGenerator({
+  schema: gql`
+    type Query {
+      hello: String
+    }
+  `,
+  defaultJSONSchemaOptions: "OpenAI",
+});
+```
