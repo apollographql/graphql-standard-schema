@@ -15,13 +15,14 @@ import {
   isScalarType,
   isEnumType,
   GraphQLInputObjectType,
+  type OperationDefinitionNode,
 } from "graphql";
 import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSchema.ts";
 import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
 
 export function buildInputSchema(
   schema: GraphQLSchema,
-  document: DocumentNode,
+  operation: OperationDefinitionNode,
   scalarTypes: Record<string, OpenAiSupportedJsonSchema.Anything> | undefined,
   options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
@@ -29,10 +30,7 @@ export function buildInputSchema(
     options.additionalProperties !== undefined
       ? { additionalProperties: options.additionalProperties }
       : {};
-  const variableDefs =
-    document.definitions.find(
-      (def) => def.kind === Kind.OPERATION_DEFINITION && isDefinitionNode(def)
-    )?.variableDefinitions || [];
+  const variableDefs = operation.variableDefinitions || [];
 
   const defs: {
     enum?: OpenAiSupportedJsonSchema.Definitions;

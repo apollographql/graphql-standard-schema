@@ -2,6 +2,7 @@ import {
   getDirectiveValues,
   GraphQLEnumType,
   GraphQLIncludeDirective,
+  GraphQLInputObjectType,
   GraphQLNonNull,
   GraphQLScalarType,
   GraphQLSkipDirective,
@@ -28,7 +29,7 @@ import { assert } from "./assert.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 
-type SchemaResult<
+export type SchemaResult<
   TData,
   Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
   Mode = "normalize" | "deserialize" | "serialize",
@@ -88,7 +89,7 @@ export function parseFragment<
   variableValues: TVariables,
   mode: Mode,
   initialPath: Array<string | number> = []
-) {
+): StandardSchemaV1.Result<SchemaResult<TData, Scalars, Mode>> {
   try {
     return parseSelectionSet({
       data,
@@ -109,6 +110,17 @@ export function parseFragment<
       ],
     };
   }
+}
+
+export function getScalarParser<
+  Mode extends "normalize" | "deserialize" | "serialize",
+>(mode: Mode) {
+  return (value: unknown, scalar: GraphQLScalarType | GraphQLEnumType) =>
+    mode === "serialize"
+      ? scalar.serialize(value)
+      : mode === "deserialize"
+        ? scalar.parseValue(value)
+        : scalar.serialize(scalar.parseValue(value));
 }
 
 function parseSelectionSet<
@@ -143,15 +155,7 @@ function parseSelectionSet<
    */
   mode: Mode;
 }): StandardSchemaV1.Result<SchemaResult<TData, Scalars, Mode>> {
-  const parseScalar = (
-    value: unknown,
-    scalar: GraphQLScalarType | GraphQLEnumType
-  ) =>
-    mode === "serialize"
-      ? scalar.serialize(value)
-      : mode === "deserialize"
-        ? scalar.parseValue(value)
-        : scalar.serialize(scalar.parseValue(value));
+  const parseScalar = getScalarParser(mode);
 
   const fragments = Object.fromEntries(
     document.definitions

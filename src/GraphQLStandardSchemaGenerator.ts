@@ -4,13 +4,9 @@ import {
   buildASTSchema,
   type DocumentNode,
   type FragmentDefinitionNode,
-  getVariableValues,
   type GraphQLFormattedError,
   GraphQLScalarType,
   GraphQLSchema,
-  Kind,
-  type OperationDefinitionNode,
-  OperationTypeNode,
 } from "graphql";
 import { buildFragmentSchema } from "./schema/buildFragmentSchema.ts";
 import { buildOperationSchema } from "./schema/buildOperationSchema.ts";
@@ -35,7 +31,6 @@ import {
   nullable,
 } from "./utils/composeStandardSchemas.ts";
 import { fakeVariables } from "./utils/fakeVariables.ts";
-import { formatError } from "./utils/formatError.ts";
 import { getOperation } from "./utils/getOperation.ts";
 import type { OpenAiSupportedJsonSchema } from "./utils/openAiSupportedJsonSchema.ts";
 import {
@@ -43,6 +38,7 @@ import {
   parseFragment,
 } from "./utils/parseData.ts";
 import { validationSchema } from "./utils/validationSchema.ts";
+import { parseVariables } from "./utils/parseVariables.ts";
 
 export declare namespace GraphQLStandardSchemaGenerator {
   export namespace Internal {
@@ -448,11 +444,11 @@ export class GraphQLStandardSchemaGenerator<
     });
   }
 
-  getVariablesSchema<TVariables>(
+  getVariablesSchema<TVariables extends Record<string, unknown>>(
     document: TypedDocumentNode<any, TVariables>
-  ): GraphQLStandardSchemaGenerator.ValidationSchema<
-    GraphQLStandardSchemaGenerator.Serialized<TVariables, Scalars>,
-    GraphQLStandardSchemaGenerator.Deserialized<TVariables, Scalars>
+  ): GraphQLStandardSchemaGenerator.BidirectionalValidationSchema<
+    TVariables,
+    Scalars
   > {
     const schema = this.schema;
     document = this.documentTransfoms.reduce(
@@ -468,41 +464,36 @@ export class GraphQLStandardSchemaGenerator<
           ...schemaBase(options),
           ...buildVariablesSchema(
             schema,
-            document,
             operation,
             this[`${direction}ScalarTypes`],
             { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
       };
-    function deserializeVariables(
-      variables: unknown
-    ): StandardSchemaV1.Result<TVariables> {
-      if (typeof variables !== "object" || variables === null) {
-        return {
-          issues: [
-            {
-              message: `Expected variables to be an object, got ${typeof variables}`,
-            },
-          ],
-        };
-      }
-      const result = getVariableValues(
-        schema,
-        operation.variableDefinitions || [],
-        variables as Record<string, unknown>
-      );
-      if (result.coerced) {
-        return { value: result.coerced as TVariables };
-      }
-      return {
-        issues: result.errors?.map(formatError),
-      };
-    }
-    return validationSchema(
-      deserializeVariables,
-      buildSchema("serialized"),
-      buildSchema("deserialized")
-    );
+
+    return bidirectionalValidationSchema<TVariables, Scalars>({
+      normalize: (variables) =>
+        parseVariables<TVariables, Scalars, "normalize">(
+          variables,
+          operation,
+          schema,
+          "normalize"
+        ),
+      deserialize: (variables) =>
+        parseVariables<TVariables, Scalars, "deserialize">(
+          variables,
+          operation,
+          schema,
+          "deserialize"
+        ),
+      serialize: (variables) =>
+        parseVariables<TVariables, Scalars, "serialize">(
+          variables,
+          operation,
+          schema,
+          "serialize"
+        ),
+      buildSchema,
+    });
   }
 }

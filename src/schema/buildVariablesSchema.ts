@@ -1,15 +1,10 @@
-import type {
-  GraphQLSchema,
-  DocumentNode,
-  OperationDefinitionNode,
-} from "graphql";
+import type { GraphQLSchema, OperationDefinitionNode } from "graphql";
 import { buildInputSchema } from "./buildInputSchema.ts";
 import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
 import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSchema.ts";
 
 export function buildVariablesSchema(
   schema: GraphQLSchema,
-  document: DocumentNode,
   operation: OperationDefinitionNode,
   scalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping,
   options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
@@ -18,7 +13,7 @@ export function buildVariablesSchema(
     ...(operation.description
       ? { description: operation.description?.value }
       : {}),
-    ...buildInputSchema(schema, document, scalarTypes, options),
+    ...buildInputSchema(schema, operation, scalarTypes, options),
     title: `Variables for ${operation.operation} ${operation.name?.value || "Anonymous"}`,
   };
 }
