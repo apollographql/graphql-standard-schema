@@ -7,7 +7,7 @@ import { DateScalarDef } from "./utils/DateScalarDef.ts";
 import { buildSchema, type GraphQLFormattedError } from "graphql";
 import { getBidirectionalJsonSchemas } from "./utils/getBidirectionalJsonSchemas.ts";
 import jsonPatch from "fast-json-patch";
-import { getOperation } from "../src/index.ts";
+import { getOperation } from "../src/utils/getOperation.ts";
 import { responseShapeSchema } from "../src/schema/responseShapeSchema.ts";
 
 await test("simple query response", async (t) => {

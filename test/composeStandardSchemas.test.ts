@@ -1,11 +1,11 @@
 import z from "zod";
 import {
-  zodToStandardJSONSchemaV1,
+  zodToExperimenalStandardJSONSchema as zodToStandardJSONSchemaV1,
+  composeExperimentalStandardJSONSchemas as composeStandardSchemas,
   GraphQLStandardSchemaGenerator,
   toJSONSchema,
 } from "../src/index.ts";
 import { SearchCharacter, swSchema } from "./utils/swSchema.ts";
-import { composeStandardSchemas } from "../src/index.ts";
 import test from "node:test";
 import assert from "node:assert";
 import { validateSync } from "./utils/test-helpers.ts";
