@@ -477,7 +477,53 @@ const result = dataSchema.serialize({
 
 ### Usage with TypeScript
 
-// TODO
+If you pass `TypedDocumentNode` instances to the schema generator methods, the returned schemas will be fully typed according to the GraphQL operation types.
+
+```ts
+const generator = new GraphQLStandardSchemaGenerator({
+  schema: gql`
+    scalar Date
+    type Query {
+      now: Date!
+      where: String!
+    }
+  `,
+  scalarTypes: {
+    Date: {
+      type: new GraphQLScalarType<Date, string>(/* ... */),
+      jsonSchema: {
+        /* ... */
+      },
+    },
+  },
+});
+
+const query: TypedDocumentNode<{ now: Date; where: string }, {}> = gql`
+  query GetNow {
+    now
+    where
+  }
+`;
+
+const schema = generator.getDataSchema(query);
+const normalizedResult = schema(unknownValue);
+//     ^? StandardSchemaV1.Result<{ now: string; where: string; }>
+
+const serializedResult = schema.serialize(unknownValue);
+//     ^? StandardSchemaV1.Result<{ now: string; where: string; }>
+
+const deserializedResult = schema.deserialize(unknownValue);
+//     ^? StandardSchemaV1.Result<{ now: Date; where: string; }>
+```
+
+You can use the `StandardSchemaV1.InferInput` and `StandardSchemaV1.InferOutput` utility types to infer the input and output types of the generated schemas.
+
+```ts
+type Serialized = StandardSchemaV1.InferInput<typeof schema.deserialize>;
+//    ^? { now: string; where: string; }
+type Deserialized = StandardSchemaV1.InferOutput<typeof schema.deserialize>;
+//    ^? { now: Date; where: string; }
+```
 
 ## Standard Schema Integration
 
