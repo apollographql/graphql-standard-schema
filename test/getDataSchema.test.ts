@@ -802,8 +802,12 @@ test("enforces non-null types", async (t) => {
         t.assert.deepEqual(result, {
           issues: [
             {
-              message: "Cannot return null for non-nullable field Query.hello.",
+              message: "String cannot represent value: null",
               path: ["hello"],
+            },
+            {
+              message: 'Expected non-nullable type "Person" not to be null.',
+              path: ["me"],
             },
           ],
         });
@@ -822,7 +826,7 @@ test("enforces non-null types", async (t) => {
         t.assert.deepEqual(result, {
           issues: [
             {
-              message: "Cannot return null for non-nullable field Person.name.",
+              message: "String cannot represent value: undefined",
               path: ["me", "name"],
             },
           ],
@@ -1472,8 +1476,7 @@ test("handles arrays", async (t) => {
         t.assert.deepEqual(result, {
           issues: [
             {
-              message:
-                "Cannot return null for non-nullable field Query.greetings.",
+              message: 'Expected non-nullable type "String" not to be null.',
               path: ["greetings", 2],
             },
           ],
@@ -1816,7 +1819,7 @@ test("handles interfaces", async (t) => {
           issues: [
             {
               message:
-                'Abstract type "Favourite" must resolve to an Object type at runtime for field "Query.favourite". Either the "Favourite" type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.',
+                'Expected object with __typename for abstract type "Favourite"',
               path: ["favourite"],
             },
           ],
@@ -2246,7 +2249,7 @@ test("handles unions", async (t) => {
           issues: [
             {
               message:
-                'Abstract type "Favourite" must resolve to an Object type at runtime for field "Query.favourite". Either the "Favourite" type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.',
+                'Expected object with __typename for abstract type "Favourite"',
               path: ["favourite"],
             },
           ],

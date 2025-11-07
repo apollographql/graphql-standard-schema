@@ -353,8 +353,12 @@ await test("simple query response", async (t) => {
         t.assert.deepEqual(result, {
           issues: [
             {
-              message: "Cannot return null for non-nullable field Media.title.",
+              message: "String cannot represent value: undefined",
               path: ["data", "currentlyPlaying", "title"],
+            },
+            {
+              message: "Value is not a valid Date object: 2023-10-01",
+              path: ["data", "currentlyPlaying", "startedAt"],
             },
           ],
         });

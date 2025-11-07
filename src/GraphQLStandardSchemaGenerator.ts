@@ -39,11 +39,9 @@ import { formatError } from "./utils/formatError.ts";
 import { getOperation } from "./utils/getOperation.ts";
 import type { OpenAiSupportedJsonSchema } from "./utils/openAiSupportedJsonSchema.ts";
 import {
-  getFragmentDataRootObjectType,
   parseData as parseDataSelection,
   parseFragment,
 } from "./utils/parseData.ts";
-import { serializeWithSchema } from "./utils/serializeWithSchema.ts";
 import { validationSchema } from "./utils/validationSchema.ts";
 
 export declare namespace GraphQLStandardSchemaGenerator {
@@ -264,7 +262,7 @@ export class GraphQLStandardSchemaGenerator<
           schema,
           document,
           variableValues,
-          "parse"
+          "normalize"
         ),
       deserialize: (data) =>
         parseDataSelection(
@@ -276,7 +274,14 @@ export class GraphQLStandardSchemaGenerator<
           "deserialize"
         ),
       serialize: (data) =>
-        serializeWithSchema(data, schema, document, variableValues),
+        parseDataSelection(
+          data,
+          operation,
+          schema,
+          document,
+          variableValues,
+          "serialize"
+        ),
       buildSchema,
     });
   }
@@ -411,58 +416,6 @@ export class GraphQLStandardSchemaGenerator<
         };
       };
 
-    function serialize(
-      data: any
-    ): StandardSchemaV1.Result<
-      GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>
-    > {
-      try {
-        const config = schema.toConfig();
-        const fragmentSchema = new GraphQLSchema({
-          ...config,
-          query: getFragmentDataRootObjectType(data, schema),
-        });
-        const queryDocument: TypedDocumentNode<TData, TVariables> = {
-          ...document,
-          definitions: [
-            {
-              kind: Kind.OPERATION_DEFINITION,
-              operation: OperationTypeNode.QUERY,
-              selectionSet: {
-                kind: Kind.SELECTION_SET,
-                selections: [
-                  {
-                    kind: Kind.FRAGMENT_SPREAD,
-                    name: {
-                      kind: Kind.NAME,
-                      value: fragment!.name.value,
-                    },
-                  },
-                ],
-              },
-            } satisfies OperationDefinitionNode,
-            ...document.definitions.filter(
-              (d) => d.kind === Kind.FRAGMENT_DEFINITION
-            ),
-          ],
-        };
-        return serializeWithSchema(
-          data,
-          fragmentSchema,
-          queryDocument,
-          variableValues
-        );
-      } catch (e) {
-        return {
-          issues: [
-            {
-              message: (e as Error).message,
-            },
-          ],
-        };
-      }
-    }
-
     return bidirectionalValidationSchema<TData, Scalars>({
       normalize: (value) =>
         parseFragment(
@@ -471,7 +424,7 @@ export class GraphQLStandardSchemaGenerator<
           schema,
           document,
           variableValues,
-          "parse"
+          "normalize"
         ),
       deserialize: (value) =>
         parseFragment(
@@ -482,7 +435,15 @@ export class GraphQLStandardSchemaGenerator<
           variableValues,
           "deserialize"
         ),
-      serialize,
+      serialize: (value) =>
+        parseFragment(
+          value,
+          fragment,
+          schema,
+          document,
+          variableValues,
+          "serialize"
+        ),
       buildSchema,
     });
   }

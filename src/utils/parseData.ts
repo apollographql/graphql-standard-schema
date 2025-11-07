@@ -31,7 +31,7 @@ import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 type SchemaResult<
   TData,
   Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
-  Mode = "parse" | "deserialize",
+  Mode = "normalize" | "deserialize" | "serialize",
 > = Mode extends "deserialize"
   ? GraphQLStandardSchemaGenerator.Deserialized<TData, Scalars>
   : GraphQLStandardSchemaGenerator.Serialized<TData, Scalars>;
@@ -40,7 +40,7 @@ export function parseData<
   TData,
   TVariables extends Record<string, unknown>,
   Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
-  Mode extends "parse" | "deserialize",
+  Mode extends "normalize" | "deserialize" | "serialize",
 >(
   data: unknown,
   operation: OperationDefinitionNode,
@@ -79,7 +79,7 @@ export function parseFragment<
   TData,
   TVariables extends Record<string, unknown>,
   Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
-  Mode extends "parse" | "deserialize",
+  Mode extends "normalize" | "deserialize" | "serialize",
 >(
   data: unknown,
   fragment: FragmentDefinitionNode,
@@ -115,7 +115,7 @@ function parseSelectionSet<
   TData,
   TVariables extends Record<string, unknown>,
   Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
-  Mode extends "parse" | "deserialize",
+  Mode extends "normalize" | "deserialize" | "serialize",
 >({
   data,
   selections,
@@ -146,13 +146,12 @@ function parseSelectionSet<
   const parseScalar = (
     value: unknown,
     scalar: GraphQLScalarType | GraphQLEnumType
-  ) => {
-    const deserialized = scalar.parseValue(value);
-    if (mode === "deserialize") {
-      return deserialized;
-    }
-    return scalar.serialize(deserialized);
-  };
+  ) =>
+    mode === "serialize"
+      ? scalar.serialize(value)
+      : mode === "deserialize"
+        ? scalar.parseValue(value)
+        : scalar.serialize(scalar.parseValue(value));
 
   const fragments = Object.fromEntries(
     document.definitions
@@ -416,10 +415,7 @@ function shouldIncludeNode(
   return true;
 }
 
-export function getFragmentDataRootObjectType(
-  data: unknown,
-  schema: GraphQLSchema
-) {
+function getFragmentDataRootObjectType(data: unknown, schema: GraphQLSchema) {
   assert(typeof data === "object" && data !== null, "Expected object");
   const typename = (data as any)["__typename"];
   assert(typename, "Expected __typename field in fragment data");
