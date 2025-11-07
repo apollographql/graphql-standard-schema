@@ -7,6 +7,7 @@ import assert from "node:assert";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { expectTypeOf } from "expect-type";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
+import { getBidirectionalJsonSchemas } from "./utils/getBidirectionalJsonSchemas.ts";
 
 test("handles nullable and non-nullable arguments", async (t) => {
   const generator = new GraphQLStandardSchemaGenerator({
@@ -26,6 +27,63 @@ test("handles nullable and non-nullable arguments", async (t) => {
       }
     `)
   );
+  await t.test("normalize", async (t) => {
+    t.assert.equal(variablesSchema, variablesSchema.normalize);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        text: string;
+        maxCount?: number | null | undefined;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        text: string;
+        maxCount?: number | null | undefined;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(variablesSchema, {
+          text: "Han",
+          maxCount: null,
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            maxCount: null,
+            text: "Han",
+          },
+        });
+      }
+      {
+        const result = validateSync(variablesSchema, {
+          text: "Han",
+          maxCount: 5,
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            maxCount: 5,
+            text: "Han",
+          },
+        });
+      }
+      {
+        const result = validateSync(variablesSchema, {
+          text: null,
+          maxCount: null,
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "Expected value to be non-null.",
+              path: ["text"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("deserialize", async (t) => {
     const deserializeSchema = variablesSchema.deserialize;
     await t.test("types", () => {
@@ -83,27 +141,89 @@ test("handles nullable and non-nullable arguments", async (t) => {
       }
     });
   });
+  await t.test("serialize", async (t) => {
+    const serializeSchema = variablesSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        text: string;
+        maxCount?: number | null | undefined;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        text: string;
+        maxCount?: number | null | undefined;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          text: "Han",
+          maxCount: null,
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            maxCount: null,
+            text: "Han",
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          text: "Han",
+          maxCount: 5,
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            maxCount: 5,
+            text: "Han",
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          text: null,
+          maxCount: null,
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "Expected value to be non-null.",
+              path: ["text"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema.input(variablesSchema);
+    const { serializedJsonSchema, deserializedJsonSchema } =
+      getBidirectionalJsonSchemas(variablesSchema);
+    t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         text: "Han",
         maxCount: null,
       });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, { text: "Han", maxCount: 5 });
+      const result = validateWithAjv(serializedJsonSchema, {
+        text: "Han",
+        maxCount: 5,
+      });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         text: null,
         maxCount: null,
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(serializedJsonSchema);
   });
 });
 
@@ -131,6 +251,66 @@ test("handles basic scalar types", async (t) => {
       }
     `)
   );
+  await t.test("normalize", async (t) => {
+    t.assert.equal(variablesSchema, variablesSchema.normalize);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        int: number;
+        num: number;
+        str: string;
+        bool: boolean;
+        id: string | number;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        int: number;
+        num: number;
+        str: string;
+        bool: boolean;
+        id: string | number;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(variablesSchema, {
+          int: 5,
+          num: 3.14,
+          str: "Hello",
+          bool: true,
+          id: 123,
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            int: 5,
+            num: 3.14,
+            str: "Hello",
+            bool: true,
+            id: "123",
+          },
+        });
+      }
+      {
+        const result = validateSync(variablesSchema, {
+          int: 5.12,
+          num: 3.14,
+          str: "Hello",
+          bool: true,
+          id: "foo",
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "Int cannot represent non-integer value: 5.12",
+              path: ["int"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("deserialize", async (t) => {
     const deserializeSchema = variablesSchema.deserialize;
     await t.test("types", () => {
@@ -191,10 +371,72 @@ test("handles basic scalar types", async (t) => {
       }
     });
   });
+  await t.test("serialize", async (t) => {
+    const serializeSchema = variablesSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        int: number;
+        num: number;
+        str: string;
+        bool: boolean;
+        id: string | number;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        int: number;
+        num: number;
+        str: string;
+        bool: boolean;
+        id: string | number;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          int: 5,
+          num: 3.14,
+          str: "Hello",
+          bool: true,
+          id: 123,
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            int: 5,
+            num: 3.14,
+            str: "Hello",
+            bool: true,
+            id: "123",
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          int: 5.12,
+          num: 3.14,
+          str: "Hello",
+          bool: true,
+          id: "foo",
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "Int cannot represent non-integer value: 5.12",
+              path: ["int"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema.input(variablesSchema);
+    const { serializedJsonSchema, deserializedJsonSchema } =
+      getBidirectionalJsonSchemas(variablesSchema);
+    t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         int: 5,
         num: 3.14,
         str: "Hello",
@@ -203,7 +445,7 @@ test("handles basic scalar types", async (t) => {
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         int: 5.12,
         num: 3.14,
         str: "Hello",
@@ -211,7 +453,7 @@ test("handles basic scalar types", async (t) => {
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(serializedJsonSchema);
   });
 });
 
@@ -237,6 +479,59 @@ test("handles variable-level list types", async (t) => {
       }
     `)
   );
+  await t.test("normalize", async (t) => {
+    t.assert.equal(variablesSchema, variablesSchema.normalize);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        required: string[];
+        mixed: (string | null)[];
+        optional?: (string | null)[];
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        required: string[];
+        mixed: (string | null)[];
+        optional?: (string | null)[];
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(variablesSchema, {
+          required: ["a", "b"],
+          mixed: ["c", null, "d"],
+          optional: null,
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            required: ["a", "b"],
+            mixed: ["c", null, "d"],
+            optional: null,
+          },
+        });
+      }
+      {
+        const result = validateSync(variablesSchema, {
+          required: ["a", null],
+          optional: ["e", "f"],
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "Expected value to be non-null.",
+              path: ["required", 1],
+            },
+            {
+              message: "Expected value to be non-null.",
+              path: ["mixed"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("deserialize", async (t) => {
     const deserializeSchema = variablesSchema.deserialize;
     await t.test("types", () => {
@@ -290,10 +585,65 @@ test("handles variable-level list types", async (t) => {
       }
     });
   });
+  await t.test("serialize", async (t) => {
+    const serializeSchema = variablesSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        required: string[];
+        mixed: (string | null)[];
+        optional?: (string | null)[];
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        required: string[];
+        mixed: (string | null)[];
+        optional?: (string | null)[];
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          required: ["a", "b"],
+          mixed: ["c", null, "d"],
+          optional: null,
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            required: ["a", "b"],
+            mixed: ["c", null, "d"],
+            optional: null,
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          required: ["a", null],
+          optional: ["e", "f"],
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "Expected value to be non-null.",
+              path: ["required", 1],
+            },
+            {
+              message: "Expected value to be non-null.",
+              path: ["mixed"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema.input(variablesSchema);
+    const { serializedJsonSchema, deserializedJsonSchema } =
+      getBidirectionalJsonSchemas(variablesSchema);
+    t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         required: ["a", "b"],
         mixed: ["c", null, "d"],
         optional: null,
@@ -301,13 +651,13 @@ test("handles variable-level list types", async (t) => {
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         required: ["a", null],
         optional: ["e", "f"],
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(serializedJsonSchema);
   });
 });
 
@@ -333,6 +683,48 @@ test("handles enums", async (t) => {
       }
     `)
   );
+  await t.test("normalize", async (t) => {
+    t.assert.equal(variablesSchema, variablesSchema.normalize);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        text: string;
+        kind: "MOVIE" | "SERIES";
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        text: string;
+        kind: "MOVIE" | "SERIES";
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(variablesSchema, {
+          text: "Han",
+          kind: "MOVIE",
+        });
+        assert.deepStrictEqual(result, {
+          value: { text: "Han", kind: "MOVIE" },
+        });
+      }
+      {
+        const result = validateSync(variablesSchema, {
+          text: "Han",
+          kind: "WRONG",
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: 'Value "WRONG" does not exist in "MediaKind" enum.',
+              path: ["kind"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("deserialize", async (t) => {
     const deserializeSchema = variablesSchema.deserialize;
     await t.test("types", () => {
@@ -375,23 +767,67 @@ test("handles enums", async (t) => {
       }
     });
   });
+  await t.test("serialize", async (t) => {
+    const serializeSchema = variablesSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        text: string;
+        kind: "MOVIE" | "SERIES";
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        text: string;
+        kind: "MOVIE" | "SERIES";
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          text: "Han",
+          kind: "MOVIE",
+        });
+        assert.deepStrictEqual(result, {
+          value: { text: "Han", kind: "MOVIE" },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          text: "Han",
+          kind: "WRONG",
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: 'Enum "MediaKind" cannot represent value: "WRONG"',
+              path: ["kind"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema.input(variablesSchema);
+    const { serializedJsonSchema, deserializedJsonSchema } =
+      getBidirectionalJsonSchemas(variablesSchema);
+    t.assert.deepEqual(serializedJsonSchema, deserializedJsonSchema);
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         text: "Han",
         kind: "MOVIE",
       });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         text: "Han",
         kind: "WRONG",
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(serializedJsonSchema);
   });
 });
 
@@ -418,6 +854,51 @@ test("handles custom scalars", async (t) => {
       }
     `)
   );
+  await t.test("normalize", async (t) => {
+    t.assert.equal(variablesSchema, variablesSchema.normalize);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        after: string;
+        before: string;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        after: string;
+        before: string;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(variablesSchema, {
+          after: "Jan 1 2023 UTC",
+          before: "2023-12-31",
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            after: "2023-01-01",
+            before: "2023-12-31",
+          },
+        });
+      }
+      {
+        const result = validateSync(variablesSchema, {
+          after: "2023-01-01",
+          before: "foobar",
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "Value is not a valid Date string: foobar",
+              path: ["before"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("deserialize", async (t) => {
     const deserializeSchema = variablesSchema.deserialize;
     await t.test("types", () => {
@@ -463,23 +944,73 @@ test("handles custom scalars", async (t) => {
       }
     });
   });
+  await t.test("serialize", async (t) => {
+    const serializeSchema = variablesSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        after: Date;
+        before: Date;
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        after: string;
+        before: string;
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          after: new Date("2023-01-01"),
+          before: new Date("2023-12-31"),
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            after: "2023-01-01",
+            before: "2023-12-31",
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          after: new Date("2023-01-01"),
+          before: "foobar",
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "Value is not a valid Date object: foobar",
+              path: ["before"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema.input(variablesSchema);
+    const {
+      serializedJsonSchema,
+      // TODO test backwards direction too
+      deserializedJsonSchema,
+    } = getBidirectionalJsonSchemas(variablesSchema);
+
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         after: "2023-01-01",
         before: "2023-12-31",
       });
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         after: "2023-01-01",
         before: "foobar",
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(serializedJsonSchema);
   });
 });
 
@@ -510,6 +1041,59 @@ test("handles input types", async (t) => {
       }
     `)
   );
+
+  await t.test("normalize", async (t) => {
+    t.assert.equal(variablesSchema, variablesSchema.normalize);
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        input: { city: string; before?: string; after?: string };
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof variablesSchema>
+      >().toEqualTypeOf<{
+        input: { city: string; before?: string; after?: string };
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(variablesSchema, {
+          input: {
+            city: "New York",
+            after: "2023-01-01",
+            before: null,
+          },
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            input: {
+              city: "New York",
+              after: "2023-01-01",
+              before: null,
+            },
+          },
+        });
+      }
+      {
+        const result = validateSync(variablesSchema, {
+          input: {
+            city: 5,
+            after: "2023-01-01",
+            before: null,
+          },
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "String cannot represent a non string value: 5",
+              path: ["input", "city"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("deserialize", async (t) => {
     const deserializeSchema = variablesSchema.deserialize;
     await t.test("types", () => {
@@ -562,10 +1146,84 @@ test("handles input types", async (t) => {
       }
     });
   });
+  await t.test("serialize", async (t) => {
+    const serializeSchema = variablesSchema.serialize;
+    await t.test("types", () => {
+      expectTypeOf<
+        StandardSchemaV1.InferInput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        input: { city: string; before?: Date; after?: Date };
+      }>();
+      expectTypeOf<
+        StandardSchemaV1.InferOutput<typeof serializeSchema>
+      >().toEqualTypeOf<{
+        input: { city: string; before?: string; after?: string };
+      }>();
+    });
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          input: {
+            city: "New York",
+            after: new Date("2023-01-01"),
+            before: null,
+          },
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            input: {
+              city: "New York",
+              after: "2023-01-01",
+              before: null,
+            },
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          input: {
+            city: 5,
+            after: new Date("2023-01-01"),
+            before: null,
+          },
+        });
+        assert.deepStrictEqual(result, {
+          value: {
+            input: {
+              city: "5",
+              after: "2023-01-01",
+              before: null,
+            },
+          },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          input: {
+            city: "New York",
+            after: "2023-01-01",
+            before: null,
+          },
+        });
+        assert.deepStrictEqual(result, {
+          issues: [
+            {
+              message: "Value is not a valid Date object: 2023-01-01",
+              path: ["input", "after"],
+            },
+          ],
+        });
+      }
+    });
+  });
   await t.test("JSON schema", (t) => {
-    const jsonSchema = toJSONSchema.input(variablesSchema);
+    const {
+      serializedJsonSchema,
+      // TODO test backwards direction too
+      deserializedJsonSchema,
+    } = getBidirectionalJsonSchemas(variablesSchema);
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         input: {
           city: "New York",
           after: "2023-01-01",
@@ -575,7 +1233,7 @@ test("handles input types", async (t) => {
       t.assert.equal(result.valid, true);
     }
     {
-      const result = validateWithAjv(jsonSchema, {
+      const result = validateWithAjv(serializedJsonSchema, {
         input: {
           city: 5,
           after: "2023-01-01",
@@ -584,7 +1242,7 @@ test("handles input types", async (t) => {
       });
       t.assert.equal(result.valid, false);
     }
-    t.assert.snapshot(jsonSchema);
+    t.assert.snapshot(serializedJsonSchema);
   });
 });
 
@@ -647,7 +1305,7 @@ test("handles recursive input types", async (t) => {
     typeof variablesSchema.deserialize
   >;
 
-  const fullFilterInput: SerializedType["input"] = {
+  const fullFilterInputSerialized: SerializedType["input"] = {
     city: "New York",
     and: [
       {
@@ -679,7 +1337,7 @@ test("handles recursive input types", async (t) => {
     after: null,
     before: null,
   };
-  const fullFilterInputResult: DeserializedType["input"] = {
+  const fullFilterInputDeserialized: DeserializedType["input"] = {
     city: "New York",
     and: [
       {
@@ -711,7 +1369,7 @@ test("handles recursive input types", async (t) => {
     after: null,
     before: null,
   };
-  const partialFilterInput = {
+  const partialFilterInputSerialized = {
     city: "New York",
     and: [
       {
@@ -724,7 +1382,7 @@ test("handles recursive input types", async (t) => {
       },
     ],
   } as const;
-  const partialFilterInputResult = {
+  const partialFilterInputDeserialized = {
     city: "New York",
     and: [
       {
@@ -738,6 +1396,46 @@ test("handles recursive input types", async (t) => {
     ],
   } as const;
 
+  await t.test("normalize", async (t) => {
+    t.assert.equal(variablesSchema, variablesSchema.normalize);
+    t.assert.equal(openAISchema, openAISchema.normalize);
+
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(variablesSchema, {
+          input: fullFilterInputSerialized,
+        });
+        assert.deepStrictEqual(result, {
+          value: { input: fullFilterInputSerialized },
+        });
+      }
+      {
+        const result = validateSync(openAISchema, {
+          input: fullFilterInputSerialized,
+        });
+        assert.deepStrictEqual(result, {
+          value: { input: fullFilterInputSerialized },
+        });
+      }
+      {
+        const result = validateSync(variablesSchema, {
+          input: partialFilterInputSerialized,
+        });
+        assert.deepStrictEqual(result, {
+          value: { input: partialFilterInputSerialized },
+        });
+      }
+      {
+        // will only create a different JSON schema, but behave the same as `variablesSchema` in runtime
+        const result = validateSync(openAISchema, {
+          input: partialFilterInputSerialized,
+        });
+        assert.deepStrictEqual(result, {
+          value: { input: partialFilterInputSerialized },
+        });
+      }
+    });
+  });
   await t.test("deserialize", async (t) => {
     const deserializeSchema = variablesSchema.deserialize;
     const deserializeOpenAISchema = openAISchema.deserialize;
@@ -745,63 +1443,112 @@ test("handles recursive input types", async (t) => {
     await t.test("validateSync", () => {
       {
         const result = validateSync(deserializeSchema, {
-          input: fullFilterInput,
+          input: fullFilterInputSerialized,
         });
         assert.deepStrictEqual(result, {
-          value: { input: fullFilterInputResult },
+          value: { input: fullFilterInputDeserialized },
         });
       }
       {
         const result = validateSync(deserializeOpenAISchema, {
-          input: fullFilterInput,
+          input: fullFilterInputSerialized,
         });
         assert.deepStrictEqual(result, {
-          value: { input: fullFilterInputResult },
+          value: { input: fullFilterInputDeserialized },
         });
       }
       {
         const result = validateSync(deserializeSchema, {
-          input: partialFilterInput,
+          input: partialFilterInputSerialized,
         });
         assert.deepStrictEqual(result, {
-          value: { input: partialFilterInputResult },
+          value: { input: partialFilterInputDeserialized },
         });
       }
       {
         // will only create a different JSON schema, but behave the same as `variablesSchema` in runtime
         const result = validateSync(deserializeOpenAISchema, {
-          input: partialFilterInput,
+          input: partialFilterInputSerialized,
         });
         assert.deepStrictEqual(result, {
-          value: { input: partialFilterInputResult },
+          value: { input: partialFilterInputDeserialized },
         });
       }
     });
   });
+  await t.test("serialize", async (t) => {
+    const serializeSchema = variablesSchema.serialize;
+    const serializeOpenAISchema = openAISchema.serialize;
+
+    await t.test("validateSync", () => {
+      {
+        const result = validateSync(serializeSchema, {
+          input: fullFilterInputDeserialized,
+        });
+        assert.deepStrictEqual(result, {
+          value: { input: fullFilterInputSerialized },
+        });
+      }
+      {
+        const result = validateSync(serializeOpenAISchema, {
+          input: fullFilterInputDeserialized,
+        });
+        assert.deepStrictEqual(result, {
+          value: { input: fullFilterInputSerialized },
+        });
+      }
+      {
+        const result = validateSync(serializeSchema, {
+          input: partialFilterInputDeserialized,
+        });
+        assert.deepStrictEqual(result, {
+          value: { input: partialFilterInputSerialized },
+        });
+      }
+      {
+        // will only create a different JSON schema, but behave the same as `variablesSchema` in runtime
+        const result = validateSync(serializeOpenAISchema, {
+          input: partialFilterInputDeserialized,
+        });
+        assert.deepStrictEqual(result, {
+          value: { input: partialFilterInputSerialized },
+        });
+      }
+    });
+  });
+
   await t.test("JSON schema", (t) => {
-    const openAIJsonSchema = toJSONSchema.input(openAISchema);
-    const jsonSchema = toJSONSchema.input(variablesSchema);
+    const {
+      serializedJsonSchema: jsonSchema,
+      // TODO test backwards direction too
+      deserializedJsonSchema: _1,
+    } = getBidirectionalJsonSchemas(variablesSchema);
+    const {
+      serializedJsonSchema: openAIJsonSchema,
+      // TODO test backwards direction too
+      deserializedJsonSchema: _2,
+    } = getBidirectionalJsonSchemas(openAISchema);
     {
       const result = validateWithAjv(jsonSchema, {
-        input: fullFilterInput,
+        input: fullFilterInputSerialized,
       });
       t.assert.equal(result.valid, true);
     }
     {
       const result = validateWithAjv(openAIJsonSchema, {
-        input: fullFilterInput,
+        input: fullFilterInputSerialized,
       });
       t.assert.equal(result.valid, true);
     }
     {
       const result = validateWithAjv(jsonSchema, {
-        input: partialFilterInput,
+        input: partialFilterInputSerialized,
       });
       t.assert.equal(result.valid, true);
     }
     {
       const result = validateWithAjv(openAIJsonSchema, {
-        input: partialFilterInput,
+        input: partialFilterInputSerialized,
       });
       t.assert.equal(result.valid, false);
     }
