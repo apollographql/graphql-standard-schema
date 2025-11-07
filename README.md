@@ -511,3 +511,132 @@ const generator = new GraphQLStandardSchemaGenerator({
   defaultJSONSchemaOptions: "OpenAI",
 });
 ```
+
+## Other exports
+
+In addition to the `GraphQLStandardSchemaGenerator`, this package also exports some utility functions:
+
+### toJSONSchema
+
+Converts any schema generated with `GraphQLStandardSchemaGenerator` as well as any other (experimental) StandardJSONSchema schema to JSON Schema
+
+#### Signature:
+
+```ts
+const toJSONSchema: {
+  input(
+    standardSchema: StandardJSONSchemaV1<unknown, unknown>,
+    options?: StandardJSONSchemaV1.Options & {
+      libraryOptions?: GraphQLStandardSchemaGenerator.JSONSchemaOptions;
+    }
+  ): Record<string, unknown>;
+  output(
+    standardSchema: StandardJSONSchemaV1<unknown, unknown>,
+    options?: StandardJSONSchemaV1.Options & {
+      libraryOptions: GraphQLStandardSchemaGenerator.JSONSchemaOptions;
+    }
+  ): Record<string, unknown>;
+};
+```
+
+If no options are provided, they default to `{ target: "draft-2020-12" }`n
+
+#### Usage:
+
+```ts
+const responseSchema = generator.getResponseSchema(gql`
+  query GetHello {
+    hello
+  }
+`);
+const jsonSchema = toJSONSchema.input(responseSchema, {
+  target: "draft-2020-12",
+  libraryOptions: {
+    optionalNullableProperties: false,
+  },
+});
+```
+
+### `zodToExperimenalStandardJSONSchema` - converts a Zod schema to an (experimental) StandardJSONSchema schema
+
+This is meant for usage with `composeExperimentalStandardJSONSchemas`.
+
+#### Signature:
+
+```ts
+export function zodToExperimenalStandardJSONSchema<Schema extends z.Schema>(
+  schema: Schema
+): CombinedSpec<z.input<Schema>, z.output<Schema>>;
+```
+
+### `composeExperimentalStandardJSONSchemas`
+
+Composes multiple (experimental) StandardJSONSchema schemas into a single schema.
+
+#### Signature:
+
+```ts
+// `CombinedSpec` is a combination of `StandardSchemaV1` and the experimental `StandardJSONSchema`
+
+function composeExperimentalStandardJSONSchemas<
+  Root extends CombinedSpec<any, any>,
+  const Path extends string[],
+  Extension extends CombinedSpec<any, any>,
+  Required extends boolean = true,
+>(
+  /** The root schema. */
+  rootSchema: Root,
+  /** The path at which the extension schema should be included in the combined schema. */
+  path: Path,
+  /** The extension/child schema. */
+  extension: Extension,
+  /** If the child schema should be considered a required prop in the combined schema */
+  required: Required = true as Required,
+  /** If the property at `path` should be hidden from runtime checks when validating the root schema part */
+  hideAddedFieldFromRootSchema = true
+): CombinedSpec<
+  InsertAt<
+    StandardSchemaV1.InferInput<Root>,
+    P,
+    StandardSchemaV1.InferInput<Extension>,
+    Required
+  >,
+  InsertAt<
+    StandardSchemaV1.InferOutput<Root>,
+    P,
+    StandardSchemaV1.InferOutput<Extension>,
+    Required
+  >
+>;
+```
+
+#### Usage:
+
+```ts
+const combinedStandardJSONSchema = composeExperimentalStandardJSONSchemas(
+  zodToExperimenalStandardJSONSchema(
+    z.strictObject({
+      props: z.strictObject({
+        id: z.string().uuid(),
+        name: z.string(),
+      }),
+    })
+  ),
+  ["props", "data"],
+  schema
+);
+const jsonSchema = toJSONSchema.input(combinedStandardJSONSchema);
+```
+
+### `addTypename`
+
+A document transform that adds `__typename` fields to all selection sets in a GraphQL document. This is the default document transform applied by `GraphQLStandardSchemaGenerator`, you might need to reference this if you want to apply it alongside your own custom document transforms.
+
+#### Usage:
+
+```ts
+const generator = new GraphQLStandardSchemaGenerator({
+  schema: gql`... `,
+  documentTransfoms: [addTypename, myCustomTransform],
+});
+```

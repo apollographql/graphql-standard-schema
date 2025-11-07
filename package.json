@@ -6,8 +6,10 @@
   },
   "keywords": [
     "graphql",
-    "standard-schema"
+    "standard-schema",
+    "JSON schema"
   ],
+  "sideEffects": false,
   "type": "module",
   "exports": {
     ".": {

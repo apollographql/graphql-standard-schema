@@ -31,32 +31,37 @@ type JsonSchemaFn = (
 
 export function composeStandardSchemas<
   Root extends CombinedSpec<any, any>,
-  const P extends string[],
+  const Path extends string[],
   Extension extends CombinedSpec<any, any>,
   Required extends boolean = true,
 >(
+  /** The root schema. */
   rootSchema: Root,
-  path: P,
+  /** The path at which the extension schema should be included in the combined schema. */
+  path: Path,
+  /** The extension/child schema. */
   extension: Extension,
+  /** If the child schema should be considered a required prop in the combined schema */
   required: Required = true as Required,
+  /** If the property at `path` should be hidden from runtime checks when validating the root schema part */
   hideAddedFieldFromRootSchema = true
 ): CombinedSpec<
   InsertAt<
     StandardSchemaV1.InferInput<Root>,
-    P,
+    Path,
     StandardSchemaV1.InferInput<Extension>,
     Required
   >,
   InsertAt<
     StandardSchemaV1.InferOutput<Root>,
-    P,
+    Path,
     StandardSchemaV1.InferOutput<Extension>,
     Required
   >
 > {
   type CombinedResult = InsertAt<
     StandardSchemaV1.InferOutput<Root>,
-    P,
+    Path,
     StandardSchemaV1.InferOutput<Extension>,
     Required
   >;
