@@ -1,5 +1,5 @@
 import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
-import type { StandardSchemaV1 } from "../standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { validationSchema } from "./validationSchema.ts";
 
 export function bidirectionalValidationSchema<

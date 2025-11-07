@@ -1,6 +1,8 @@
 import type { StandardJSONSchemaV1 } from "../standard-schema-spec.ts";
 
-export function schemaBase(params: StandardJSONSchemaV1.Options = {}) {
+export function schemaBase(
+  params: StandardJSONSchemaV1.Options = { target: "draft-2020-12" }
+) {
   const schema: Record<string, unknown> = {};
   if (params?.target === "draft-2020-12" || params?.target === undefined) {
     schema.$schema = "https://json-schema.org/draft/2020-12/schema";

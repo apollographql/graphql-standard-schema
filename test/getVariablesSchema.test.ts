@@ -4,7 +4,7 @@ import { GraphQLStandardSchemaGenerator, toJSONSchema } from "../src/index.ts";
 import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
 import { buildSchema } from "graphql";
 import assert from "node:assert";
-import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { expectTypeOf } from "expect-type";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
 

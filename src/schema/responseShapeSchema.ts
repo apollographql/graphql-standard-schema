@@ -5,11 +5,9 @@ import type {
 import { standardSchema } from "../utils/standardSchema.ts";
 import { schemaBase } from "./schemaBase.ts";
 import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSchema.ts";
-import type {
-  StandardJSONSchemaV1,
-  StandardSchemaV1,
-} from "../standard-schema-spec.ts";
+import type { StandardJSONSchemaV1 } from "../standard-schema-spec.ts";
 import { assert } from "../utils/assert.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 export function responseShapeSchema(definition: OperationDefinitionNode) {
   function validate(

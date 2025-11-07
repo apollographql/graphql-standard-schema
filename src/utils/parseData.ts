@@ -25,7 +25,7 @@ import {
 } from "graphql";
 import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
 import { assert } from "./assert.ts";
-import type { StandardSchemaV1 } from "../standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 
 type SchemaResult<

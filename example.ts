@@ -1,7 +1,7 @@
 import Ajv from "ajv";
-import { parse } from "graphql";
+import { GraphQLScalarType, parse } from "graphql";
 import { writeFileSync } from "node:fs";
-import { GraphQLStandardSchemaGenerator } from "./src/index.ts";
+import { GraphQLStandardSchemaGenerator, toJSONSchema } from "./src/index.ts";
 
 const testSchema = new GraphQLStandardSchemaGenerator({
   schema: parse(/** GraphQL */ `
@@ -69,13 +69,36 @@ const testSchema = new GraphQLStandardSchemaGenerator({
     `),
   scalarTypes: {
     Date: {
-      type: "string",
-      pattern: "^\\d\\d\\d\\d-\\d\\d-\\d\\d$",
+      type: new GraphQLScalarType<Date, string>({
+        parseValue(value) {
+          const date = new Date(value as string);
+          if (isNaN(date.getTime())) {
+            throw new TypeError(
+              `Value is not a valid Date string: ${value as string}`
+            );
+          }
+          return date;
+        },
+        serialize(value) {
+          if (!(value instanceof Date) || isNaN(value.getTime())) {
+            throw new TypeError(`Value is not a valid Date object: ${value}`);
+          }
+          return value.toISOString().split("T")[0];
+        },
+        name: "Date",
+        description: "A date string in YYYY-MM-DD format",
+      }),
+      jsonSchema: {
+        serialized: { type: "string", pattern: "\\d{4}-\\d{1,2}-\\d{1,2}" },
+        deserialized: {
+          type: "number",
+          description: "Unix timestamp in milliseconds",
+        },
+      },
     },
   },
-})
-  .getDataSchema(
-    parse(/** GraphQL */ `
+}).getDataSchema(
+  parse(/** GraphQL */ `
       "A query that fetches users and does a search"
       query GetUsers {
         users {
@@ -117,14 +140,13 @@ const testSchema = new GraphQLStandardSchemaGenerator({
         author
       }
     `)
-  )
-  ["~standard"].jsonSchema.input({ target: "draft-07" });
-
+);
+const jsonSchema = toJSONSchema.input(testSchema, { target: "draft-07" });
 writeFileSync(
   "./test-schema.json",
-  JSON.stringify(testSchema, null, 2),
+  JSON.stringify(jsonSchema, null, 2),
   "utf-8"
 );
 
 const ajv = new (Ajv as any as typeof import("ajv").Ajv)();
-ajv.compile(testSchema);
+ajv.compile(jsonSchema);

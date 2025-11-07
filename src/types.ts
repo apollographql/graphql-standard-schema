@@ -1,9 +1,7 @@
 import type { GraphQLScalarType } from "graphql";
 import type { GraphQLStandardSchemaGenerator } from "./GraphQLStandardSchemaGenerator.ts";
-import type {
-  StandardSchemaV1,
-  StandardJSONSchemaV1,
-} from "./standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+import type { StandardJSONSchemaV1 } from "./standard-schema-spec.ts";
 
 export interface CombinedProps<Input = unknown, Output = Input>
   extends StandardSchemaV1.Props<Input, Output>,
@@ -12,9 +10,9 @@ export interface CombinedProps<Input = unknown, Output = Input>
  * An interface that combines StandardJSONSchema and StandardSchema.
  * */
 
-export interface CombinedSpec<Input = unknown, Output = Input> {
-  "~standard": CombinedProps<Input, Output>;
-}
+export interface CombinedSpec<Input = unknown, Output = Input>
+  extends StandardSchemaV1<Input, Output>,
+    StandardJSONSchemaV1<Input, Output> {}
 
 export type ScalarMapping<
   Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,

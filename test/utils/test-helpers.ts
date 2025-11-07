@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import Ajv from "ajv/dist/2020.js";
-import type { StandardSchemaV1 } from "../../src/standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { parse } from "graphql";
 
 const ajv = new (Ajv as any as typeof import("ajv").Ajv)();

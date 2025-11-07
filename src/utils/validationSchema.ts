@@ -1,6 +1,6 @@
 import { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
 import { standardSchema } from "./standardSchema.ts";
-import type { StandardSchemaV1 } from "../standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 export function validationSchema<Input, Output = Input>(
   validate: (value: unknown) => StandardSchemaV1.Result<Output>,

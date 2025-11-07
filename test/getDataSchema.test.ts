@@ -3,7 +3,7 @@ import { GraphQLStandardSchemaGenerator } from "../src/GraphQLStandardSchemaGene
 import { buildSchema } from "graphql";
 import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
 import { expectTypeOf } from "expect-type";
-import type { StandardSchemaV1 } from "../src/standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import assert from "node:assert";
 import { DateScalarDef } from "./utils/DateScalarDef.ts";
 import { getBidirectionalJsonSchemas } from "./utils/getBidirectionalJsonSchemas.ts";

@@ -9,7 +9,7 @@ import { composeStandardSchemas } from "../src/index.ts";
 import test from "node:test";
 import assert from "node:assert";
 import { validateSync } from "./utils/test-helpers.ts";
-import { StandardSchemaV1 } from "@standard-schema/spec";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 const generator = new GraphQLStandardSchemaGenerator({
   schema: swSchema,

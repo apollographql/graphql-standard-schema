@@ -4,9 +4,6 @@
   "type": "object",
   "title": "query GetUsers",
   "properties": {
-    "__typename": {
-      "const": "Query"
-    },
     "users": {
       "title": "Query.users: [User]",
       "type": [
@@ -14,7 +11,7 @@
         "null"
       ],
       "items": {
-        "$ref": "#/$defs/User",
+        "$ref": "#/$defs/type/User",
         "type": [
           "object",
           "null"
@@ -34,25 +31,34 @@
           },
           "role": {
             "title": "User.role: Role",
-            "$ref": "#/$defs/enum_maybe_Role"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/enum/Role"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "birthDate": {
             "title": "User.birthDate: Date",
-            "$ref": "#/$defs/Date",
-            "type": [
-              "string",
-              "null"
-            ],
-            "pattern": "^\\d\\d\\d\\d-\\d\\d-\\d\\d$"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/scalar/Date"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "favourites": {
             "title": "User.favourites: [Favourite!]!",
             "type": "array",
             "items": {
-              "$ref": "#/$defs/Favourite",
+              "$ref": "#/$defs/type/Favourite",
               "anyOf": [
                 {
-                  "$ref": "#/$defs/Book",
+                  "$ref": "#/$defs/type/Book",
                   "type": "object",
                   "title": "Book",
                   "properties": {
@@ -90,10 +96,10 @@
       "title": "Query.search: [SearchResult!]!",
       "type": "array",
       "items": {
-        "$ref": "#/$defs/SearchResult",
+        "$ref": "#/$defs/type/SearchResult",
         "anyOf": [
           {
-            "$ref": "#/$defs/User",
+            "$ref": "#/$defs/type/User",
             "type": "object",
             "title": "User",
             "properties": {
@@ -111,7 +117,7 @@
             ]
           },
           {
-            "$ref": "#/$defs/Book",
+            "$ref": "#/$defs/type/Book",
             "type": "object",
             "title": "Book",
             "properties": {
@@ -139,7 +145,7 @@
             ]
           },
           {
-            "$ref": "#/$defs/Color",
+            "$ref": "#/$defs/type/Color",
             "type": "object",
             "title": "Color",
             "properties": {
@@ -166,37 +172,45 @@
     }
   },
   "required": [
-    "__typename",
     "search"
   ],
   "$defs": {
-    "enum_maybe_Role": {
-      "title": "Role",
-      "description": "System user roles",
-      "enum": [
-        null,
-        "ADMIN",
-        "USER",
-        "GUEST"
-      ]
+    "enum": {
+      "Role": {
+        "title": "Role",
+        "description": "System user roles",
+        "enum": [
+          null,
+          "ADMIN",
+          "USER",
+          "GUEST"
+        ]
+      }
     },
-    "Date": {
-      "description": "A custom date scalar in YYYY-MM-DD format"
+    "scalar": {
+      "Date": {
+        "title": "Date",
+        "description": "A date string in YYYY-MM-DD format",
+        "type": "string",
+        "pattern": "\\d{4}-\\d{1,2}-\\d{1,2}"
+      }
     },
-    "Book": {
-      "description": "A book"
-    },
-    "Favourite": {
-      "description": "Describes something that can be a 'favourite thing or concept'"
-    },
-    "User": {
-      "description": "The user type"
-    },
-    "Color": {
-      "description": "A color"
-    },
-    "SearchResult": {
-      "description": "A possible search result for the Omnibar"
+    "type": {
+      "Book": {
+        "description": "A book"
+      },
+      "Favourite": {
+        "description": "Describes something that can be a 'favourite thing or concept'"
+      },
+      "User": {
+        "description": "The user type"
+      },
+      "Color": {
+        "description": "A color"
+      },
+      "SearchResult": {
+        "description": "A possible search result for the Omnibar"
+      }
     }
   }
 }

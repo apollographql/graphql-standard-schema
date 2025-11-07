@@ -2,7 +2,7 @@ import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import { GraphQLSchema, execute, type FormattedExecutionResult } from "graphql";
 import { formatError } from "./formatError.ts";
 import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
-import type { StandardSchemaV1 } from "../standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 export function serializeWithSchema<
   TData,

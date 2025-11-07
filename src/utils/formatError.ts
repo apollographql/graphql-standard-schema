@@ -1,5 +1,5 @@
 import { GraphQLError, type GraphQLFormattedError } from "graphql";
-import type { StandardSchemaV1 } from "../standard-schema-spec.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 export function formatError(
   error: GraphQLError | GraphQLFormattedError
