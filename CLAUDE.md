@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a GraphQL Standard Schema package that creates Standard Schema compliant validators for GraphQL operation responses. The package implements the Standard Schema V1 specification to validate GraphQL data against type definitions.
+This is `@apollo/graphql-standard-schema`, a GraphQL Standard Schema package that creates Standard Schema V1 compliant validators for GraphQL operations. The package validates:
+- Operation responses (data and errors)
+- Operation data only
+- Fragment values
+- Input variables
+
+It supports bidirectional validation with custom scalar serialization/deserialization and JSON Schema generation.
 
 ## Commands
 
@@ -12,74 +18,122 @@ This is a GraphQL Standard Schema package that creates Standard Schema compliant
 # Run tests
 npm test
 
+
 # Run a single test (use test name pattern)
 npm test -- --test-name-pattern="validates valid string data"
 
 # Run tests and update snapshots
 npm test -- --test-update-snapshots
 
-# Build (not yet implemented - returns TODO)
+# Build TypeScript to dist/
 npm run build
+
+# Clean build artifacts
+npm run clean
+
+# Prepare for publishing (clean + build)
+npm run prepack
 ```
 
 ## Architecture
 
 ### Core Implementation
 
-The package provides a `GraphQLStandardSchemaGenerator` class (`src/index.ts`) that:
+The package provides a `GraphQLStandardSchemaGenerator` class (`src/GraphQLStandardSchemaGenerator.ts`) that:
 
 - Accepts GraphQL schemas as either `GraphQLSchema` objects or `DocumentNode` ASTs
-- Generates Standard Schema compliant validators for GraphQL operation responses
-- Uses GraphQL's execution engine with custom field resolvers for strict type validation
+- Generates Standard Schema V1 compliant validators for GraphQL operations
+- Supports custom scalar types with bidirectional serialization/deserialization
+- Uses custom parsing and validation logic that uses GraphQLs schema scalar types for input validation
+- Generates JSON Schema representations compatible with JSON Schema Draft 2020-12 and OpenAI
 
-### Key Components
+### Key Methods
 
 **GraphQLStandardSchemaGenerator Methods:**
 
-- `getDataSchema(document)` - Returns a validator for the data portion of GraphQL responses (fully implemented)
-- `getResponseSchema(document)` - Returns a validator for complete GraphQL responses including errors (stub only)
+- `getDataSchema(document, variables?)` - Returns a bidirectional validator for the data portion of GraphQL operation responses
+- `getResponseSchema(document)` - Returns a bidirectional validator for complete GraphQL responses (data + errors + extensions)
+- `getFragmentSchema(document, { fragmentName?, variables? })` - Returns a bidirectional validator for GraphQL fragment values
+- `getVariablesSchema(document)` - Returns a bidirectional validator for GraphQL operation input variables
 - `replaceSchema(schema)` - Updates the schema used for validation
 
-**Validation Strategy:**
-The implementation leverages GraphQL's `execute()` function with custom field resolvers that:
+All schema methods return **bidirectional validation schemas** with three validation modes:
+- `schema.normalize` - Validates and normalizes serialized data (default)
+- `schema.deserialize` - Deserializes from serialized format to runtime format
+- `schema.serialize` - Serializes from runtime format to serialized format
 
-- Validate scalar types (String, Int, Float, Boolean) with strict type checking
-- Handle nullable vs non-nullable fields correctly by checking `GraphQLNonNull` wrapper types
-- Return Standard Schema V1 compliant results with either `{ value: T }` or `{ issues: [...] }`
+### Validation Strategy
+
+The implementation uses GraphQL's parsing infrastructure combined with custom logic in (`src/utils/parseData.ts`, `src/utils/parseVariables.ts`) with:
+
+- Strict scalar type validation (String, Int, Float, Boolean, ID, custom scalars)
+- Bidirectional validation supporting both serialization and deserialization
+- Nullable vs non-nullable field handling
+- Enum validation
+- Array and nested object validation
+- Type coercion and normalization
+- Standard Schema V1 compliant results: `{ value: T }` or `{ issues: [...] }`
+
+### Schema Building
+
+Schema generation (`src/schema/`) includes:
+- `buildOperationSchema.ts` - Builds JSON Schema for operation responses
+- `buildFragmentSchema.ts` - Builds JSON Schema for fragment values
+- `buildVariablesSchema.ts` - Builds JSON Schema for input variables
+- `buildOutputSchema.ts` - Handles output type schema generation
+- `buildInputSchema.ts` - Handles input type schema generation
+- `responseShapeSchema.ts` - Defines the GraphQL response envelope structure
 
 ### Standard Schema Integration
 
-The package implements the Standard Schema V1 interface (`src/standard-schema-spec.ts`) with:
+The package implements:
+- Full Standard Schema V1 compliance (`@standard-schema/spec`)
+- Experimental StandardJSONSchema support (not yet stable in spec)
+- JSON Schema generation via `toJSONSchema()` helper
+- TypeScript generics for full type safety with `TypedDocumentNode`
+- Composition utilities for combining schemas (`composeStandardSchemas`)
 
-- Proper TypeScript generics for type safety
-- Support for both sync validation (implemented) and async (returns error)
-- JSON Schema source interface (stub - `toJSONSchema()` not implemented)
+### Additional Features
 
-## Development Status
+- **Document Transforms**: Apply transformations to documents before validation (default: `addTypename`)
+- **JSON Schema Options**: Control nullable properties, additionalProperties, and OpenAI compatibility
+- **Zod Integration**: `zodToExperimenalStandardJSONSchema` for converting Zod schemas
+- **Custom Scalars**: Full support with separate serialized/deserialized JSON Schema definitions
 
-**Implemented:**
+## Implementation Status
 
-- Core validation logic for `getDataSchema()`
-- All GraphQL scalar type validation
-- Nullable/non-nullable field handling
-- Arrays and nested object validation
-- Comprehensive test suite with 7 passing tests
+**Fully Implemented:**
 
-**Not Implemented:**
+- ✅ All core validation methods (`getDataSchema`, `getResponseSchema`, `getFragmentSchema`, `getVariablesSchema`)
+- ✅ Bidirectional validation (normalize, deserialize, serialize)
+- ✅ Custom scalar support with serialization/deserialization
+- ✅ JSON Schema generation with `toJSONSchema()` helper
+- ✅ Standard Schema V1 compliance
+- ✅ TypeScript support with `TypedDocumentNode`
+- ✅ All GraphQL scalar types (String, Int, Float, Boolean, ID)
+- ✅ Enums
+- ✅ Nullable/non-nullable field handling
+- ✅ Arrays and nested objects
+- ✅ Input types and variables validation
+- ✅ Fragment validation with type conditions
+- ✅ Build process (TypeScript compilation to `dist/`)
+- ✅ Comprehensive test suite (221 tests, ~97% coverage)
+- ✅ Document transforms
+- ✅ Schema composition utilities
+- ✅ OpenAI JSON Schema compatibility mode
 
-- Build process to compile TypeScript to `dist/`
-- `getResponseSchema()` for full response validation
-- `toJSONSchema()` method for JSON Schema generation
-- Support for GraphQL interfaces, unions, and custom scalars
+**Known Limitations:**
+
+- StandardJSONSchema interface support is experimental (spec not yet stable)
 
 ## Testing
 
-Tests are in `test/index.ts` and cover:
+Tests are organized in `test/`:
+- `getDataSchema.test.ts` - Data validation tests
+- `getResponseSchema.test.ts` - Response validation tests
+- `getFragmentSchema.test.ts` - Fragment validation tests
+- `getVariablesSchema.test.ts` - Variables validation tests
+- `composeStandardSchemas.test.ts` - Schema composition tests
+- `types.test.ts` - TypeScript type tests
 
-- Query, mutation, and subscription validation
-- All scalar types (String, Int, Float, Boolean)
-- Nullable vs non-nullable fields
-- Arrays with nested objects
-- Type mismatch detection
-
-The test suite uses Node.js built-in test runner without external testing frameworks.
+The test suite uses Node.js built-in test runner with coverage reporting (221 tests, 96.71% coverage).
