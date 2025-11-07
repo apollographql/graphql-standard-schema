@@ -301,7 +301,70 @@ const result = multiFragmentSchema({
 
 ### Validating GraphQL variables
 
-// TODO
+`generator.getVariablesSchema` allows you to create a schema that validates the input variables for a GraphQL operation:
+
+```ts
+const generator = new GraphQLStandardSchemaGenerator({
+  schema: gql`
+    scalar Date
+    input EventSearchInput {
+      after: Date
+      before: Date
+      city: String!
+    }
+    type Query {
+      searchEvent(input: EventSearchInput!): [String]
+    }
+  `,
+  scalarTypes: {
+    Date: DateScalarDef,
+  },
+});
+
+const variablesSchema = generator.getVariablesSchema(gql`
+  query Search($input: EventSearchInput!) {
+    searchEvent(input: $input)
+  }
+`);
+
+// valid input
+const result = variablesSchema({
+  input: {
+    after: "2025-01-01",
+    city: "New York",
+  },
+});
+// result is `{ value: { input: { after: '2025-01-01', city: 'New York' } } }`
+
+// invalid input
+const result = variablesSchema({
+  input: {
+    after: "2025-01-01",
+    before: "2025-12-31",
+  },
+});
+/*
+// result is
+{
+  "issues": [
+    {
+      "message": "Expected value to be non-null.",
+      "path": [
+        "input",
+        "city"
+      ]
+    }
+  ]
+}
+*/
+```
+
+> [!NOTE]
+> `getVariablesSchema` returns a multidirectional schema - see [directional schemas](#directional-schemas) for more details.
+
+> [!INFO]
+> `getVariablesSchema` will not add `null` for missing nullable fields by default, unless they were part of the input.
+> Variable inputs can be very deeply nested with a lot of unspecified fields, so adding them indiscriminately could lead to very large objects.
 
 ### Directional Schemas
 
@@ -411,6 +474,10 @@ const result = dataSchema.serialize({
 });
 // result is `{ value: { now: '2025-12-13', holidayName: null } }`
 ```
+
+### Usage with TypeScript
+
+// TODO
 
 ## Standard Schema Integration
 
