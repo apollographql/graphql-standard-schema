@@ -1,4 +1,3 @@
-import { MapperKind, mapSchema } from "@graphql-tools/utils";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import {
   buildASTSchema,
