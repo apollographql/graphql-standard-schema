@@ -17,10 +17,13 @@ export interface CombinedSpec<Input = unknown, Output = Input>
 export type ScalarMapping<
   Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions,
 > = {
-  [K in keyof Scalars]: Scalars[K] extends {
-    type: GraphQLScalarType<infer Parsed, infer Serialized>;
-  }
-    ? [Parsed, Serialized]
+  [K in keyof Scalars]: Scalars[K] extends GraphQLScalarType<
+    infer Parsed,
+    infer Serialized
+  >
+    ? IsPrimitive<Parsed> extends true
+      ? never
+      : [Parsed, Serialized]
     : never;
 }[keyof Scalars];
 
@@ -37,6 +40,22 @@ type IsUnknown<T> = unknown extends T
     ? true
     : false
   : false;
+
+type IsPrimitive<T> = [string] extends [T]
+  ? true
+  : [number] extends [T]
+    ? true
+    : [boolean] extends [T]
+      ? true
+      : // in case `strictNullChecks` is disabled, the next checks would be would be `true` all the time, force return false
+        null extends 1
+        ? false
+        : [null] extends [T]
+          ? true
+          : [undefined] extends [T]
+            ? true
+            : false;
+
 export type CalculateSerializedType<TData, Mapping extends [any, any]> =
   IsUnknown<TData> extends true
     ? TData

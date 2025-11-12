@@ -13,7 +13,8 @@ export function buildFragmentSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
   fragment: FragmentDefinitionNode,
-  scalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping,
+  scalarTypes: GraphQLStandardSchemaGenerator.ScalarDefinitions,
+  direction: "serialized" | "deserialized",
   options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
   const parentType = schema.getType(fragment.typeCondition.name.value);
@@ -23,6 +24,7 @@ export function buildFragmentSchema(
       schema,
       document,
       scalarTypes,
+      direction,
       parentType,
       fragment.selectionSet,
       options
@@ -36,6 +38,7 @@ export function buildFragmentSchema(
         schema,
         document,
         scalarTypes,
+        direction,
         type,
         fragment.selectionSet,
         options

@@ -9,3 +9,10 @@ export {
   standardJSONSchemaRootKey as experimentalStandardJSONSchemaRootKey,
 } from "./standard-schema-spec.ts";
 export { standardSchema as buildExperimentalStandardJSONSchema } from "./utils/standardSchema.ts";
+
+import type { GraphQLStandardSchemaGenerator } from "./GraphQLStandardSchemaGenerator.ts";
+declare module "graphql" {
+  interface GraphQLScalarTypeExtensions {
+    "@apollo/graphql-standard-schema"?: GraphQLStandardSchemaGenerator.ScalarExtension;
+  }
+}

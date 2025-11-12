@@ -12,7 +12,8 @@ export function buildOperationSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
   operation: OperationDefinitionNode,
-  scalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping,
+  scalarTypes: GraphQLStandardSchemaGenerator.ScalarDefinitions,
+  direction: "serialized" | "deserialized",
   options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
   return {
@@ -23,6 +24,7 @@ export function buildOperationSchema(
       schema,
       document,
       scalarTypes,
+      direction,
       operation.operation === OperationTypeNode.QUERY
         ? schema.getQueryType()!
         : operation.operation === OperationTypeNode.SUBSCRIPTION

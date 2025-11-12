@@ -46,6 +46,7 @@ export function parseData<
   data: unknown,
   operation: OperationDefinitionNode,
   schema: GraphQLSchema,
+  scalars: Scalars,
   document: TypedDocumentNode<TData, TVariables>,
   variableValues: TVariables,
   mode: Mode,
@@ -70,6 +71,7 @@ export function parseData<
     rootType: initialTypename,
     rootPath: initialPath,
     schema,
+    scalars,
     document,
     variableValues,
     mode,
@@ -85,6 +87,7 @@ export function parseFragment<
   data: unknown,
   fragment: FragmentDefinitionNode,
   schema: GraphQLSchema,
+  scalars: Scalars,
   document: TypedDocumentNode<TData, TVariables>,
   variableValues: TVariables,
   mode: Mode,
@@ -97,6 +100,7 @@ export function parseFragment<
       rootType: getFragmentDataRootObjectType(data, schema),
       variableValues: variableValues,
       schema,
+      scalars,
       rootPath: initialPath,
       document,
       mode,
@@ -114,13 +118,18 @@ export function parseFragment<
 
 export function getScalarParser<
   Mode extends "normalize" | "deserialize" | "serialize",
->(mode: Mode) {
-  return (value: unknown, scalar: GraphQLScalarType | GraphQLEnumType) =>
-    mode === "serialize"
+>(mode: Mode, scalars: GraphQLStandardSchemaGenerator.ScalarDefinitions) {
+  return (value: unknown, scalar: GraphQLScalarType | GraphQLEnumType) => {
+    const userDefinedScalar = scalars[scalar.name];
+    if (userDefinedScalar) {
+      scalar = userDefinedScalar;
+    }
+    return mode === "serialize"
       ? scalar.serialize(value)
       : mode === "deserialize"
         ? scalar.parseValue(value)
         : scalar.serialize(scalar.parseValue(value));
+  };
 }
 
 function parseSelectionSet<
@@ -134,6 +143,7 @@ function parseSelectionSet<
   rootType,
   rootPath,
   schema,
+  scalars,
   document,
   variableValues,
   mode,
@@ -143,6 +153,7 @@ function parseSelectionSet<
   rootType: GraphQLObjectType;
   rootPath: Array<string | number>;
   schema: GraphQLSchema;
+  scalars: Scalars;
   document: TypedDocumentNode<TData, TVariables>;
   variableValues: TVariables;
   /**
@@ -155,7 +166,7 @@ function parseSelectionSet<
    */
   mode: Mode;
 }): StandardSchemaV1.Result<SchemaResult<TData, Scalars, Mode>> {
-  const parseScalar = getScalarParser(mode);
+  const parseScalar = getScalarParser(mode, scalars);
 
   const fragments = Object.fromEntries(
     document.definitions

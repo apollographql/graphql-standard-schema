@@ -19,11 +19,13 @@ import {
 } from "graphql";
 import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSchema.ts";
 import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
+import { getScalarJsonSchema } from "./getScalarJsonSchema.ts";
 
 export function buildInputSchema(
   schema: GraphQLSchema,
   operation: OperationDefinitionNode,
-  scalarTypes: Record<string, OpenAiSupportedJsonSchema.Anything> | undefined,
+  scalarTypes: GraphQLStandardSchemaGenerator.ScalarDefinitions,
+  direction: "serialized" | "deserialized",
   options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
   const objectTypeSpread: { additionalProperties?: boolean } =
@@ -145,15 +147,12 @@ export function buildInputSchema(
       }
     }
     if (isScalarType(parentType)) {
-      const scalarType = scalarTypes?.[parentType.name];
-      /* node:coverage ignore next 5 */
-      if (!scalarType) {
-        throw new Error(
-          `Scalar type ${parentType.name} not found in \`scalarTypes\`, but \`scalarTypes\` option was provided.`
-        );
-      }
       defs.scalar ??= {};
-      defs.scalar[parentType.name] = scalarType;
+      defs.scalar[parentType.name] ??= getScalarJsonSchema(
+        parentType,
+        scalarTypes,
+        direction
+      );
       return maybe({ $ref: `#/$defs/scalar/${parentType.name}` });
     }
     if (isEnumType(parentType)) {

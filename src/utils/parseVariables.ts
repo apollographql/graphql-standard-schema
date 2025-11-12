@@ -24,6 +24,7 @@ export function parseVariables<
   data: unknown,
   operation: OperationDefinitionNode,
   schema: GraphQLSchema,
+  scalars: Scalars,
   mode: Mode
 ): StandardSchemaV1.Result<SchemaResult<TVariables, Scalars, Mode>> {
   if (typeof data !== "object" || data === null) {
@@ -36,7 +37,7 @@ export function parseVariables<
     };
   }
 
-  const parser = getScalarParser(mode);
+  const parser = getScalarParser(mode, scalars);
 
   const variableDefs: ReadonlyArray<VariableDefinitionNode> =
     operation.variableDefinitions || [];

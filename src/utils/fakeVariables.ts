@@ -69,11 +69,14 @@ export function fakeVariables(
     }
     if (isScalarType(schemaType)) {
       const scalarDefinition = scalars[schemaType.name];
+      const defaultValue =
+        scalarDefinition?.extensions["@apollo/graphql-standard-schema"]
+          ?.defaultValue;
       assert(
-        scalarDefinition?.defaultValue,
+        defaultValue,
         `Scalar type ${schemaType.name} is used as input type and referenced as non-nullable variable, but no defaultValue is provided in scalar definitions`
       );
-      return scalarDefinition.defaultValue;
+      return defaultValue;
     }
     if (isInputObjectType(schemaType)) {
       const fields = schemaType.getFields();
