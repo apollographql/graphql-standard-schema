@@ -155,9 +155,6 @@ function parseInputObject({
         return parser(fieldValue, fieldType);
       }
 
-      if (!(typeof fieldValue === "object" && !Array.isArray(fieldValue))) {
-        console.log({ fieldValue, fieldType, path });
-      }
       assert(
         typeof fieldValue === "object" && !Array.isArray(fieldValue),
         `Expected input object to be an object.`

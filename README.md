@@ -670,14 +670,14 @@ const jsonSchema = toJSONSchema.input(responseSchema, {
 });
 ```
 
-### `zodToExperimenalStandardJSONSchema` - converts a Zod schema to an (experimental) StandardJSONSchema schema
+### `zodToExperimentalStandardJSONSchema` - converts a Zod schema to an (experimental) StandardJSONSchema schema
 
 This is meant for usage with `composeExperimentalStandardJSONSchemas`.
 
 #### Signature:
 
 ```ts
-export function zodToExperimenalStandardJSONSchema<Schema extends z.Schema>(
+export function zodToExperimentalStandardJSONSchema<Schema extends z.Schema>(
   schema: Schema
 ): CombinedSpec<z.input<Schema>, z.output<Schema>>;
 ```
@@ -727,7 +727,7 @@ function composeExperimentalStandardJSONSchemas<
 
 ```ts
 const combinedStandardJSONSchema = composeExperimentalStandardJSONSchemas(
-  zodToExperimenalStandardJSONSchema(
+  zodToExperimentalStandardJSONSchema(
     z.strictObject({
       props: z.strictObject({
         id: z.string().uuid(),

@@ -1,6 +1,6 @@
 import z from "zod";
 import {
-  zodToExperimenalStandardJSONSchema as zodToStandardJSONSchemaV1,
+  zodToExperimentalStandardJSONSchema as zodToStandardJSONSchemaV1,
   composeExperimentalStandardJSONSchemas as composeStandardSchemas,
   GraphQLStandardSchemaGenerator,
   toJSONSchema,

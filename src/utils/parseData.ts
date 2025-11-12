@@ -2,7 +2,6 @@ import {
   getDirectiveValues,
   GraphQLEnumType,
   GraphQLIncludeDirective,
-  GraphQLInputObjectType,
   GraphQLNonNull,
   GraphQLScalarType,
   GraphQLSkipDirective,

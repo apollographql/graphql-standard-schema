@@ -37,7 +37,6 @@ import {
   parseData as parseDataSelection,
   parseFragment,
 } from "./utils/parseData.ts";
-import { validationSchema } from "./utils/validationSchema.ts";
 import { parseVariables } from "./utils/parseVariables.ts";
 
 export declare namespace GraphQLStandardSchemaGenerator {

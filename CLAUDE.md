@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 This is `@apollo/graphql-standard-schema`, a GraphQL Standard Schema package that creates Standard Schema V1 compliant validators for GraphQL operations. The package validates:
+
 - Operation responses (data and errors)
 - Operation data only
 - Fragment values
@@ -58,6 +59,7 @@ The package provides a `GraphQLStandardSchemaGenerator` class (`src/GraphQLStand
 - `replaceSchema(schema)` - Updates the schema used for validation
 
 All schema methods return **bidirectional validation schemas** with three validation modes:
+
 - `schema.normalize` - Validates and normalizes serialized data (default)
 - `schema.deserialize` - Deserializes from serialized format to runtime format
 - `schema.serialize` - Serializes from runtime format to serialized format
@@ -77,6 +79,7 @@ The implementation uses GraphQL's parsing infrastructure combined with custom lo
 ### Schema Building
 
 Schema generation (`src/schema/`) includes:
+
 - `buildOperationSchema.ts` - Builds JSON Schema for operation responses
 - `buildFragmentSchema.ts` - Builds JSON Schema for fragment values
 - `buildVariablesSchema.ts` - Builds JSON Schema for input variables
@@ -87,6 +90,7 @@ Schema generation (`src/schema/`) includes:
 ### Standard Schema Integration
 
 The package implements:
+
 - Full Standard Schema V1 compliance (`@standard-schema/spec`)
 - Experimental StandardJSONSchema support (not yet stable in spec)
 - JSON Schema generation via `toJSONSchema()` helper
@@ -97,7 +101,7 @@ The package implements:
 
 - **Document Transforms**: Apply transformations to documents before validation (default: `addTypename`)
 - **JSON Schema Options**: Control nullable properties, additionalProperties, and OpenAI compatibility
-- **Zod Integration**: `zodToExperimenalStandardJSONSchema` for converting Zod schemas
+- **Zod Integration**: `zodToExperimentalStandardJSONSchema` for converting Zod schemas
 - **Custom Scalars**: Full support with separate serialized/deserialized JSON Schema definitions
 
 ## Implementation Status
@@ -129,6 +133,7 @@ The package implements:
 ## Testing
 
 Tests are organized in `test/`:
+
 - `getDataSchema.test.ts` - Data validation tests
 - `getResponseSchema.test.ts` - Response validation tests
 - `getFragmentSchema.test.ts` - Fragment validation tests

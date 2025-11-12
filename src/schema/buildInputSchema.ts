@@ -1,10 +1,8 @@
 import {
   GraphQLNonNull,
   isNonNullType,
-  type DocumentNode,
   type GraphQLInputType,
   type GraphQLSchema,
-  isDefinitionNode,
   Kind,
   isListType,
   isSpecifiedScalarType,
@@ -179,9 +177,6 @@ export function buildInputSchema(
     defs.input ??= {};
     const name = parentType.name;
     if (!defs.input[name]) {
-      const properties: NonNullable<
-        OpenAiSupportedJsonSchema.ObjectDef["properties"]
-      > = {};
       defs.input[name] = {
         type: "object" as const,
         ...objectTypeSpread,

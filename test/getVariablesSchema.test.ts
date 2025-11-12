@@ -1,6 +1,6 @@
 import { test } from "node:test";
 
-import { GraphQLStandardSchemaGenerator, toJSONSchema } from "../src/index.ts";
+import { GraphQLStandardSchemaGenerator } from "../src/index.ts";
 import { gql, validateSync, validateWithAjv } from "./utils/test-helpers.ts";
 import { buildSchema } from "graphql";
 import assert from "node:assert";
