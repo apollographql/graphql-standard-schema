@@ -31,47 +31,47 @@ const generator = new GraphQLStandardSchemaGenerator({
     }
   `,
   scalarTypes: {
-    Date: {
-      type: new GraphQLScalarType<number, string>({
-        name: "Date",
-        description: "A date string in YYYY-MM-DD format",
-        parseValue(value) {
-          const date = new Date(value as string);
-          if (isNaN(date.getTime())) {
-            throw new TypeError(
-              `Value is not a valid Date string: ${value as string}`
-            );
-          }
-          return date.getTime();
-        },
-        serialize(value) {
-          if (typeof value === "number") {
-            value = new Date(value);
-          }
-          if (!(value instanceof Date) || isNaN(value.getTime())) {
-            throw new TypeError(`Value is not a valid Date object: ${value}`);
-          }
-          return value.toISOString().split("T")[0];
-        },
-      }),
-      jsonSchema: {
-        serialized: {
-          type: "string",
-          pattern: "\\d{4}-\\d{1,2}-\\d{1,2}",
-        },
-        deserialized: {
-          type: "number",
-          // description will usually be inherited from the GraphQLScalarType description, but in this case we override it to match with the actual deserialized value
-          description: "Unix timestamp in milliseconds",
+    Date: new GraphQLScalarType<number, string>({
+      name: "Date",
+      description: "A date string in YYYY-MM-DD format",
+      parseValue(value) {
+        const date = new Date(value as string);
+        if (isNaN(date.getTime())) {
+          throw new TypeError(
+            `Value is not a valid Date string: ${value as string}`
+          );
+        }
+        return date.getTime();
+      },
+      serialize(value) {
+        if (typeof value === "number") {
+          value = new Date(value);
+        }
+        if (!(value instanceof Date) || isNaN(value.getTime())) {
+          throw new TypeError(`Value is not a valid Date object: ${value}`);
+        }
+        return value.toISOString().split("T")[0];
+      },
+      extensions: {
+        "@apollo/graphql-standard-schema": {
+          serializedJsonSchema: {
+            type: "string",
+            pattern: "\\d{4}-\\d{1,2}-\\d{1,2}",
+          },
+          deserializedJsonSchema: {
+            type: "number",
+            // description will usually be inherited from the GraphQLScalarType description, but in this case we override it to match with the actual deserialized value
+            description: "Unix timestamp in milliseconds",
+          },
         },
       },
-    },
+    }),
   },
 });
 ```
 
 > [!TIP]
-> You can use the `GraphQLStandardSchemaGenerator.ScalarDefinition<Serialized, Deserialized>` TypeScript type to help type your custom scalar definitions.
+> The JSON schema definitions are stored in the `extensions` field of the `GraphQLScalarType` under the key `"@apollo/graphql-standard-schema"`. This allows the scalar type to be used as a normal GraphQL scalar while also providing the necessary JSON schema information for validation and schema generation.
 
 ### All options:
 
@@ -386,21 +386,28 @@ const generator = new GraphQLStandardSchemaGenerator({
     }
   `,
   scalarTypes: {
-    Date: {
-      type: new GraphQLScalarType<number, string>({
-        // serialization and deserialization logic
-      }),
-      jsonSchema: {
-        serialized: {
-          type: "string",
-          pattern: "\\d{4}-\\d{1,2}-\\d{1,2}",
-        },
-        deserialized: {
-          type: "number",
-          description: "Unix timestamp in milliseconds",
+    Date: new GraphQLScalarType<number, string>({
+      name: "Date",
+      // serialization and deserialization logic
+      parseValue(value) {
+        /* ... */
+      },
+      serialize(value) {
+        /* ... */
+      },
+      extensions: {
+        "@apollo/graphql-standard-schema": {
+          serializedJsonSchema: {
+            type: "string",
+            pattern: "\\d{4}-\\d{1,2}-\\d{1,2}",
+          },
+          deserializedJsonSchema: {
+            type: "number",
+            description: "Unix timestamp in milliseconds",
+          },
         },
       },
-    },
+    }),
   },
 });
 
@@ -489,12 +496,9 @@ const generator = new GraphQLStandardSchemaGenerator({
     }
   `,
   scalarTypes: {
-    Date: {
-      type: new GraphQLScalarType<Date, string>(/* ... */),
-      jsonSchema: {
-        /* ... */
-      },
-    },
+    Date: new GraphQLScalarType<Date, string>({
+      /* ... */
+    }),
   },
 });
 
