@@ -74,7 +74,7 @@ export function responseShapeSchema(definition: OperationDefinitionNode) {
           value.data &&
             typeof value.data === "object" &&
             !Array.isArray(value.data),
-          "'data' be a non-null object if 'errors' is not present"
+          "'data' must be a non-null object if 'errors' is not present"
         );
       }
       /*
