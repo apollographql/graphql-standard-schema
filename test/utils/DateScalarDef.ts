@@ -12,7 +12,9 @@ export const DateScalarDef = new GraphQLScalarType<Date, string>({
   },
   serialize(value) {
     if (!(value instanceof Date) || isNaN(value.getTime())) {
-      throw new TypeError(`Value is not a valid Date object: ${value}`);
+      throw new TypeError(
+        `Value is not a valid Date object: ${JSON.stringify(value)}`
+      );
     }
     return value.toISOString().split("T")[0];
   },

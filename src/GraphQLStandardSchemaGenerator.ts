@@ -91,6 +91,7 @@ export declare namespace GraphQLStandardSchemaGenerator {
 
   export type Deserialized<
     TData,
+    // oxlint-disable-next-line no-unused-vars
     Scalars extends GraphQLStandardSchemaGenerator.ScalarDefinitions = Record<
       string,
       never

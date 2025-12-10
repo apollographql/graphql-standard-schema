@@ -1196,7 +1196,7 @@ test("handles custom scalars", async (t) => {
         t.assert.deepEqual(result, {
           issues: [
             {
-              message: "Value is not a valid Date object: not-a-date",
+              message: 'Value is not a valid Date object: "not-a-date"',
               path: ["now"],
             },
           ],

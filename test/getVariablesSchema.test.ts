@@ -981,7 +981,7 @@ test("handles custom scalars", async (t) => {
         assert.deepStrictEqual(result, {
           issues: [
             {
-              message: "Value is not a valid Date object: foobar",
+              message: 'Value is not a valid Date object: "foobar"',
               path: ["before"],
             },
           ],
@@ -993,6 +993,7 @@ test("handles custom scalars", async (t) => {
     const {
       serializedJsonSchema,
       // TODO test backwards direction too
+      // oxlint-disable-next-line no-unused-vars
       deserializedJsonSchema,
     } = getBidirectionalJsonSchemas(variablesSchema);
 
@@ -1208,7 +1209,7 @@ test("handles input types", async (t) => {
         assert.deepStrictEqual(result, {
           issues: [
             {
-              message: "Value is not a valid Date object: 2023-01-01",
+              message: 'Value is not a valid Date object: "2023-01-01"',
               path: ["input", "after"],
             },
           ],
@@ -1220,6 +1221,7 @@ test("handles input types", async (t) => {
     const {
       serializedJsonSchema,
       // TODO test backwards direction too
+      // oxlint-disable-next-line no-unused-vars
       deserializedJsonSchema,
     } = getBidirectionalJsonSchemas(variablesSchema);
     {

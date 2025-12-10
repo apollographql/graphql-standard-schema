@@ -67,7 +67,7 @@ test("composes with zod", async (t) => {
   const zodStandard = zodToStandardJSONSchemaV1(zodSchema);
   const zodJson = toJSONSchema.input(zodStandard);
 
-  test("basic assumption about zod schema", (t) => {
+  test("basic assumption about zod schema", () => {
     assert.deepEqual(
       validateSync(zodStandard, { props: { height: 5, width: 10 } }),
       {
@@ -137,7 +137,7 @@ test("composes with zod", async (t) => {
       );
       await t.test(
         "will error when `hideAddedFieldFromRootSchema` is disabled",
-        async (t) => {
+        async () => {
           const schemaWithoutHiding = composeStandardSchemas(
             zodStandard,
             ["props", "data"],
@@ -165,7 +165,7 @@ test("composes with zod", async (t) => {
     });
 
     await t.test("JSON schema", (t) => {
-      const { $defs, $schema, ...extension } = adjustedSchemaJSON;
+      const { $defs, $schema: _, ...extension } = adjustedSchemaJSON;
 
       t.assert.deepEqual(toJSONSchema.input(combinedSchema), {
         $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -224,7 +224,7 @@ test("composes with zod", async (t) => {
       );
       await t.test(
         "will error when `hideAddedFieldFromRootSchema` is disabled",
-        async (t) => {
+        async () => {
           const schemaWithoutHiding = composeStandardSchemas(
             zodStandard,
             ["props", "data"],
@@ -252,7 +252,7 @@ test("composes with zod", async (t) => {
     });
 
     await t.test("JSON schema", (t) => {
-      const { $defs, $schema, ...extension } = adjustedSchemaJSON;
+      const { $defs, $schema: _, ...extension } = adjustedSchemaJSON;
 
       t.assert.deepEqual(toJSONSchema.input(combinedSchema), {
         $schema: "https://json-schema.org/draft/2020-12/schema",

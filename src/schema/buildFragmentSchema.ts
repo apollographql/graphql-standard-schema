@@ -45,7 +45,13 @@ export function buildFragmentSchema(
       )
     );
     dataSchema = {
-      anyOf: schemas.map(({ $defs, ...schema }) => schema),
+      anyOf: schemas.map(
+        ({
+          // oxlint-disable-next-line no-unused-vars
+          $defs,
+          ...schema
+        }) => schema
+      ),
       $defs: schemas.reduce<NonNullable<OpenAiSupportedJsonSchema["$defs"]>>(
         (acc, schema) =>
           schema.$defs ? Object.assign(acc, schema.$defs) : acc,
