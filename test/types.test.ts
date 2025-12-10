@@ -1,38 +1,27 @@
 import type { GraphQLScalarType } from "graphql";
-import type { OpenAiSupportedJsonSchema } from "../src/utils/openAiSupportedJsonSchema.ts";
 import type { GraphQLStandardSchemaGenerator } from "../src/GraphQLStandardSchemaGenerator.ts";
 import { expectTypeOf } from "expect-type";
+import test from "node:test";
 
-if (false) {
-  expectTypeOf<
-    GraphQLStandardSchemaGenerator.Serialized<
-      {
-        foo: Date;
-        now: BigInt;
-        bar: {
-          hoi: string;
-          baz: BigInt;
-          hai: number;
-        };
-      },
-      {
-        Date: {
-          type: GraphQLScalarType<Date, string>;
-          jsonSchema: {
-            deserialized: OpenAiSupportedJsonSchema.Anything;
-            serialized: OpenAiSupportedJsonSchema.Anything;
-          };
-        };
-        BigInt: {
-          type: GraphQLScalarType<BigInt, number>;
-          jsonSchema: {
-            deserialized: OpenAiSupportedJsonSchema.Anything;
-            serialized: OpenAiSupportedJsonSchema.Anything;
-          };
-        };
-      }
-    >
-  >().toEqualTypeOf<{
+test("GraphQLStandardSchemaGenerator.Serialized", () => {
+  type Serialized = GraphQLStandardSchemaGenerator.Serialized<
+    {
+      foo: Date;
+      now: BigInt;
+      bar: {
+        hoi: string;
+        baz: BigInt;
+        hai: number;
+      };
+    },
+    {
+      Date: GraphQLScalarType<Date, string>;
+      BigInt: GraphQLScalarType<BigInt, number>;
+      // adding this to ensure it won't change all `number` to `string` excessively, but is just ignored
+      NumberString: GraphQLScalarType<number, string>;
+    }
+  >;
+  expectTypeOf<Serialized>().toEqualTypeOf<{
     foo: string;
     now: number;
     bar: {
@@ -41,4 +30,4 @@ if (false) {
       hai: number;
     };
   }>;
-}
+});

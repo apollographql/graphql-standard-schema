@@ -27,11 +27,13 @@ import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSche
 import { equal } from "@wry/equality";
 import { assert } from "../utils/assert.ts";
 import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
+import { getScalarJsonSchema } from "./getScalarJsonSchema.ts";
 
 export function buildOutputSchema(
   schema: GraphQLSchema,
   document: DocumentNode,
-  scalarTypes: Record<string, OpenAiSupportedJsonSchema.Anything> | undefined,
+  scalarTypes: GraphQLStandardSchemaGenerator.ScalarDefinitions,
+  direction: "serialized" | "deserialized",
   parentType: GraphQLObjectType,
   selections: SelectionSetNode,
   options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
@@ -153,21 +155,12 @@ export function buildOutputSchema(
       }
     }
     if (isScalarType(parentType)) {
-      const scalarType = scalarTypes?.[parentType.name];
-      /* node:coverage ignore next 5 */
-      if (!scalarType) {
-        throw new Error(
-          `Scalar type ${parentType.name} not found in \`scalarTypes\`, but \`scalarTypes\` option was provided.`
-        );
-      }
       defs.scalar ??= {};
-      defs.scalar[parentType.name] = {
-        title: `${parentType.name}`,
-        ...(parentType.description
-          ? { description: parentType.description }
-          : {}),
-        ...scalarType,
-      };
+      defs.scalar[parentType.name] ??= getScalarJsonSchema(
+        parentType,
+        scalarTypes,
+        direction
+      );
       return maybe({ $ref: `#/$defs/scalar/${parentType.name}` });
     }
     if (isInterfaceType(parentType) || isUnionType(parentType)) {

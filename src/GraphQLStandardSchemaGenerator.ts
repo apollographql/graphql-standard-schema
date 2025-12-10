@@ -1,4 +1,3 @@
-import { MapperKind, mapSchema } from "@graphql-tools/utils";
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import {
   buildASTSchema,
@@ -46,16 +45,15 @@ export declare namespace GraphQLStandardSchemaGenerator {
       OpenAiSupportedJsonSchema.Anything
     >;
   }
-
-  export interface ScalarDefinition<Serialized, Deserialized> {
-    type: GraphQLScalarType<Deserialized, Serialized>;
-    jsonSchema: {
-      deserialized: OpenAiSupportedJsonSchema.Anything;
-      serialized: OpenAiSupportedJsonSchema.Anything;
-    };
+  export interface ScalarExtension {
+    deserializedJsonSchema: OpenAiSupportedJsonSchema.Anything;
+    serializedJsonSchema: OpenAiSupportedJsonSchema.Anything;
     /** Will be used as "fake variable value" if this scalar is ever used in a non-nullable variable input value. */
     defaultValue?: any;
   }
+
+  export interface ScalarDefinition<Serialized, Deserialized>
+    extends GraphQLScalarType<Deserialized, Serialized> {}
 
   export type ScalarDefinitions = Record<
     string,
@@ -157,8 +155,6 @@ export class GraphQLStandardSchemaGenerator<
 > {
   private schema!: GraphQLSchema;
   private scalarTypes: Scalars;
-  private deserializedScalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping;
-  private serializedScalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping;
   private defaultJSONSchemaOptions: GraphQLStandardSchemaGenerator.JSONSchemaOptions;
   private documentTransfoms: GraphQLStandardSchemaGenerator.DocumentTransform[];
   constructor({
@@ -169,18 +165,6 @@ export class GraphQLStandardSchemaGenerator<
   }: GraphQLStandardSchemaGenerator.Options<Scalars>) {
     this.scalarTypes = scalarTypes;
     this.replaceSchema(schema);
-    this.deserializedScalarTypes = Object.fromEntries(
-      Object.entries(scalarTypes).map(([key, def]) => [
-        key,
-        def.jsonSchema.deserialized,
-      ])
-    );
-    this.serializedScalarTypes = Object.fromEntries(
-      Object.entries(scalarTypes).map(([key, def]) => [
-        key,
-        def.jsonSchema.serialized,
-      ])
-    );
     this.documentTransfoms = documentTransfoms;
     this.defaultJSONSchemaOptions =
       defaultJSONSchemaOptions === "OpenAI"
@@ -200,15 +184,8 @@ export class GraphQLStandardSchemaGenerator<
       "Schema needs to be of type GraphQLSchema or DocumentNode"
     );
 
-    const schemaInstance =
-      "getTypeMap" in schema ? schema : buildASTSchema(schema);
-
     // override pre-existing scalar types with scalars passed in via the `scalarTypes` option
-    this.schema = mapSchema(schemaInstance, {
-      [MapperKind.SCALAR_TYPE]: (type) => {
-        return this.scalarTypes[type.name]?.type ?? type;
-      },
-    });
+    this.schema = "getTypeMap" in schema ? schema : buildASTSchema(schema);
   }
 
   getDataSchema<TData, TVariables extends Record<string, unknown>>(
@@ -243,7 +220,8 @@ export class GraphQLStandardSchemaGenerator<
             schema,
             document,
             operation,
-            this[`${direction}ScalarTypes`],
+            this.scalarTypes,
+            direction,
             { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
@@ -255,6 +233,7 @@ export class GraphQLStandardSchemaGenerator<
           data,
           operation,
           schema,
+          scalarTypes,
           document,
           variableValues,
           "normalize"
@@ -264,6 +243,7 @@ export class GraphQLStandardSchemaGenerator<
           data,
           operation,
           schema,
+          scalarTypes,
           document,
           variableValues,
           "deserialize"
@@ -273,6 +253,7 @@ export class GraphQLStandardSchemaGenerator<
           data,
           operation,
           schema,
+          scalarTypes,
           document,
           variableValues,
           "serialize"
@@ -386,6 +367,7 @@ export class GraphQLStandardSchemaGenerator<
       `Fragment with name ${fragmentName} not found in document`
     );
     const schema = this.schema;
+    const scalarTypes = this.scalarTypes;
     const variableValues =
       variables ||
       // TODO: also find all stray referenced variables throughout the document and try to infer their types
@@ -405,7 +387,8 @@ export class GraphQLStandardSchemaGenerator<
             schema,
             document,
             fragment,
-            this[`${direction}ScalarTypes`],
+            this.scalarTypes,
+            direction,
             { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
@@ -417,6 +400,7 @@ export class GraphQLStandardSchemaGenerator<
           value,
           fragment,
           schema,
+          scalarTypes,
           document,
           variableValues,
           "normalize"
@@ -426,6 +410,7 @@ export class GraphQLStandardSchemaGenerator<
           value,
           fragment,
           schema,
+          scalarTypes,
           document,
           variableValues,
           "deserialize"
@@ -435,6 +420,7 @@ export class GraphQLStandardSchemaGenerator<
           value,
           fragment,
           schema,
+          scalarTypes,
           document,
           variableValues,
           "serialize"
@@ -450,6 +436,7 @@ export class GraphQLStandardSchemaGenerator<
     Scalars
   > {
     const schema = this.schema;
+    const scalarTypes = this.scalarTypes;
     document = this.documentTransfoms.reduce(
       (doc, transform) => transform(doc),
       document
@@ -464,7 +451,8 @@ export class GraphQLStandardSchemaGenerator<
           ...buildVariablesSchema(
             schema,
             operation,
-            this[`${direction}ScalarTypes`],
+            this.scalarTypes,
+            direction,
             { ...this.defaultJSONSchemaOptions, ...options }
           ),
         };
@@ -476,6 +464,7 @@ export class GraphQLStandardSchemaGenerator<
           variables,
           operation,
           schema,
+          scalarTypes,
           "normalize"
         ),
       deserialize: (variables) =>
@@ -483,6 +472,7 @@ export class GraphQLStandardSchemaGenerator<
           variables,
           operation,
           schema,
+          scalarTypes,
           "deserialize"
         ),
       serialize: (variables) =>
@@ -490,6 +480,7 @@ export class GraphQLStandardSchemaGenerator<
           variables,
           operation,
           schema,
+          scalarTypes,
           "serialize"
         ),
       buildSchema,

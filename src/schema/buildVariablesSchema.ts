@@ -6,14 +6,15 @@ import type { OpenAiSupportedJsonSchema } from "../utils/openAiSupportedJsonSche
 export function buildVariablesSchema(
   schema: GraphQLSchema,
   operation: OperationDefinitionNode,
-  scalarTypes: GraphQLStandardSchemaGenerator.Internal.ScalarMapping,
+  scalarTypes: GraphQLStandardSchemaGenerator.ScalarDefinitions,
+  direction: "serialized" | "deserialized",
   options: GraphQLStandardSchemaGenerator.JSONSchemaOptions
 ): OpenAiSupportedJsonSchema {
   return {
     ...(operation.description
       ? { description: operation.description?.value }
       : {}),
-    ...buildInputSchema(schema, operation, scalarTypes, options),
+    ...buildInputSchema(schema, operation, scalarTypes, direction, options),
     title: `Variables for ${operation.operation} ${operation.name?.value || "Anonymous"}`,
   };
 }
