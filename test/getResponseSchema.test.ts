@@ -357,7 +357,7 @@ await test("simple query response", async (t) => {
               path: ["data", "currentlyPlaying", "title"],
             },
             {
-              message: "Value is not a valid Date object: 2023-10-01",
+              message: 'Value is not a valid Date object: "2023-10-01"',
               path: ["data", "currentlyPlaying", "startedAt"],
             },
           ],

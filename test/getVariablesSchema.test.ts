@@ -981,7 +981,7 @@ test("handles custom scalars", async (t) => {
         assert.deepStrictEqual(result, {
           issues: [
             {
-              message: "Value is not a valid Date object: foobar",
+              message: 'Value is not a valid Date object: "foobar"',
               path: ["before"],
             },
           ],
@@ -1209,7 +1209,7 @@ test("handles input types", async (t) => {
         assert.deepStrictEqual(result, {
           issues: [
             {
-              message: "Value is not a valid Date object: 2023-01-01",
+              message: 'Value is not a valid Date object: "2023-01-01"',
               path: ["input", "after"],
             },
           ],
