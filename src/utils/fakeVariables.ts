@@ -73,7 +73,7 @@ export function fakeVariables(
         scalarDefinition?.extensions["@apollo/graphql-standard-schema"]
           ?.defaultValue;
       assert(
-        defaultValue,
+        defaultValue !== undefined,
         `Scalar type ${schemaType.name} is used as input type and referenced as non-nullable variable, but no defaultValue is provided in scalar definitions`
       );
       return defaultValue;
