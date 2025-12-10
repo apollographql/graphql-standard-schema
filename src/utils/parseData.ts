@@ -326,11 +326,11 @@ function parseSelectionSet<
               }
               assert(
                 isObjectType(itemType),
-                `Expected ${itemType} to be an object type.`
+                `Expected ${itemType?.toString()} to be an object type.`
               );
               assert(
                 typeof item === "object",
-                `Expected list item to be ${itemType}, but got ${typeof item} instead.`
+                `Expected list item to be ${itemType.toString()}, but got ${typeof item} instead.`
               );
               return handleSelections(
                 item,

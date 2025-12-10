@@ -71,6 +71,7 @@ export function composeStandardSchemas<
         rootSchema[standardJSONSchemaRootKey].jsonSchema[direction](params);
       const {
         $defs,
+        // oxlint-disable-next-line no-unused-vars
         $schema,
         ...extensionJson
       }: Record<string, unknown> & { $defs?: {} } =

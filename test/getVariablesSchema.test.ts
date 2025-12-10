@@ -993,6 +993,7 @@ test("handles custom scalars", async (t) => {
     const {
       serializedJsonSchema,
       // TODO test backwards direction too
+      // oxlint-disable-next-line no-unused-vars
       deserializedJsonSchema,
     } = getBidirectionalJsonSchemas(variablesSchema);
 
@@ -1220,6 +1221,7 @@ test("handles input types", async (t) => {
     const {
       serializedJsonSchema,
       // TODO test backwards direction too
+      // oxlint-disable-next-line no-unused-vars
       deserializedJsonSchema,
     } = getBidirectionalJsonSchemas(variablesSchema);
     {

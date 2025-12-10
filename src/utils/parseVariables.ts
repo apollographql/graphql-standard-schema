@@ -48,12 +48,9 @@ export function parseVariables<
       const name = varDef.variable.name.value;
       return [
         name,
-        handleTypeNode(
-          varDef.type,
-          (data as Record<string, unknown>)[name],
+        handleTypeNode(varDef.type, (data as Record<string, unknown>)[name], [
           name,
-          [name]
-        ),
+        ]),
       ];
     })
   );
@@ -65,7 +62,6 @@ export function parseVariables<
   function handleTypeNode(
     typeNode: TypeNode,
     variableValue: unknown,
-    variableName: string,
     path: Array<string | number>
   ): unknown {
     try {
@@ -78,8 +74,14 @@ export function parseVariables<
           if (isScalarType(type) || isEnumType(type)) {
             return parser(variableValue, type);
           }
-          assert(!isListType(type), `Expected ${type} to not be a list type.`);
-          assert(!isNonNullType(type), `Expected ${type} to not be non-null.`);
+          assert(
+            !isListType(type),
+            `Expected ${type.toString()} to not be a list type.`
+          );
+          assert(
+            !isNonNullType(type),
+            `Expected ${type.toString()} to not be non-null.`
+          );
           return parseInputObject({
             data: variableValue,
             type,
@@ -96,16 +98,11 @@ export function parseVariables<
             `Expected value to be an array.`
           );
           return variableValue.map((item, idx) =>
-            handleTypeNode(typeNode.type, item, variableName, [...path, idx])
+            handleTypeNode(typeNode.type, item, [...path, idx])
           );
         case Kind.NON_NULL_TYPE:
           assert(variableValue != null, `Expected value to be non-null.`);
-          return handleTypeNode(
-            typeNode.type,
-            variableValue,
-            variableName,
-            path
-          );
+          return handleTypeNode(typeNode.type, variableValue, path);
       }
     } catch (e) {
       issues.push({
