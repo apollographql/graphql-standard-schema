@@ -29,7 +29,9 @@ export function getScalarJsonSchema(
         ? "serializedJsonSchema"
         : "deserializedJsonSchema"
     ] ??
-    (direction === "serialized" ? scalarType.extensions.jsonSchema : undefined);
+    (direction === "serialized"
+      ? scalarType.extensions?.jsonSchema
+      : undefined);
 
   assert(
     extensionSchema,
