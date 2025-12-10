@@ -47,7 +47,7 @@ type IsPrimitive<T> = [string] extends [T]
     ? true
     : [boolean] extends [T]
       ? true
-      : // in case `strictNullChecks` is disabled, the next checks would be would be `true` all the time, force return false
+      : // in case `strictNullChecks` is disabled, the next checks would be `true` all the time, force return false
         null extends 1
         ? false
         : [null] extends [T]
