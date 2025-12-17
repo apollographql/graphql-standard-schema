@@ -1,8 +1,5 @@
 import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
-import {
-  standardJSONSchemaRootKey,
-  type StandardJSONSchemaV1,
-} from "../standard-schema-spec.ts";
+import type { StandardJSONSchemaV1 } from "@standard-schema/spec";
 
 export const toJSONSchema = {
   input(
@@ -11,7 +8,7 @@ export const toJSONSchema = {
       libraryOptions?: GraphQLStandardSchemaGenerator.JSONSchemaOptions;
     }
   ) {
-    return standardSchema[standardJSONSchemaRootKey].jsonSchema.input(
+    return standardSchema["~standard"].jsonSchema.input(
       options || { target: "draft-2020-12" }
     );
   },
@@ -21,7 +18,7 @@ export const toJSONSchema = {
       libraryOptions: GraphQLStandardSchemaGenerator.JSONSchemaOptions;
     }
   ) {
-    return standardSchema[standardJSONSchemaRootKey].jsonSchema.output(
+    return standardSchema["~standard"].jsonSchema.output(
       options || { target: "draft-2020-12" }
     );
   },

@@ -1,7 +1,6 @@
 import z from "zod";
 import {
-  zodToExperimentalStandardJSONSchema as zodToStandardJSONSchemaV1,
-  composeExperimentalStandardJSONSchemas as composeStandardSchemas,
+  composeStandardSchemas,
   GraphQLStandardSchemaGenerator,
   toJSONSchema,
 } from "../src/index.ts";
@@ -64,18 +63,17 @@ test("composes with zod", async (t) => {
       width: z.number(),
     }),
   });
-  const zodStandard = zodToStandardJSONSchemaV1(zodSchema);
-  const zodJson = toJSONSchema.input(zodStandard);
+  const zodJson = toJSONSchema.input(zodSchema);
 
   test("basic assumption about zod schema", () => {
     assert.deepEqual(
-      validateSync(zodStandard, { props: { height: 5, width: 10 } }),
+      validateSync(zodSchema, { props: { height: 5, width: 10 } }),
       {
         value: { props: { height: 5, width: 10 } },
       }
     );
     assert.deepEqual(
-      validateSync(zodStandard, {
+      validateSync(zodSchema, {
         props: { height: 5, width: 10, data: validData },
       }),
       {
@@ -108,7 +106,7 @@ test("composes with zod", async (t) => {
 
   await t.test("required (default)", async (t) => {
     const combinedSchema = composeStandardSchemas(
-      zodStandard,
+      zodSchema,
       ["props", "data"],
       schema
     );
@@ -139,7 +137,7 @@ test("composes with zod", async (t) => {
         "will error when `hideAddedFieldFromRootSchema` is disabled",
         async () => {
           const schemaWithoutHiding = composeStandardSchemas(
-            zodStandard,
+            zodSchema,
             ["props", "data"],
             schema,
             true,
@@ -194,7 +192,7 @@ test("composes with zod", async (t) => {
   });
   await t.test("optional", async (t) => {
     const combinedSchema = composeStandardSchemas(
-      zodStandard,
+      zodSchema,
       ["props", "data"],
       schema,
       false
@@ -226,7 +224,7 @@ test("composes with zod", async (t) => {
         "will error when `hideAddedFieldFromRootSchema` is disabled",
         async () => {
           const schemaWithoutHiding = composeStandardSchemas(
-            zodStandard,
+            zodSchema,
             ["props", "data"],
             schema,
             false,

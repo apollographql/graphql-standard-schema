@@ -1,4 +1,4 @@
-import type { StandardJSONSchemaV1 } from "../standard-schema-spec.ts";
+import type { StandardJSONSchemaV1 } from "@standard-schema/spec";
 
 export function schemaBase(
   params: StandardJSONSchemaV1.Options = { target: "draft-2020-12" }

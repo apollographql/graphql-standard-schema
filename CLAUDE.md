@@ -92,7 +92,7 @@ Schema generation (`src/schema/`) includes:
 The package implements:
 
 - Full Standard Schema V1 compliance (`@standard-schema/spec`)
-- Experimental StandardJSONSchema support (not yet stable in spec)
+- **StandardJSONSchemaV1 support** - All generated schemas implement the StandardJSONSchemaV1 interface
 - JSON Schema generation via `toJSONSchema()` helper
 - TypeScript generics for full type safety with `TypedDocumentNode`
 - Composition utilities for combining schemas (`composeStandardSchemas`)
@@ -101,7 +101,7 @@ The package implements:
 
 - **Document Transforms**: Apply transformations to documents before validation (default: `addTypename`)
 - **JSON Schema Options**: Control nullable properties, additionalProperties, and OpenAI compatibility
-- **Zod Integration**: `zodToExperimentalStandardJSONSchema` for converting Zod schemas
+- **Zod Integration**: Direct composition with Zod schemas via `composeStandardSchemas` (Zod v4.2+ natively supports StandardJSONSchemaV1)
 - **Custom Scalars**: Full support with separate serialized/deserialized JSON Schema definitions
 
 ## Implementation Status
@@ -113,6 +113,7 @@ The package implements:
 - ✅ Custom scalar support with serialization/deserialization
 - ✅ JSON Schema generation with `toJSONSchema()` helper
 - ✅ Standard Schema V1 compliance
+- ✅ **StandardJSONSchemaV1 support** - All schemas implement the stable spec
 - ✅ TypeScript support with `TypedDocumentNode`
 - ✅ All GraphQL scalar types (String, Int, Float, Boolean, ID)
 - ✅ Enums
@@ -123,12 +124,13 @@ The package implements:
 - ✅ Build process (TypeScript compilation to `dist/`)
 - ✅ Comprehensive test suite (221 tests, ~97% coverage)
 - ✅ Document transforms
-- ✅ Schema composition utilities
+- ✅ Schema composition utilities (`composeStandardSchemas`)
+- ✅ Direct Zod integration (Zod v4.2+ native support)
 - ✅ OpenAI JSON Schema compatibility mode
 
 **Known Limitations:**
 
-- StandardJSONSchema interface support is experimental (spec not yet stable)
+- None currently identified
 
 ## Testing
 

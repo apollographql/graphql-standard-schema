@@ -1,14 +1,8 @@
 export { GraphQLStandardSchemaGenerator } from "./GraphQLStandardSchemaGenerator.ts";
-export { zodToStandardJSONSchemaV1 as zodToExperimentalStandardJSONSchema } from "./utils/zodToStandardJSONSchemaV1.ts";
-export { composeStandardSchemas as composeExperimentalStandardJSONSchemas } from "./utils/composeStandardSchemas.ts";
+export { composeStandardSchemas } from "./utils/composeStandardSchemas.ts";
 export { toJSONSchema } from "./utils/toJsonSchema.ts";
 export { addTypename } from "./transforms/addTypename.ts";
 export type { CombinedSpec as ExperimentalCombinedSpec } from "./types.ts";
-export {
-  type StandardJSONSchemaV1 as ExperimentalStandardJSONSchemaV1,
-  standardJSONSchemaRootKey as experimentalStandardJSONSchemaRootKey,
-} from "./standard-schema-spec.ts";
-export { standardSchema as buildExperimentalStandardJSONSchema } from "./utils/standardSchema.ts";
 
 import type { GraphQLStandardSchemaGenerator } from "./GraphQLStandardSchemaGenerator.ts";
 declare module "graphql" {
