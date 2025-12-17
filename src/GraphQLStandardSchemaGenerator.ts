@@ -12,11 +12,10 @@ import { buildOperationSchema } from "./schema/buildOperationSchema.ts";
 import { buildVariablesSchema } from "./schema/buildVariablesSchema.ts";
 import { responseShapeSchema } from "./schema/responseShapeSchema.ts";
 import { schemaBase } from "./schema/schemaBase.ts";
-import {
-  standardJSONSchemaRootKey,
-  type StandardJSONSchemaV1,
-} from "./standard-schema-spec.ts";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
+import type {
+  StandardSchemaV1,
+  StandardJSONSchemaV1,
+} from "@standard-schema/spec";
 import { addTypename } from "./transforms/addTypename.ts";
 import type {
   CalculateSerializedType,
@@ -325,8 +324,8 @@ export class GraphQLStandardSchemaGenerator<
       serialize: serialize as any,
       buildSchema: (direction) =>
         direction === "serialized"
-          ? composedSerialize[standardJSONSchemaRootKey].jsonSchema.output
-          : composedSerialize[standardJSONSchemaRootKey].jsonSchema.input,
+          ? composedSerialize["~standard"].jsonSchema.output
+          : composedSerialize["~standard"].jsonSchema.input,
     });
   }
 

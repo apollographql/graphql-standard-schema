@@ -1,9 +1,8 @@
 import type { CombinedSpec } from "../types.ts";
-import {
-  standardJSONSchemaRootKey,
-  type StandardJSONSchemaV1,
-} from "../standard-schema-spec.ts";
-import { type StandardSchemaV1 } from "@standard-schema/spec";
+import type {
+  StandardSchemaV1,
+  StandardJSONSchemaV1,
+} from "@standard-schema/spec";
 import { assert } from "./assert.ts";
 
 type Id<T> = { [K in keyof T]: T[K] } & {};
@@ -68,14 +67,14 @@ export function composeStandardSchemas<
   const jsonSchema: (direction: "input" | "output") => JsonSchemaFn =
     (direction) => (params) => {
       const rootJson: Record<string, unknown> & { $defs?: {} } =
-        rootSchema[standardJSONSchemaRootKey].jsonSchema[direction](params);
+        rootSchema["~standard"].jsonSchema[direction](params);
       const {
         $defs,
         // oxlint-disable-next-line no-unused-vars
         $schema,
         ...extensionJson
       }: Record<string, unknown> & { $defs?: {} } =
-        extension[standardJSONSchemaRootKey].jsonSchema[direction](params);
+        extension["~standard"].jsonSchema[direction](params);
       let step: {
         type?: string;
         properties?: Record<string, Record<string, unknown>>;
@@ -212,8 +211,6 @@ export function composeStandardSchemas<
         }
         return combineResults(rootResult, extensionResult);
       },
-    },
-    [standardJSONSchemaRootKey]: {
       jsonSchema: {
         input: jsonSchema("input"),
         output: jsonSchema("output"),
@@ -237,17 +234,15 @@ export function nullable<Input, Output>(
           value
         ) as StandardSchemaV1.Result<Output | null>;
       },
-    },
-    [standardJSONSchemaRootKey]: {
       jsonSchema: {
         input(params) {
           const { $defs, $schema, ...orig } =
-            schema[standardJSONSchemaRootKey].jsonSchema.input(params);
+            schema["~standard"].jsonSchema.input(params);
           return { $schema, anyOf: [{ type: "null" }, orig], $defs };
         },
         output(params) {
           const { $defs, $schema, ...orig } =
-            schema[standardJSONSchemaRootKey].jsonSchema.output(params);
+            schema["~standard"].jsonSchema.output(params);
           return { $schema, anyOf: [{ type: "null" }, orig], $defs };
         },
       },

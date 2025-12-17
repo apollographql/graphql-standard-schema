@@ -1,5 +1,4 @@
 import type { GraphQLStandardSchemaGenerator } from "../GraphQLStandardSchemaGenerator.ts";
-import { standardJSONSchemaRootKey } from "../standard-schema-spec.ts";
 import type { CombinedSpec } from "../types.ts";
 
 export function standardSchema<Input, Output>(
@@ -15,8 +14,6 @@ export function standardSchema<Input, Output>(
       validate,
       vendor: "@apollo/graphql-standard-schema",
       version: 1 as const,
-    },
-    [standardJSONSchemaRootKey]: {
       jsonSchema: {
         input,
         output,
