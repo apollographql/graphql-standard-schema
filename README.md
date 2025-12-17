@@ -1,4 +1,4 @@
-This package allows you to create [Standard Schema](https://github.com/standard-schema/standard-schema) compliant Schemas for GraphQL operation responses, data, fragments or input variables.
+This package allows you to create [Standard Schema](https://github.com/standard-schema/standard-schema) (both `StandardSchemaV1` and `StandardJSONSchemaV1`) compliant Schemas for GraphQL data, fragments, operation responses or input variables.
 
 ## Creating a Schema Generator
 
