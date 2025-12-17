@@ -2,7 +2,7 @@ export { GraphQLStandardSchemaGenerator } from "./GraphQLStandardSchemaGenerator
 export { composeStandardSchemas } from "./utils/composeStandardSchemas.ts";
 export { toJSONSchema } from "./utils/toJsonSchema.ts";
 export { addTypename } from "./transforms/addTypename.ts";
-export type { CombinedSpec as ExperimentalCombinedSpec } from "./types.ts";
+export type { CombinedSpec } from "./types.ts";
 
 import type { GraphQLStandardSchemaGenerator } from "./GraphQLStandardSchemaGenerator.ts";
 declare module "graphql" {
