@@ -662,7 +662,7 @@ Composes multiple `StandardJSONSchemaV1` schemas into a single schema.
 #### Signature:
 
 ```ts
-// `CombinedSpec` is a combination of `StandardSchemaV1` and the experimental `StandardJSONSchema`
+// `CombinedSpec` is a combination of `StandardSchemaV1` and `StandardJSONSchemaV1`
 
 function composeStandardSchemas<
   Root extends CombinedSpec<any, any>,
