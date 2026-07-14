@@ -53,7 +53,7 @@
     "oxlint": "^1.32.0",
     "oxlint-tsgolint": "^0.8.4",
     "prettier": "^3.6.2",
-    "typescript": "^5.9.2",
+    "typescript": "^7.0.0",
     "zod": "^4.2.1"
   },
   "peerDependencies": {
