@@ -42,7 +42,7 @@
     "release": "changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8",
+    "@changesets/cli": "^2.31.1",
     "@types/node": "^24.3.1",
     "@wry/equality": "^0.5.7",
     "ajv": "^8.17.1",
